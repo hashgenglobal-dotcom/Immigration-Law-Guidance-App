@@ -243,7 +243,7 @@ CREATE TABLE privacy_safe_answer_logs (
     request_id UUID NOT NULL DEFAULT gen_random_uuid(),
     question_hash VARCHAR(128), -- e.g., SHA-256/512 hex of normalized question; never the raw text
     answer_hash VARCHAR(128),   -- e.g., SHA-256/512 hex of generated answer; never the raw text
-    retrieved_chunk_ids UUID[], -- IDs of legal_chunks used (no user content)
+    retrieved_chunk_ids INTEGER[], -- legal_chunks.id values (INTEGER, matches SERIAL PK) of chunks used (no user content)
     citations_used JSONB DEFAULT '[]'::jsonb,
     dataset_version_id INTEGER REFERENCES dataset_versions(id),
     risk_level VARCHAR(20), -- 'low', 'medium', 'high', 'critical'
