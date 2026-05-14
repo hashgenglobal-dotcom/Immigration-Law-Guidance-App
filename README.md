@@ -393,6 +393,7 @@ git commit -m "docs: update MVP question mapping"
 - **Database Setup:** [`database/SETUP_COMPLETE.md`](database/SETUP_COMPLETE.md)
 - **Schema SQL:** [`database/migrations/001-initial-schema.sql`](database/migrations/001-initial-schema.sql)
 - **eCFR Title 8 — First Ingestion Milestone Plan:** [`docs/ecfr-ingestion-milestone-plan.md`](docs/ecfr-ingestion-milestone-plan.md)
+- **Local Embeddings Milestone Plan:** [`docs/local-embeddings-milestone-plan.md`](docs/local-embeddings-milestone-plan.md)
 
 ---
 
