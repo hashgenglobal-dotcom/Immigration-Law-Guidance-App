@@ -214,23 +214,52 @@ CREATE INDEX idx_ingestion_jobs_source ON ingestion_jobs(source_name);
 CREATE INDEX idx_ingestion_jobs_created ON ingestion_jobs(created_at);
 
 -- ============================================================================
--- ANSWER LOGS
--- Audit trail of user questions and answers (for quality monitoring)
+-- PRIVACY-SAFE ANSWER LOGS
+-- Privacy-first audit trail for quality, safety, and debugging.
+--
+-- IMPORTANT: This table intentionally does NOT store the full user question
+-- text or full generated answer text. Real user questions in this app may
+-- contain highly sensitive information (asylum facts, visa overstay, ICE
+-- encounters, family details, criminal history, removal proceedings, etc.).
+--
+-- DO NOT store in this table or anywhere else by default:
+--   - full question text
+--   - full answer text
+--   - personal immigration facts
+--   - chat history
+--   - uploaded user documents
+--   - addresses
+--   - A-numbers
+--   - passport numbers
+--   - criminal history
+--   - asylum / credible fear / removal details
+--
+-- Only metadata (hashes, citations used, retrieved chunk ids, risk level,
+-- refusal flag, latency, etc.) is logged so the team can audit retrieval
+-- quality and safety without retaining sensitive personal content.
 -- ============================================================================
-CREATE TABLE answer_logs (
-    id SERIAL PRIMARY KEY,
-    question_text TEXT NOT NULL,
-    answer_text TEXT NOT NULL,
-    citations_used TEXT[], -- Array of citations referenced
-    risk_level VARCHAR(20),
-    dataset_version_id INTEGER,
+CREATE TABLE privacy_safe_answer_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_id UUID NOT NULL DEFAULT gen_random_uuid(),
+    question_hash VARCHAR(128), -- e.g., SHA-256/512 hex of normalized question; never the raw text
+    answer_hash VARCHAR(128),   -- e.g., SHA-256/512 hex of generated answer; never the raw text
+    retrieved_chunk_ids UUID[], -- IDs of legal_chunks used (no user content)
+    citations_used JSONB DEFAULT '[]'::jsonb,
+    dataset_version_id INTEGER REFERENCES dataset_versions(id),
+    risk_level VARCHAR(20), -- 'low', 'medium', 'high', 'critical'
     user_language VARCHAR(10) DEFAULT 'en',
-    response_time_ms INTEGER,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    refusal_triggered BOOLEAN DEFAULT FALSE,
+    safety_flags JSONB DEFAULT '[]'::jsonb,
+    model_name VARCHAR(100),
+    embedding_model VARCHAR(100),
+    latency_ms INTEGER,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_answer_logs_created ON answer_logs(created_at);
-CREATE INDEX idx_answer_logs_risk ON answer_logs(risk_level);
+CREATE INDEX idx_privacy_safe_answer_logs_created ON privacy_safe_answer_logs(created_at);
+CREATE INDEX idx_privacy_safe_answer_logs_risk ON privacy_safe_answer_logs(risk_level);
+CREATE INDEX idx_privacy_safe_answer_logs_dataset ON privacy_safe_answer_logs(dataset_version_id);
+CREATE INDEX idx_privacy_safe_answer_logs_refusal ON privacy_safe_answer_logs(refusal_triggered);
 
 -- ============================================================================
 -- ADMIN USERS

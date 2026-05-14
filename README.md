@@ -64,7 +64,7 @@ Provide accurate, citation-backed immigration law information to immigrants in t
 - **Dataset Versioning:** Users query stable, published datasets (no partial updates)
 - **Hybrid Search:** Vector (HNSW) + keyword (PostgreSQL full-text) retrieval
 - **Local-First:** All AI processing on-device (no public API calls for user data)
-- **Audit Trail:** Every Q&A logged with citations used
+- **Privacy-Safe Audit Trail:** Privacy-safe audit metadata is logged (hashes, citations used, retrieved chunk IDs, risk level, refusal flag, latency), but full user questions and full generated answers are **not stored by default**.
 
 ---
 
@@ -256,12 +256,22 @@ curl http://localhost:8000/api/health
 | `scenario_guides` | User-friendly guides (ICE, overstay, etc.) |
 | `dataset_versions` | Version control (only 1 active at a time) |
 | `ingestion_jobs` | Track admin update jobs |
-| `answer_logs` | Audit trail for Q&A |
+| `privacy_safe_answer_logs` | Privacy-safe metadata audit (hashes, citations used, chunk IDs, risk level, refusal flag, latency) — **no full questions or answers stored** |
 | `admin_users` | Dashboard auth |
 
 **Schema SQL:** [`database/migrations/001-initial-schema.sql`](database/migrations/001-initial-schema.sql)
 
 ---
+
+## 🛡️ Privacy Rule
+
+This app handles sensitive immigration-related questions (asylum facts, visa overstay, ICE encounters, family details, criminal history, removal proceedings, etc.). The following rules are mandatory:
+
+- **Real user questions are processed locally/private.** No user query is sent to any public AI API.
+- **Full question text and answer text are not stored by default.** The backend must not persist raw user questions or raw generated answers.
+- **Only privacy-safe metadata may be stored** — for example: question hash, answer hash, citations used, retrieved chunk IDs, risk level, refusal flag, model name, embedding model, language, and latency. This metadata lives in the `privacy_safe_answer_logs` table.
+- **Public legal-source data is safe to store and share.** USCIS / eCFR / INA / BIA / Federal Register text, citations, chunks, and embeddings of public legal content may be stored in the database and committed to the repo (via migrations and seed scripts).
+- **Private user data must never be committed to GitHub.** This includes `.env` files, real user questions, immigration case facts, chat logs, uploaded user documents, local database dumps, addresses, A-numbers, passport numbers, and any other personally identifying or case-identifying information.
 
 ## 🔒 Data Security (HashGen Protocol 2)
 
@@ -272,6 +282,7 @@ curl http://localhost:8000/api/health
 - ✅ No user questions sent to OpenAI, Anthropic, etc.
 - ✅ PostgreSQL database on local machine or private VPC
 - ✅ Redis for caching (local or private network only)
+- ✅ No full user questions or full answers persisted — only privacy-safe metadata in `privacy_safe_answer_logs`
 
 ---
 

@@ -34,7 +34,7 @@
 | `scenario_guides` | User-friendly guides | user_situation, plain_language_guidance, risk_level |
 | `dataset_versions` | Version control for legal data | status (building/ready/active/failed/archived) |
 | `ingestion_jobs` | Track admin update jobs | source_name, status, records_added, error_message |
-| `answer_logs` | Audit user Q&A | question_text, answer_text, citations_used |
+| `privacy_safe_answer_logs` | **Privacy-safe** metadata audit — no full Q&A text stored | question_hash, answer_hash, retrieved_chunk_ids, citations_used, risk_level, refusal_triggered, latency_ms |
 | `admin_users` | Dashboard authentication | username, password_hash, is_active |
 
 ---
@@ -57,9 +57,9 @@
 - Weights: chunk_text (A), summary (B), citation (C), topic/subtopic (D)
 - No manual index maintenance needed
 
-### 4. Audit Trail
-- `raw_documents.content_hash` detects content changes
-- `answer_logs` tracks all user questions and citations used
+### 4. Privacy-Safe Audit Trail
+- `raw_documents.content_hash` detects content changes in official legal sources
+- `privacy_safe_answer_logs` tracks **only privacy-safe metadata** for each Q&A — question hash, answer hash, citations used, retrieved chunk IDs, risk level, refusal flag, model/embedding name, language, and latency. **Full user question text and full generated answer text are not stored by default**, because real user questions may contain sensitive immigration facts (asylum details, visa overstay, ICE encounters, family/criminal history, removal proceedings, etc.).
 - `ingestion_jobs` logs every admin update attempt
 
 ### 5. Risk Classification
