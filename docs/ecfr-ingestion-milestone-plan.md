@@ -1,6 +1,6 @@
 # eCFR Title 8 Ingestion — First Milestone Plan
 
-**Status:** Draft — first script implemented as [`scripts/fetch_ecfr_title8_sample.py`](../scripts/fetch_ecfr_title8_sample.py); when `--date` is not provided, the script now auto-detects Title 8's latest available eCFR issue date via the [titles metadata endpoint](https://www.ecfr.gov/api/versioner/v1/titles). Database / chunking / embeddings phases still pending.
+**Status:** Draft — first script implemented as [`scripts/fetch_ecfr_title8_sample.py`](../scripts/fetch_ecfr_title8_sample.py); when `--date` is not provided, the script now auto-detects Title 8's latest available eCFR issue date via the [titles metadata endpoint](https://www.ecfr.gov/api/versioner/v1/titles). A JSON-preview validator has also been added at [`scripts/validate_ecfr_title8_preview.py`](../scripts/validate_ecfr_title8_preview.py) to sanity-check the generated preview before any database insertion is implemented. Database / chunking / embeddings phases still pending.
 **Owner:** Backend track on `feature/backend-cloud-foundation` (handing off to a future `feature/ecfr-ingestion`)
 **Scope:** Smallest possible, testable slice of eCFR Title 8 ingestion. Not the full pipeline.
 
