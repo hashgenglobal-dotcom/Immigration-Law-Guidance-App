@@ -1,0 +1,32 @@
+[project]
+name = "immigration-law-backend"
+version = "0.1.0"
+description = "FastAPI backend foundation for the Immigration Law Guidance App (privacy-first, local-first)."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "HashGen Global LLC" },
+]
+license = { text = "Proprietary" }
+
+# Privacy-first dependency footprint:
+# - No OpenAI / Anthropic / public AI SDKs.
+# - All AI inference (LLM + embeddings) is handled later via local Ollama / vLLM only.
+# - psycopg v3 is used (psycopg[binary]) — not psycopg2.
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.5",
+    "psycopg[binary]>=3.2",
+    "redis>=5.1",
+    "httpx>=0.27",
+    "python-dotenv>=1.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]

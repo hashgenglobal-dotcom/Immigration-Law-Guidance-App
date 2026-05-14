@@ -1,0 +1,44 @@
+# macOS
+.DS_Store
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.next/
+.vite/
+
+# Logs
+*.log
+logs/
+
+# Database / local data
+*.sqlite
+*.db
+*.dump
+*.sql
+postgres_data/
+redis_data/
+
+# Private or generated data
+data/*
+!data/.gitkeep
+
+# Editor local settings
+.cursor/
+.vscode/
+.idea/
