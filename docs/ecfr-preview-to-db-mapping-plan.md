@@ -221,6 +221,12 @@ All five `risk_level` values use only the lower three buckets (`medium` / `high`
 > raw XML, inserts all rows in one transaction, and prints a per-table inserted/reused
 > summary. Run it with `uv run --project backend python scripts/insert_ecfr_preview_to_db.py`.
 
+> **DB insert validation script exists.** After running the insertion script, use
+> [`scripts/validate_ecfr_db_insert.py`](../scripts/validate_ecfr_db_insert.py)
+> to confirm every table was populated correctly. It is read-only (SELECT only),
+> checks all seven success criteria from §7, and exits 0 on PASS / 1 on FAIL.
+> Run it with `uv run --project backend python scripts/validate_ecfr_db_insert.py`.
+
 > **Dry-run available.** Before running the real insertion script, use
 > [`scripts/dry_run_insert_ecfr_preview.py`](../scripts/dry_run_insert_ecfr_preview.py)
 > to simulate all planned inserts without writing to PostgreSQL. The dry-run
