@@ -392,6 +392,7 @@ git commit -m "docs: update MVP question mapping"
 - **Tech Stack:** [`docs/TECH_STACK.md`](docs/TECH_STACK.md)
 - **Database Setup:** [`database/SETUP_COMPLETE.md`](database/SETUP_COMPLETE.md)
 - **Schema SQL:** [`database/migrations/001-initial-schema.sql`](database/migrations/001-initial-schema.sql)
+- **eCFR Title 8 — First Ingestion Milestone Plan:** [`docs/ecfr-ingestion-milestone-plan.md`](docs/ecfr-ingestion-milestone-plan.md)
 
 ---
 
