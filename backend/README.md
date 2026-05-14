@@ -10,19 +10,47 @@ Minimal FastAPI backend foundation. This step intentionally contains **no** inge
 
 ## Environment variables
 
-Loaded by `app/core/config.py` via `pydantic-settings`. The canonical template lives at the repo root in `.env.example`.
+Loaded by `app/core/config.py` via `pydantic-settings`. The canonical template is `backend/.env.example`.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `APP_NAME` | `Immigration Law Guidance App` | Human-readable app name returned by `/health`. |
 | `APP_ENV` | `development` | Environment label (`development`, `staging`, `production`). |
 | `APP_DEBUG` | `true` | FastAPI debug flag. |
-| `DATABASE_URL` | _(unset)_ | PostgreSQL DSN, e.g. `postgresql+psycopg://user@localhost:5432/immigration_law_dev`. Not used yet. |
-| `REDIS_URL` | _(unset)_ | Redis URL, e.g. `redis://localhost:6379/0`. Not used yet. |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Local Ollama endpoint. Not called yet. |
-| `STORE_USER_QUESTIONS` | `false` | Must stay `false` by default. |
+| `DATABASE_URL` | _(unset)_ | PostgreSQL DSN, e.g. `postgresql+psycopg://user@localhost:5432/immigration_law_dev`. Used by `/health/dependencies`. |
+| `REDIS_URL` | _(unset)_ | Redis URL, e.g. `redis://localhost:6379/0`. Used by `/health/dependencies`. |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Local Ollama endpoint. Used by `/health/dependencies` (lists models only — no chat, no embeddings). |
+| `STORE_USER_QUESTIONS` | `false` | **Must stay `false` by default.** Real user questions and full generated answers must not be persisted. |
 
-Copy `.env.example` to `.env` at the repo root (or to `backend/.env`) and edit as needed. `.env` files are git-ignored.
+`backend/.env` is git-ignored and must never be committed. Only `backend/.env.example` is checked in.
+
+## Environment Setup (local development)
+
+```bash
+cd backend
+
+# 1. Copy the safe template and edit your local values.
+cp .env.example .env
+
+# 2. Open .env and replace YOUR_MAC_USERNAME in DATABASE_URL with your
+#    local PostgreSQL role (often the output of `whoami`).
+#    e.g. postgresql+psycopg://rishirajkanukuntla@localhost:5432/immigration_law_dev
+
+# 3. Confirm the local services are running.
+brew services start postgresql@17    # or @18
+brew services start redis
+brew services start ollama
+
+# 4. Start the backend, then verify dependency connectivity.
+uv sync
+uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+# In another terminal:
+curl http://127.0.0.1:8000/health/dependencies
+```
+
+A healthy response has top-level `"status": "ok"` and every check reporting `"status": "ok"`. See the [`/health/dependencies`](#get-healthdependencies--postgres--redis--ollama) section below for the payload shape and degraded-mode behavior.
+
+**Do not commit `backend/.env`.** It is intentionally git-ignored (see the root `.gitignore`) because it may contain local DB usernames, local connection details, or future credentials. Only `backend/.env.example` (placeholder values, safe to commit) is tracked.
 
 ## Run instructions
 
