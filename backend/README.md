@@ -24,6 +24,8 @@ Loaded by `app/core/config.py` via `pydantic-settings`. The canonical template i
 
 `backend/.env` is git-ignored and must never be committed. Only `backend/.env.example` is checked in.
 
+For guidance on pointing `DATABASE_URL` at a shared hosted PostgreSQL instance (what may go in it, what must not, provider and security requirements), see [`docs/cloud-shared-dev-database-plan.md`](../docs/cloud-shared-dev-database-plan.md).
+
 ## Environment Setup (local development)
 
 ```bash
