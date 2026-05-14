@@ -34,7 +34,9 @@ uv sync
 uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Then verify the health endpoint:
+Then verify the health endpoints.
+
+### `GET /health` — service liveness
 
 ```bash
 curl http://127.0.0.1:8000/health
@@ -51,6 +53,60 @@ Expected response (shape):
 }
 ```
 
+This endpoint never reaches out to PostgreSQL, Redis, or Ollama. It is safe to use as a fast liveness probe.
+
+### `GET /health/dependencies` — Postgres + Redis + Ollama
+
+```bash
+curl http://127.0.0.1:8000/health/dependencies
+```
+
+Probes the three external dependencies in parallel with short (2s) timeouts.
+
+- **Postgres**: connects via `psycopg` using `DATABASE_URL` (SQLAlchemy-style `postgresql+psycopg://...` URLs are normalized to `postgresql://...` internally) and runs `SELECT 1`.
+- **Redis**: connects via `redis.asyncio` using `REDIS_URL` and issues `PING`.
+- **Ollama**: HTTP `GET {OLLAMA_BASE_URL}/api/tags` and returns the list of locally installed model names. No chat completion or embeddings are called, and no user text is sent.
+
+Expected response when everything is up:
+
+```json
+{
+  "status": "ok",
+  "checks": {
+    "postgres": { "status": "ok", "detail": "connected" },
+    "redis":    { "status": "ok", "detail": "connected" },
+    "ollama":   {
+      "status": "ok",
+      "detail": "connected",
+      "models": ["nomic-embed-text:latest", "llama3.1:8b"]
+    }
+  }
+}
+```
+
+If one or more dependencies fail, the HTTP status code is still **200** and the top-level `status` becomes `"degraded"`:
+
+```json
+{
+  "status": "degraded",
+  "checks": {
+    "postgres": { "status": "error", "detail": "postgres unreachable (OperationalError)" },
+    "redis":    { "status": "ok", "detail": "connected" },
+    "ollama":   { "status": "ok", "detail": "connected", "models": [] }
+  }
+}
+```
+
+Error messages are deliberately short and **never include the DSN, password, or stack trace**, because libpq error messages can otherwise echo back the full connection string.
+
+### Quick local checklist before calling `/health/dependencies`
+
+```bash
+brew services start postgresql@17    # or @18
+brew services start redis
+brew services start ollama
+```
+
 OpenAPI docs are available at `http://127.0.0.1:8000/docs` while `APP_DEBUG=true`.
 
 ## Layout
@@ -61,15 +117,18 @@ backend/
 ├── README.md
 └── app/
     ├── __init__.py
-    ├── main.py                  # FastAPI app factory + /health wiring
+    ├── main.py                       # FastAPI app factory + router wiring
     ├── api/
     │   ├── __init__.py
     │   └── routes/
     │       ├── __init__.py
-    │       └── health.py        # GET /health
-    └── core/
+    │       └── health.py             # GET /health, GET /health/dependencies
+    ├── core/
+    │   ├── __init__.py
+    │   └── config.py                 # pydantic-settings Settings + get_settings()
+    └── services/
         ├── __init__.py
-        └── config.py            # pydantic-settings Settings + get_settings()
+        └── dependency_health.py      # Postgres / Redis / Ollama probes
 ```
 
 ## What this step does NOT do
