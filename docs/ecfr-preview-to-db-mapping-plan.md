@@ -216,6 +216,13 @@ All five `risk_level` values use only the lower three buckets (`medium` / `high`
 
 ## 6. Insert rules
 
+> **Dry-run available.** Before running the real insertion script, use
+> [`scripts/dry_run_insert_ecfr_preview.py`](../scripts/dry_run_insert_ecfr_preview.py)
+> to simulate all planned inserts without writing to PostgreSQL. The dry-run
+> script reads the same preview JSON, resolves the companion raw XML, computes
+> its SHA-256, applies the §5 topic mapping, and prints a human-readable report
+> plus a compact JSON summary — exit 0 on success, exit 1 on missing/invalid input.
+
 The future insertion script (likely `scripts/insert_ecfr_title8_sample.py`) must:
 
 - **Validate first.** Run `scripts/validate_ecfr_title8_preview.py` on the target preview file before opening any DB transaction. Refuse to insert if validation fails.
