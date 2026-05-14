@@ -216,6 +216,11 @@ All five `risk_level` values use only the lower three buckets (`medium` / `high`
 
 ## 6. Insert rules
 
+> **First local insert script exists.** [`scripts/insert_ecfr_preview_to_db.py`](../scripts/insert_ecfr_preview_to_db.py)
+> is the first real ingestion script. It reads the validated preview JSON and companion
+> raw XML, inserts all rows in one transaction, and prints a per-table inserted/reused
+> summary. Run it with `uv run --project backend python scripts/insert_ecfr_preview_to_db.py`.
+
 > **Dry-run available.** Before running the real insertion script, use
 > [`scripts/dry_run_insert_ecfr_preview.py`](../scripts/dry_run_insert_ecfr_preview.py)
 > to simulate all planned inserts without writing to PostgreSQL. The dry-run
