@@ -135,6 +135,46 @@ brew services start redis
 brew services start ollama
 ```
 
+### `GET /health/schema` — required migration tables present?
+
+```bash
+curl http://127.0.0.1:8000/health/schema
+```
+
+Verifies that the local PostgreSQL database has every table created by [`database/migrations/001-initial-schema.sql`](../database/migrations/001-initial-schema.sql). The probe only reads `information_schema.tables` — it **does not read or store user question text or generated answer text**, and it never touches the data tables themselves.
+
+Healthy response when the migration has been applied (10 required tables):
+
+```json
+{
+  "status": "ok",
+  "required_tables_count": 10,
+  "existing_tables_count": 10,
+  "missing_tables": [],
+  "privacy_safe_answer_logs_present": true
+}
+```
+
+Degraded response when one or more tables are missing (HTTP is still 200):
+
+```json
+{
+  "status": "degraded",
+  "required_tables_count": 10,
+  "existing_tables_count": 8,
+  "missing_tables": ["privacy_safe_answer_logs", "ingestion_jobs"],
+  "privacy_safe_answer_logs_present": false
+}
+```
+
+If the database is unreachable, the response is also `200` with `"status": "degraded"` and a short, credential-free `detail` such as `"database unreachable (OperationalError)"` or `"DATABASE_URL is not configured"`. The DSN, password, and stack trace are never echoed back.
+
+**Privacy note:** `privacy_safe_answer_logs` is **expected** — it stores only metadata (hashes, citations used, retrieved chunk IDs, risk level, refusal flag, latency). The legacy `answer_logs` table (which stored full `question_text` / `answer_text`) must **not** exist. If you ever need to apply the migration to a fresh database:
+
+```bash
+psql -d immigration_law_dev -f database/migrations/001-initial-schema.sql
+```
+
 OpenAPI docs are available at `http://127.0.0.1:8000/docs` while `APP_DEBUG=true`.
 
 ## Layout
@@ -143,6 +183,7 @@ OpenAPI docs are available at `http://127.0.0.1:8000/docs` while `APP_DEBUG=true
 backend/
 ├── pyproject.toml
 ├── README.md
+├── .env.example
 └── app/
     ├── __init__.py
     ├── main.py                       # FastAPI app factory + router wiring
@@ -150,13 +191,17 @@ backend/
     │   ├── __init__.py
     │   └── routes/
     │       ├── __init__.py
-    │       └── health.py             # GET /health, GET /health/dependencies
+    │       └── health.py             # GET /health, /health/dependencies, /health/schema
     ├── core/
     │   ├── __init__.py
     │   └── config.py                 # pydantic-settings Settings + get_settings()
+    ├── db/
+    │   ├── __init__.py
+    │   └── connection.py             # DSN normalization + async psycopg helpers
     └── services/
         ├── __init__.py
-        └── dependency_health.py      # Postgres / Redis / Ollama probes
+        ├── dependency_health.py      # Postgres / Redis / Ollama probes
+        └── schema_health.py          # Required-migration-tables probe
 ```
 
 ## What this step does NOT do

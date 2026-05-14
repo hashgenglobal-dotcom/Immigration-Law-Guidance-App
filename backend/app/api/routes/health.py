@@ -1,6 +1,6 @@
 """Health-check routes.
 
-Two endpoints are exposed:
+Three endpoints are exposed:
 
     * ``GET /health`` — small, privacy-safe service liveness payload
       (status, app name, environment, privacy mode). This endpoint is
@@ -9,8 +9,12 @@ Two endpoints are exposed:
       local Ollama and reports per-dependency status. Always returns
       HTTP 200; the top-level ``status`` is ``"degraded"`` if any
       dependency fails.
+    * ``GET /health/schema`` — verifies the local PostgreSQL database
+      has all tables defined in ``database/migrations/001-initial-schema.sql``.
+      Reads only ``information_schema.tables``; never touches user
+      content. Always HTTP 200, with ``status`` ``"ok"`` or ``"degraded"``.
 
-Neither endpoint leaks credentials, DSNs, secrets, or any user data.
+None of these endpoints leak credentials, DSNs, secrets, or any user data.
 """
 
 from __future__ import annotations
@@ -20,6 +24,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import Settings, get_settings
 from app.services.dependency_health import run_dependency_checks
+from app.services.schema_health import run_schema_health
 
 router = APIRouter(tags=["health"])
 
@@ -107,3 +112,46 @@ async def dependency_health(
     """
     result = await run_dependency_checks(settings)
     return DependencyHealthResponse.model_validate(result)
+
+
+# ---------------------------------------------------------------------------
+# GET /health/schema
+# ---------------------------------------------------------------------------
+
+
+class SchemaHealthResponse(BaseModel):
+    """Result of verifying the local DB schema against the migration.
+
+    ``privacy_safe_answer_logs_present`` is called out explicitly: it
+    is the privacy-safe audit table that must exist. The legacy
+    ``answer_logs`` table (which stored full question/answer text)
+    must NOT exist in this database.
+    """
+
+    status: str
+    required_tables_count: int
+    existing_tables_count: int
+    missing_tables: list[str] = Field(default_factory=list)
+    privacy_safe_answer_logs_present: bool
+    detail: str | None = None
+
+
+@router.get(
+    "/health/schema",
+    response_model=SchemaHealthResponse,
+    response_model_exclude_none=True,
+    summary="Verify required migration tables exist in PostgreSQL",
+)
+async def schema_health(
+    settings: Settings = Depends(get_settings),
+) -> SchemaHealthResponse:
+    """Read ``information_schema.tables`` and report missing migration tables.
+
+    This probe does NOT read or store user question text or generated
+    answer text — it only inspects table metadata. Returns HTTP 200
+    even when the database is unreachable; in that case ``status`` is
+    ``"degraded"`` and ``detail`` contains a short, credential-free
+    error message.
+    """
+    result = await run_schema_health(settings)
+    return SchemaHealthResponse.model_validate(result)
