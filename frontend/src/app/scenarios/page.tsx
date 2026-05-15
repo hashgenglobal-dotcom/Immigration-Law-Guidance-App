@@ -132,18 +132,21 @@ function ScenarioCard({ scenario, onOpen }: { scenario: Scenario; onOpen: () => 
     <button
       type="button"
       onClick={onOpen}
-      className="w-full rounded-2xl border border-sage-200 bg-cream-50 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-sage-400 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-200"
+      className="group w-full rounded-2xl border border-sage-200 bg-cream-50 p-6 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-sage-400 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-200"
     >
       <div className="flex items-start justify-between gap-4">
-        <h3 className="text-lg font-semibold text-forest-900">{scenario.title}</h3>
+        <h3 className="text-lg font-semibold text-forest-900 transition-colors duration-200 group-hover:text-sage-700">{scenario.title}</h3>
         <span
-          className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${risk}`}
+          className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-transform duration-200 group-hover:scale-105 ${risk}`}
         >
           {scenario.riskLevel}
         </span>
       </div>
       <p className="mt-3 text-sm leading-relaxed text-sage-800">{scenario.shortDescription}</p>
-      <p className="mt-4 text-sm font-semibold text-sage-700">Open overview →</p>
+      <p className="mt-4 flex items-center gap-1 text-sm font-semibold text-sage-700 transition-colors duration-200 group-hover:text-sage-900">
+        Open overview
+        <span className="transition-transform duration-200 group-hover:translate-x-1">→</span>
+      </p>
     </button>
   )
 }
@@ -171,7 +174,7 @@ function ScenarioModal({ scenario, onClose }: { scenario: Scenario; onClose: () 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-forest-950/60 p-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-forest-950/60 p-4 backdrop-blur-[2px] transition-opacity duration-300"
       role="presentation"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
@@ -183,7 +186,7 @@ function ScenarioModal({ scenario, onClose }: { scenario: Scenario; onClose: () 
         aria-modal="true"
         aria-labelledby="scenario-modal-title"
         tabIndex={-1}
-        className="max-h-[min(90vh,860px)] w-full max-w-2xl overflow-y-auto rounded-2xl border border-sage-200 bg-cream-50 p-6 shadow-2xl outline-none sm:p-8"
+        className="max-h-[min(90vh,860px)] w-full max-w-2xl animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-300 overflow-y-auto rounded-2xl border border-sage-200 bg-cream-50 p-6 shadow-2xl outline-none sm:p-8"
       >
         <div className="flex items-start justify-between gap-4">
           <h2 id="scenario-modal-title" className="text-2xl font-bold tracking-tight text-forest-900">

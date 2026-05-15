@@ -89,7 +89,64 @@ export default function AskQuestionPage() {
         <div className="mt-12">
           <AnswerDisplay answer={answer} />
         </div>
+      ) : isSubmitting ? (
+        <div className="mt-12">
+          <LoadingAnswerSkeleton />
+        </div>
       ) : null}
+    </div>
+  )
+}
+
+function LoadingAnswerSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Short Answer skeleton */}
+      <div className="animate-pulse rounded-2xl border border-sage-200 bg-cream-50 p-6 shadow-sm sm:p-8">
+        <div className="h-4 w-24 rounded bg-sage-200" />
+        <div className="mt-4 h-6 w-48 rounded bg-sage-200" />
+        <div className="mt-4 space-y-2">
+          <div className="h-4 w-full rounded bg-sage-200" />
+          <div className="h-4 w-5/6 rounded bg-sage-200" />
+        </div>
+      </div>
+
+      {/* Simple Explanation skeleton */}
+      <div className="animate-pulse rounded-2xl border border-sage-200 bg-cream-100 p-6 sm:p-8">
+        <div className="h-5 w-40 rounded bg-sage-200" />
+        <div className="mt-4 space-y-2">
+          <div className="h-4 w-full rounded bg-sage-200" />
+          <div className="h-4 w-11/12 rounded bg-sage-200" />
+          <div className="h-4 w-4/5 rounded bg-sage-200" />
+        </div>
+      </div>
+
+      {/* Possible Risks skeleton */}
+      <div className="animate-pulse rounded-2xl border border-sage-300 bg-sage-50 p-6 sm:p-8">
+        <div className="h-5 w-32 rounded bg-sage-200" />
+        <div className="mt-4 space-y-2">
+          <div className="h-4 w-full rounded bg-sage-200" />
+          <div className="h-4 w-3/4 rounded bg-sage-200" />
+        </div>
+      </div>
+
+      {/* What To Do Next skeleton */}
+      <div className="animate-pulse rounded-2xl border border-sage-200 bg-cream-50 p-6 sm:p-8">
+        <div className="h-5 w-36 rounded bg-sage-200" />
+        <div className="mt-4 space-y-2">
+          <div className="h-4 w-full rounded bg-sage-200" />
+          <div className="h-4 w-5/6 rounded bg-sage-200" />
+        </div>
+      </div>
+
+      {/* Sources skeleton */}
+      <div className="animate-pulse rounded-2xl border border-sage-200 bg-cream-50 p-6 sm:p-8">
+        <div className="h-5 w-28 rounded bg-sage-200" />
+        <div className="mt-4 space-y-3">
+          <div className="h-12 w-full rounded bg-sage-200" />
+          <div className="h-12 w-3/4 rounded bg-sage-200" />
+        </div>
+      </div>
     </div>
   )
 }
@@ -97,18 +154,21 @@ export default function AskQuestionPage() {
 function AnswerDisplay({ answer }: { answer: AnswerPayload }) {
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-sage-200 bg-cream-50 p-6 shadow-sm sm:p-8">
+      {/* Short Answer with fade-in animation */}
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 rounded-2xl border border-sage-200 bg-cream-50 p-6 shadow-sm sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-sage-700">Summary</p>
         <h2 className="mt-2 text-2xl font-bold tracking-tight text-forest-900">Short answer</h2>
         <p className="mt-4 text-lg leading-relaxed text-sage-900">{answer.shortAnswer}</p>
       </div>
 
-      <div className="rounded-2xl border border-sage-200 bg-cream-100 p-6 sm:p-8">
+      {/* Simple Explanation with staggered animation */}
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 rounded-2xl border border-sage-200 bg-cream-100 p-6 sm:p-8">
         <h2 className="text-lg font-semibold text-forest-900">Simple explanation</h2>
         <p className="mt-3 leading-relaxed text-sage-900">{answer.simpleExplanation}</p>
       </div>
 
-      <div className="rounded-2xl border border-sage-300 bg-sage-50 p-6 sm:p-8">
+      {/* Possible Risks with slide animation */}
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200 rounded-2xl border border-sage-300 bg-sage-50 p-6 sm:p-8">
         <h2 className="text-lg font-semibold text-forest-900">Possible risks</h2>
         <ul className="mt-4 space-y-2">
           {answer.possibleRisks.map((risk, i) => (
@@ -120,7 +180,8 @@ function AnswerDisplay({ answer }: { answer: AnswerPayload }) {
         </ul>
       </div>
 
-      <div className="rounded-2xl border border-sage-200 bg-cream-50 p-6 sm:p-8">
+      {/* What To Do Next with staggered animation */}
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 rounded-2xl border border-sage-200 bg-cream-50 p-6 sm:p-8">
         <h2 className="text-lg font-semibold text-forest-900">What to do next</h2>
         <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-sage-900">
           {answer.whatToDoNext.map((step, i) => (
@@ -131,11 +192,17 @@ function AnswerDisplay({ answer }: { answer: AnswerPayload }) {
         </ol>
       </div>
 
-      <SourcesCitations sources={answer.sources} />
+      {/* Sources with slide animation */}
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
+        <SourcesCitations sources={answer.sources} />
+      </div>
 
-      <Callout variant="warning" title="Legal disclaimer">
-        <p>{answer.disclaimer}</p>
-      </Callout>
+      {/* Disclaimer with final animation */}
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-500">
+        <Callout variant="warning" title="Legal disclaimer">
+          <p>{answer.disclaimer}</p>
+        </Callout>
+      </div>
     </div>
   )
 }

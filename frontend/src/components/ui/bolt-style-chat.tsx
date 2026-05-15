@@ -163,7 +163,7 @@ function ChatInput({
   return (
     <div className="relative mx-auto w-full max-w-[680px]">
       <div className="pointer-events-none absolute -inset-px rounded-2xl bg-gradient-to-b from-cream-200/15 to-transparent" />
-      <div className="relative rounded-2xl bg-forest-800/90 shadow-[0_0_0_1px_rgba(243,238,237,0.08),0_2px_24px_rgba(0,0,0,0.35)] ring-1 ring-cream-200/10">
+      <div className="relative rounded-2xl bg-forest-800/90 shadow-[0_0_0_1px_rgba(243,238,237,0.08),0_2px_24px_rgba(0,0,0,0.35)] ring-1 ring-cream-200/10 transition-shadow duration-300 hover:shadow-[0_0_0_1px_rgba(243,238,237,0.12),0_4px_32px_rgba(0,0,0,0.45)]">
         <textarea
           ref={textareaRef}
           id="immigration-question"
@@ -248,13 +248,18 @@ function ChatInput({
               type="button"
               onClick={handleSubmit}
               disabled={!value.trim() || disabled || submitting}
-              className="flex items-center gap-2 rounded-full bg-sage-500 px-3 py-2 text-sm font-medium text-cream-50 shadow-[0_0_18px_rgba(86,116,112,0.35)] transition-all duration-200 hover:bg-sage-600 disabled:cursor-not-allowed disabled:opacity-40 active:scale-95 sm:px-4"
+              className="group flex items-center gap-2 rounded-full bg-gradient-to-r from-sage-500 to-sage-600 px-3 py-2 text-sm font-medium text-cream-50 shadow-[0_0_18px_rgba(86,116,112,0.35)] transition-all duration-300 hover:from-sage-600 hover:to-sage-700 hover:shadow-[0_0_24px_rgba(86,116,112,0.45)] disabled:cursor-not-allowed disabled:opacity-40 active:scale-95 sm:px-4"
             >
-              <span className="hidden sm:inline">{submitting ? 'Working…' : 'Get information'}</span>
               {submitting ? (
-                <span className="inline-block size-4 animate-spin rounded-full border-2 border-cream-200/30 border-t-cream-50 sm:hidden" />
+                <>
+                  <span className="inline-block size-4 animate-spin rounded-full border-2 border-cream-200/30 border-t-cream-50" />
+                  <span className="hidden sm:inline">Processing…</span>
+                </>
               ) : (
-                <SendHorizontal className="size-4" />
+                <>
+                  <span className="hidden sm:inline">Get information</span>
+                  <SendHorizontal className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                </>
               )}
             </button>
           </div>
