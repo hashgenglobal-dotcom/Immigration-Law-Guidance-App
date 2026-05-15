@@ -108,6 +108,8 @@ Three scripts are planned for this milestone, following the same dry-run → rea
 > **`scripts/dry_run_embed_legal_chunks.py` now exists.** Run with `uv run --project backend python scripts/dry_run_embed_legal_chunks.py`. It connects to PostgreSQL (read-only), reports which chunks have `embedding IS NULL`, and prints a JSON summary — no Ollama calls, no database writes.
 >
 > **`scripts/embed_legal_chunks.py` now exists.** Run with `uv run --project backend python scripts/embed_legal_chunks.py`. Calls local Ollama `/api/embed` for each NULL-embedding chunk, verifies 768 dimensions, and updates `legal_chunks.embedding` in one transaction — no chunk activation, no `privacy_safe_answer_logs` writes, no public AI APIs.
+>
+> **`scripts/validate_legal_chunk_embeddings.py` now exists.** Run with `uv run --project backend python scripts/validate_legal_chunk_embeddings.py`. Read-only: checks all 5 expected citations have non-NULL embeddings, `vector_dims(embedding) = 768`, `is_active = FALSE`, and `privacy_safe_answer_logs` count is 0. Exits 0 on PASS, 1 on FAIL.
 
 ---
 
