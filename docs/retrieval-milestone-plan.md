@@ -112,7 +112,9 @@ These queries are paraphrases of public regulatory topics, not user case facts. 
 
 ## 6. Planned Scripts
 
-Four scripts are planned for this milestone, following the same dry-run → real-run → validate pattern used for ingestion, embedding, and activation. **None of these scripts exist yet.** They are described here so the plan can be reviewed before any code is written.
+Four scripts are planned for this milestone, following the same dry-run → real-run → validate pattern used for ingestion, embedding, and activation. They are described here so the plan can be reviewed before any code is written.
+
+> **`scripts/dry_run_retrieve_legal_chunks.py` now exists.** Run with `uv run --project backend python scripts/dry_run_retrieve_legal_chunks.py`. Connects to PostgreSQL (read-only), inspects the active dataset and its 5 active `legal_chunks` (citation, topic, subtopic, risk level, official URL, embedding dimension, snippet), prints the five planned synthetic test queries with their expected target citations, verifies `privacy_safe_answer_logs` is still 0, and prints a compact JSON summary — no Ollama calls, no embedding generation, no answer generation, no database writes.
 
 ### `scripts/dry_run_retrieve_legal_chunks.py`
 
