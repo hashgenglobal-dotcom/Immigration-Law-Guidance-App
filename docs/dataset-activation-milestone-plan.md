@@ -108,6 +108,8 @@ These rules must all be satisfied before activation proceeds. The activation scr
 
 Three scripts are planned for this milestone, following the same dry-run → real-run → validate pattern used for ingestion and embedding.
 
+> **`scripts/dry_run_activate_dataset.py` now exists.** Run with `uv run --project backend python scripts/dry_run_activate_dataset.py`. Connects to PostgreSQL (read-only), evaluates all activation preconditions, prints what `activate_dataset.py` would do, and exits 0 — no database writes, no chunk activation.
+
 ---
 
 ### `scripts/dry_run_activate_dataset.py`
