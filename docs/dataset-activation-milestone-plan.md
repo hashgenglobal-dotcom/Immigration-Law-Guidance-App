@@ -111,6 +111,8 @@ Three scripts are planned for this milestone, following the same dry-run → rea
 > **`scripts/dry_run_activate_dataset.py` now exists.** Run with `uv run --project backend python scripts/dry_run_activate_dataset.py`. Connects to PostgreSQL (read-only), evaluates all activation preconditions, prints what `activate_dataset.py` would do, and exits 0 — no database writes, no chunk activation.
 >
 > **`scripts/activate_dataset.py` now exists.** Run with `uv run --project backend python scripts/activate_dataset.py --yes`. Requires `--yes`; without it prints the plan and exits 1. With `--yes`, runs all pre-checks inside one transaction, archives any active dataset, promotes the target to `active`, and sets `legal_chunks.is_active = TRUE` — rolls back on any failure.
+>
+> **`scripts/validate_active_dataset.py` now exists.** Run with `uv run --project backend python scripts/validate_active_dataset.py`. Connects to PostgreSQL (read-only), confirms exactly one active dataset, verifies all 5 expected citations have `is_active = TRUE` and 768-dim embeddings, checks no other chunks are active, and exits 0 on PASS or 1 on FAIL — no database writes, no Ollama calls.
 
 ---
 
