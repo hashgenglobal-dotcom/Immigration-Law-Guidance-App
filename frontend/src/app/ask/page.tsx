@@ -1,25 +1,37 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
+import Callout from '@/components/Callout'
+import PageHeader from '@/components/PageHeader'
+import SourcesCitations from '@/components/SourcesCitations'
+import { BoltStyleChat } from '@/components/ui/bolt-style-chat'
+
+type AnswerPayload = {
+  shortAnswer: string
+  simpleExplanation: string
+  possibleRisks: string[]
+  whatToDoNext: string[]
+  sources: Array<{
+    title: string
+    citation: string
+    url: string
+    type: 'regulation' | 'statute' | 'case' | 'guidance'
+  }>
+  disclaimer: string
+}
 
 export default function AskQuestionPage() {
-  const router = useRouter()
   const [question, setQuestion] = useState('')
   const [language, setLanguage] = useState('en')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [answer, setAnswer] = useState<null | any>(null)
+  const [answer, setAnswer] = useState<AnswerPayload | null>(null)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const runSubmit = useCallback(() => {
+    if (!question.trim() || isSubmitting) return
     setIsSubmitting(true)
-    
+
     // TODO: Backend API integration will go here
-    // Example: POST /api/answer with { question, language }
-    // For now, using mock data
-    
     setTimeout(() => {
-      // Mock response - will be replaced with actual API call
       setAnswer({
         shortAnswer: 'This is a placeholder answer. Backend integration pending.',
         simpleExplanation: 'This section will contain a clear, plain-language explanation of the legal issue.',
@@ -36,136 +48,94 @@ export default function AskQuestionPage() {
             title: '8 CFR § 208.7 - Employment authorization',
             citation: '8 CFR 208.7',
             url: 'https://www.law.cornell.edu/cfr/text/8/208.7',
-            type: 'regulation' as const,
+            type: 'regulation',
           },
         ],
-        disclaimer: 'This is general legal information, not legal advice. Consult with an immigration attorney for your specific situation.',
+        disclaimer:
+          'This is general legal information, not legal advice. Consult with an immigration attorney for your specific situation.',
       })
       setIsSubmitting(false)
-    }, 1000)
-  }
+    }, 900)
+  }, [question, isSubmitting])
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Ask a Question</h1>
-      
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8">
-        <p className="text-sm text-yellow-800">
-          <strong>Privacy Note:</strong> Do not enter emergency information. Full questions are not stored by default.
-          This system is designed to minimize data retention.
+    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
+      <PageHeader
+        eyebrow="Assistant"
+        title="Ask a question"
+        description="Use the composer below. The shipped product will retrieve official sources before answering."
+      />
+
+      <Callout variant="warning" title="Privacy note">
+        <p>
+          Do not enter emergency information. Full questions are not stored by default. This system is designed to
+          minimize data retention.
         </p>
+      </Callout>
+
+      <div className="mt-8">
+        <BoltStyleChat
+          message={question}
+          onMessageChange={setQuestion}
+          onSubmit={runSubmit}
+          disabled={false}
+          submitting={isSubmitting}
+          language={language}
+          onLanguageChange={setLanguage}
+        />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label htmlFor="question" className="block text-sm font-medium text-gray-700 mb-2">
-            Your Immigration Question
-          </label>
-          <textarea
-            id="question"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            rows={6}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-            placeholder="Describe your situation or ask a specific question..."
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-2">
-            Language (Coming Soon)
-          </label>
-          <select
-            id="language"
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          >
-            <option value="en">English</option>
-            <option value="es" disabled>Spanish (Coming Soon)</option>
-            <option value="zh" disabled>Chinese (Coming Soon)</option>
-            <option value="fr" disabled>French (Coming Soon)</option>
-          </select>
-        </div>
-
-        <button
-          type="submit"
-          disabled={isSubmitting || !question.trim()}
-          className="w-full bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {isSubmitting ? 'Processing...' : 'Get Information'}
-        </button>
-      </form>
-
-      {answer && (
+      {answer ? (
         <div className="mt-12">
           <AnswerDisplay answer={answer} />
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
 
-function AnswerDisplay({ answer }: { answer: any }) {
+function AnswerDisplay({ answer }: { answer: AnswerPayload }) {
   return (
-    <div className="space-y-8">
-      <div className="border-t-4 border-primary-600 pt-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Short Answer</h2>
-        <p className="text-lg text-gray-700">{answer.shortAnswer}</p>
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-sage-200 bg-cream-50 p-6 shadow-sm sm:p-8">
+        <p className="text-xs font-semibold uppercase tracking-wide text-sage-700">Summary</p>
+        <h2 className="mt-2 text-2xl font-bold tracking-tight text-forest-900">Short answer</h2>
+        <p className="mt-4 text-lg leading-relaxed text-sage-900">{answer.shortAnswer}</p>
       </div>
 
-      <div className="bg-gray-50 rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-3">Simple Explanation</h2>
-        <p className="text-gray-700">{answer.simpleExplanation}</p>
+      <div className="rounded-2xl border border-sage-200 bg-cream-100 p-6 sm:p-8">
+        <h2 className="text-lg font-semibold text-forest-900">Simple explanation</h2>
+        <p className="mt-3 leading-relaxed text-sage-900">{answer.simpleExplanation}</p>
       </div>
 
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-red-900 mb-3">⚠️ Possible Risks</h2>
-        <ul className="space-y-2">
-          {answer.possibleRisks.map((risk: string, i: number) => (
-            <li key={i} className="text-red-800 flex items-start">
-              <span className="mr-2">•</span>
-              {risk}
+      <div className="rounded-2xl border border-sage-300 bg-sage-50 p-6 sm:p-8">
+        <h2 className="text-lg font-semibold text-forest-900">Possible risks</h2>
+        <ul className="mt-4 space-y-2">
+          {answer.possibleRisks.map((risk, i) => (
+            <li key={i} className="flex gap-2 text-sm leading-relaxed text-forest-900/90">
+              <span className="mt-0.5 font-semibold">•</span>
+              <span>{risk}</span>
             </li>
           ))}
         </ul>
       </div>
 
-      <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-green-900 mb-3">✅ What To Do Next</h2>
-        <ol className="space-y-2 list-decimal list-inside">
-          {answer.whatToDoNext.map((step: string, i: number) => (
-            <li key={i} className="text-green-800">{step}</li>
+      <div className="rounded-2xl border border-sage-200 bg-cream-50 p-6 sm:p-8">
+        <h2 className="text-lg font-semibold text-forest-900">What to do next</h2>
+        <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-sage-900">
+          {answer.whatToDoNext.map((step, i) => (
+            <li key={i} className="pl-1">
+              {step}
+            </li>
           ))}
         </ol>
       </div>
 
-      <div className="bg-gray-50 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Official Sources</h2>
-        <ul className="space-y-3">
-          {answer.sources.map((source: any, i: number) => (
-            <li key={i} className="border-l-4 border-primary-600 pl-4">
-              <p className="text-sm font-medium text-gray-900">{source.title}</p>
-              <p className="text-xs text-gray-500">{source.citation}</p>
-              <a
-                href={source.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary-600 hover:text-primary-800 text-sm"
-              >
-                View Source →
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <SourcesCitations sources={answer.sources} />
 
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <p className="text-sm text-yellow-800">
-          <strong>⚖️ Legal Disclaimer:</strong> {answer.disclaimer}
-        </p>
-      </div>
+      <Callout variant="warning" title="Legal disclaimer">
+        <p>{answer.disclaimer}</p>
+      </Callout>
     </div>
   )
 }

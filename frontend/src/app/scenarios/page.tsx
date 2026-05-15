@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import PageHeader from '@/components/PageHeader'
 
 interface Scenario {
   id: string
@@ -56,137 +57,187 @@ const scenarios: Scenario[] = [
   },
 ]
 
-export default function ScenariosPage() {
-  const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null)
-
+function ScenariosFallback() {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Scenario Guides</h1>
-      
-      <p className="text-lg text-gray-600 mb-8">
-        Select a scenario below to learn about your rights and next steps. 
-        These are general guides - consult an attorney for your specific situation.
-      </p>
-
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {scenarios.map((scenario) => (
-          <ScenarioCard
-            key={scenario.id}
-            scenario={scenario}
-            onClick={() => setSelectedScenario(scenario)}
-          />
+    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="h-9 w-64 animate-pulse rounded-lg bg-sage-200" />
+      <div className="mt-4 h-5 max-w-2xl animate-pulse rounded-lg bg-sage-200" />
+      <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="h-40 animate-pulse rounded-2xl border border-sage-200 bg-cream-100" />
         ))}
       </div>
-
-      {selectedScenario && (
-        <ScenarioModal
-          scenario={selectedScenario}
-          onClose={() => setSelectedScenario(null)}
-        />
-      )}
     </div>
   )
 }
 
-function ScenarioCard({
-  scenario,
-  onClick,
-}: {
-  scenario: Scenario
-  onClick: () => void
-}) {
-  const riskColors = {
-    low: 'bg-green-100 text-green-800 border-green-300',
-    medium: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    high: 'bg-red-100 text-red-800 border-red-300',
+export default function ScenariosPage() {
+  return (
+    <Suspense fallback={<ScenariosFallback />}>
+      <ScenariosContent />
+    </Suspense>
+  )
+}
+
+function ScenariosContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null)
+
+  const requestedId = useMemo(() => searchParams.get('s'), [searchParams])
+
+  useEffect(() => {
+    if (!requestedId) return
+    const match = scenarios.find((s) => s.id === requestedId)
+    if (match) setSelectedScenario(match)
+  }, [requestedId])
+
+  const openScenario = (scenario: Scenario) => {
+    setSelectedScenario(scenario)
+    router.replace(`/scenarios?s=${encodeURIComponent(scenario.id)}`, { scroll: false })
+  }
+
+  const closeModal = () => {
+    setSelectedScenario(null)
+    router.replace('/scenarios', { scroll: false })
   }
 
   return (
-    <div
-      onClick={onClick}
-      className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer"
-    >
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-900">{scenario.title}</h3>
-        <span
-          className={`text-xs px-2 py-1 rounded-full border ${riskColors[scenario.riskLevel]}`}
-        >
-          {scenario.riskLevel.toUpperCase()}
-        </span>
+    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <PageHeader
+        eyebrow="Guides"
+        title="Scenario guides"
+        description="Pick a situation to see an overview and next steps. These are general guides—consult an attorney for advice about your specific case."
+      />
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {scenarios.map((scenario) => (
+          <ScenarioCard key={scenario.id} scenario={scenario} onOpen={() => openScenario(scenario)} />
+        ))}
       </div>
-      <p className="text-gray-600 text-sm">{scenario.shortDescription}</p>
-      <p className="text-primary-600 text-sm mt-4 font-medium">Click to learn more →</p>
+
+      {selectedScenario ? <ScenarioModal scenario={selectedScenario} onClose={closeModal} /> : null}
     </div>
   )
 }
 
-function ScenarioModal({
-  scenario,
-  onClose,
-}: {
-  scenario: Scenario
-  onClose: () => void
-}) {
+function ScenarioCard({ scenario, onOpen }: { scenario: Scenario; onOpen: () => void }) {
+  const risk = {
+    low: 'border-sage-200 bg-cream-100 text-forest-900',
+    medium: 'border-sage-400 bg-sage-100 text-forest-900',
+    high: 'border-forest-800 bg-forest-900 text-cream-100',
+  }[scenario.riskLevel]
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">{scenario.title}</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 text-2xl"
-            >
-              ×
-            </button>
-          </div>
-          
-          <div className="mb-6">
-            <span
-              className={`inline-block text-xs px-3 py-1 rounded-full border ${
-                scenario.riskLevel === 'high'
-                  ? 'bg-red-100 text-red-800 border-red-300'
-                  : scenario.riskLevel === 'medium'
-                  ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                  : 'bg-green-100 text-green-800 border-green-300'
-              }`}
-            >
-              {scenario.riskLevel.toUpperCase()} RISK
-            </span>
+    <button
+      type="button"
+      onClick={onOpen}
+      className="w-full rounded-2xl border border-sage-200 bg-cream-50 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-sage-400 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-200"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <h3 className="text-lg font-semibold text-forest-900">{scenario.title}</h3>
+        <span
+          className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${risk}`}
+        >
+          {scenario.riskLevel}
+        </span>
+      </div>
+      <p className="mt-3 text-sm leading-relaxed text-sage-800">{scenario.shortDescription}</p>
+      <p className="mt-4 text-sm font-semibold text-sage-700">Open overview →</p>
+    </button>
+  )
+}
+
+function ScenarioModal({ scenario, onClose }: { scenario: Scenario; onClose: () => void }) {
+  const panelRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  useEffect(() => {
+    panelRef.current?.focus()
+  }, [scenario.id])
+
+  const risk = {
+    low: 'border-sage-200 bg-cream-100 text-forest-900',
+    medium: 'border-sage-400 bg-sage-100 text-forest-900',
+    high: 'border-forest-800 bg-forest-900 text-cream-100',
+  }[scenario.riskLevel]
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-forest-950/60 p-4 backdrop-blur-[2px]"
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="scenario-modal-title"
+        tabIndex={-1}
+        className="max-h-[min(90vh,860px)] w-full max-w-2xl overflow-y-auto rounded-2xl border border-sage-200 bg-cream-50 p-6 shadow-2xl outline-none sm:p-8"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <h2 id="scenario-modal-title" className="text-2xl font-bold tracking-tight text-forest-900">
+            {scenario.title}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-sage-200 bg-cream-50 text-lg text-forest-900 transition hover:bg-cream-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="mt-4">
+          <span
+            className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${risk}`}
+          >
+            {scenario.riskLevel} risk
+          </span>
+        </div>
+
+        <div className="mt-8 space-y-6">
+          <section>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-sage-600">Situation</h3>
+            <p className="mt-2 text-base leading-relaxed text-sage-900">{scenario.description}</p>
+          </section>
+
+          <div className="rounded-2xl border border-sage-200 bg-cream-100 p-5">
+            <h3 className="text-base font-semibold text-forest-900">Important</h3>
+            <p className="mt-2 text-sm leading-relaxed text-sage-900">
+              This is a placeholder guide. Backend integration is pending. In the final version, this will include
+              detailed legal information, rights, procedures, and official sources.
+            </p>
           </div>
 
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Situation</h3>
-              <p className="text-gray-700">{scenario.description}</p>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">⚠️ Important</h3>
-              <p className="text-blue-800 text-sm">
-                This is a placeholder guide. Backend integration pending. 
-                In the final version, this will contain detailed legal information,
-                rights, procedures, and official sources.
-              </p>
-            </div>
-
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold text-yellow-900 mb-2">⚖️ Legal Disclaimer</h3>
-              <p className="text-yellow-800 text-sm">
-                This is general legal information, not legal advice. Consult with an
-                immigration attorney for your specific situation.
-              </p>
-            </div>
+          <div className="rounded-2xl border border-sage-300 bg-sage-50 p-5">
+            <h3 className="text-base font-semibold text-forest-900">Legal disclaimer</h3>
+            <p className="mt-2 text-sm leading-relaxed text-forest-900/90">
+              This is general legal information, not legal advice. Consult with an immigration attorney for your
+              specific situation.
+            </p>
           </div>
+        </div>
 
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={onClose}
-              className="bg-primary-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-primary-700"
-            >
-              Close
-            </button>
-          </div>
+        <div className="mt-8 flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex items-center justify-center rounded-xl bg-sage-500 px-5 py-2.5 text-sm font-semibold text-cream-50 shadow-sm transition hover:bg-sage-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-400 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-50"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
