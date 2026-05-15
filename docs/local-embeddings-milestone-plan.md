@@ -105,6 +105,8 @@ The embedding script will call Ollama over localhost only and will never send ch
 
 Three scripts are planned for this milestone, following the same dry-run → real-run → validate pattern used for ingestion.
 
+> **`scripts/dry_run_embed_legal_chunks.py` now exists.** Run with `uv run --project backend python scripts/dry_run_embed_legal_chunks.py`. It connects to PostgreSQL (read-only), reports which chunks have `embedding IS NULL`, and prints a JSON summary — no Ollama calls, no database writes.
+
 ---
 
 ### `scripts/dry_run_embed_legal_chunks.py`
