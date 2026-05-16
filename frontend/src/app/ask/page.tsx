@@ -26,37 +26,53 @@ export default function AskQuestionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [answer, setAnswer] = useState<AnswerPayload | null>(null)
 
-  const runSubmit = useCallback(() => {
+  const runSubmit = useCallback(async () => {
     if (!question.trim() || isSubmitting) return
     setIsSubmitting(true)
+    setAnswer(null)
 
-    // TODO: Backend API integration will go here
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/chat/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, language }),
+      })
+
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`)
+      }
+
+      const data = await res.json()
+      const answerData = data.answer
+
       setAnswer({
-        shortAnswer: 'This is a placeholder answer. Backend integration pending.',
-        simpleExplanation: 'This section will contain a clear, plain-language explanation of the legal issue.',
-        possibleRisks: [
-          'Risk 1: Placeholder - backend will provide actual risks',
-          'Risk 2: Placeholder - backend will provide actual risks',
-        ],
-        whatToDoNext: [
-          'Step 1: Placeholder - backend will provide actionable steps',
-          'Step 2: Placeholder - backend will provide actionable steps',
-        ],
-        sources: [
-          {
-            title: '8 CFR § 208.7 - Employment authorization',
-            citation: '8 CFR 208.7',
-            url: 'https://www.law.cornell.edu/cfr/text/8/208.7',
-            type: 'regulation',
-          },
-        ],
+        shortAnswer: answerData?.short_answer || 'No answer returned',
+        simpleExplanation: answerData?.simple_explanation || '',
+        possibleRisks: answerData?.possible_risks || [],
+        whatToDoNext: answerData?.what_to_do_next || [],
+        sources: (answerData?.official_sources || []).map((src: { title?: string; citation: string; official_url: string }) => ({
+          title: src.title || src.citation,
+          citation: src.citation,
+          url: src.official_url,
+          type: 'regulation' as const,
+        })),
         disclaimer:
+          answerData?.legal_disclaimer ||
           'This is general legal information, not legal advice. Consult with an immigration attorney for your specific situation.',
       })
+    } catch (err) {
+      setAnswer({
+        shortAnswer: 'Error connecting to backend',
+        simpleExplanation: `Failed to get answer: ${err instanceof Error ? err.message : 'Unknown error'}. Ensure the backend is running on port 8000.`,
+        possibleRisks: [],
+        whatToDoNext: ['Check that the backend server is running', 'Verify the API endpoint is accessible'],
+        sources: [],
+        disclaimer: 'This is general legal information, not legal advice.',
+      })
+    } finally {
       setIsSubmitting(false)
-    }, 900)
-  }, [question, isSubmitting])
+    }
+  }, [question, language, isSubmitting])
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
