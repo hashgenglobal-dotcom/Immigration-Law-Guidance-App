@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from app.api.routes import health
+from app.api.routes import health, retrieval
 from app.core.config import get_settings
 
 
@@ -42,6 +42,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(health.router)
+    app.include_router(retrieval.router)
 
     return app
 
