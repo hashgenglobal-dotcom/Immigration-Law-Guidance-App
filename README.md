@@ -397,6 +397,7 @@ git commit -m "docs: update MVP question mapping"
 - **Dataset Activation Milestone Plan:** [`docs/dataset-activation-milestone-plan.md`](docs/dataset-activation-milestone-plan.md)
 - **Retrieval Milestone Plan:** [`docs/retrieval-milestone-plan.md`](docs/retrieval-milestone-plan.md)
 - **Backend Cloud Foundation — Milestone Summary + Pre-Merge Checklist:** [`docs/backend-cloud-foundation-milestone-summary.md`](docs/backend-cloud-foundation-milestone-summary.md)
+- **Backend Retrieval API Milestone Plan:** [`docs/backend-retrieval-api-plan.md`](docs/backend-retrieval-api-plan.md)
 
 ---
 
