@@ -165,6 +165,8 @@ Four scripts are planned for this milestone, following the same dry-run → real
 
 ---
 
+> **`scripts/validate_retrieval_results.py` now exists.** Run with `uv run --project backend python scripts/validate_retrieval_results.py`. Embeds all five synthetic test queries locally via Ollama `nomic-embed-text`, runs pgvector search against `legal_chunks WHERE is_active = TRUE` for each, and checks that the expected CFR citation appears in the top-k results. Prints a per-query PASS/FAIL with citation rank and distance, plus a final summary. Exits 0 (PASS) only when all five queries find their expected citation and `privacy_safe_answer_logs` count is still 0 — no answer generation, no question storage, no database writes, no public AI APIs.
+
 ### `scripts/validate_retrieval_results.py`
 
 **Purpose:** Confirm that the five synthetic queries from §5 each retrieve their expected citation, and confirm safety invariants are preserved.
