@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Immigration Law Guidance",
+    "slug": "immigration-law-guidance",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "immigration-law-guidance",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#1e40af"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hashgen.immigrationlawguidance"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#1e40af"
+      },
+      "package": "com.hashgen.immigrationlawguidance"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
