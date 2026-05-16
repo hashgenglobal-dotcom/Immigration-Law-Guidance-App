@@ -185,6 +185,24 @@ Four scripts are planned for this milestone, following the same dry-run → real
 
 ---
 
+> **`scripts/validate_hybrid_retrieval_results.py` now exists.** Run with `uv run --project backend python scripts/validate_hybrid_retrieval_results.py`. Embeds all five synthetic test queries locally via Ollama `nomic-embed-text`, runs both pgvector cosine-distance search and PostgreSQL `plainto_tsquery` full-text search against `legal_chunks WHERE is_active = TRUE`, fuses the two ranked lists using Reciprocal Rank Fusion (RRF_K=60), and checks that each expected CFR citation appears at hybrid rank 1. Prints a per-query PASS/FAIL with rank and top hybrid result, plus a summary of total/passed/failed/rank_1_passed/rank_1_failed and `privacy_safe_answer_logs` count. Exits 0 (PASS) only when all five queries find their expected citation at rank 1 and `privacy_safe_answer_logs` count is still 0 — no answer generation, no question storage, no database writes, no public AI APIs.
+
+### `scripts/validate_hybrid_retrieval_results.py`
+
+**Purpose:** Confirm that the five synthetic queries from §5 each retrieve their expected citation at hybrid rank 1, and confirm safety invariants are preserved.
+
+**Behavior:**
+- Iterate over the five `(query, expected_citation, expected_rank_1)` triples from §5.
+- For each, embed the query locally via Ollama `nomic-embed-text` (768-dim), run vector retrieval and keyword retrieval over `legal_chunks WHERE is_active = TRUE`, and fuse using RRF (identical to `hybrid_retrieve_legal_chunks.py`).
+- PASS the query if `expected_citation` is the top hybrid result (rank 1); FAIL otherwise.
+- Continue all five tests even if one fails — all results are shown in a single report.
+- Confirm `privacy_safe_answer_logs` row count is still 0.
+- Print a per-query result and a final summary with `rank_1_passed` / `rank_1_failed` counts.
+
+**Exit codes:** 0 if all five queries PASS (expected citation at hybrid rank 1) and `privacy_safe_answer_logs` count is still 0; 1 on any FAIL.
+
+---
+
 ## 7. Safety and Privacy Rules
 
 These rules apply to every script and every test in this milestone. They are non-negotiable.
