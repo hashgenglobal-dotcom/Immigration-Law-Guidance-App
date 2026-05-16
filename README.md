@@ -396,6 +396,7 @@ git commit -m "docs: update MVP question mapping"
 - **Local Embeddings Milestone Plan:** [`docs/local-embeddings-milestone-plan.md`](docs/local-embeddings-milestone-plan.md)
 - **Dataset Activation Milestone Plan:** [`docs/dataset-activation-milestone-plan.md`](docs/dataset-activation-milestone-plan.md)
 - **Retrieval Milestone Plan:** [`docs/retrieval-milestone-plan.md`](docs/retrieval-milestone-plan.md)
+- **Backend Cloud Foundation — Milestone Summary + Pre-Merge Checklist:** [`docs/backend-cloud-foundation-milestone-summary.md`](docs/backend-cloud-foundation-milestone-summary.md)
 
 ---
 
