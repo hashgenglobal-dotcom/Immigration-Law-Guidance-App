@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import Callout from '@/components/Callout'
+import { ScrollReveal } from '@/components/ScrollReveal'
 import PageHeader from '@/components/PageHeader'
 import SourcesCitations from '@/components/SourcesCitations'
 import { BoltStyleChat } from '@/components/ui/bolt-style-chat'
@@ -89,7 +90,7 @@ export default function AskQuestionPage() {
         </p>
       </Callout>
 
-      <div className="mt-8">
+      <ScrollReveal className="mt-8">
         <BoltStyleChat
           message={question}
           onMessageChange={setQuestion}
@@ -99,16 +100,16 @@ export default function AskQuestionPage() {
           language={language}
           onLanguageChange={setLanguage}
         />
-      </div>
+      </ScrollReveal>
 
       {answer ? (
-        <div className="mt-12">
+        <ScrollReveal className="mt-12">
           <AnswerDisplay answer={answer} />
-        </div>
+        </ScrollReveal>
       ) : isSubmitting ? (
-        <div className="mt-12">
+        <ScrollReveal className="mt-12">
           <LoadingAnswerSkeleton />
-        </div>
+        </ScrollReveal>
       ) : null}
     </div>
   )
@@ -171,20 +172,20 @@ function AnswerDisplay({ answer }: { answer: AnswerPayload }) {
   return (
     <div className="space-y-6">
       {/* Short Answer with fade-in animation */}
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 rounded-2xl border border-sage-200 bg-cream-50 p-6 shadow-sm sm:p-8">
+      <div className="animate-fade-in-up rounded-2xl border border-sage-200 bg-cream-50 p-6 shadow-sm sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-sage-700">Summary</p>
         <h2 className="mt-2 text-2xl font-bold tracking-tight text-forest-900">Short answer</h2>
         <p className="mt-4 text-lg leading-relaxed text-sage-900">{answer.shortAnswer}</p>
       </div>
 
       {/* Simple Explanation with staggered animation */}
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 rounded-2xl border border-sage-200 bg-cream-100 p-6 sm:p-8">
+      <div className="animate-fade-in-up-delay-1 rounded-2xl border border-sage-200 bg-cream-100 p-6 sm:p-8">
         <h2 className="text-lg font-semibold text-forest-900">Simple explanation</h2>
         <p className="mt-3 leading-relaxed text-sage-900">{answer.simpleExplanation}</p>
       </div>
 
       {/* Possible Risks with slide animation */}
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200 rounded-2xl border border-sage-300 bg-sage-50 p-6 sm:p-8">
+      <div className="animate-fade-in-up-delay-2 rounded-2xl border border-sage-300 bg-sage-50 p-6 sm:p-8">
         <h2 className="text-lg font-semibold text-forest-900">Possible risks</h2>
         <ul className="mt-4 space-y-2">
           {answer.possibleRisks.map((risk, i) => (
@@ -197,7 +198,7 @@ function AnswerDisplay({ answer }: { answer: AnswerPayload }) {
       </div>
 
       {/* What To Do Next with staggered animation */}
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 rounded-2xl border border-sage-200 bg-cream-50 p-6 sm:p-8">
+      <div className="animate-fade-in-up-delay-3 rounded-2xl border border-sage-200 bg-cream-50 p-6 sm:p-8">
         <h2 className="text-lg font-semibold text-forest-900">What to do next</h2>
         <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-sage-900">
           {answer.whatToDoNext.map((step, i) => (
@@ -209,12 +210,12 @@ function AnswerDisplay({ answer }: { answer: AnswerPayload }) {
       </div>
 
       {/* Sources with slide animation */}
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-400">
+      <div className="animate-fade-in-up-delay-4">
         <SourcesCitations sources={answer.sources} />
       </div>
 
       {/* Disclaimer with final animation */}
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-500">
+      <div className="animate-fade-in-up-delay-5">
         <Callout variant="warning" title="Legal disclaimer">
           <p>{answer.disclaimer}</p>
         </Callout>

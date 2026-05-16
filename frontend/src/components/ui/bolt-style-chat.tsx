@@ -248,7 +248,7 @@ function ChatInput({
               type="button"
               onClick={handleSubmit}
               disabled={!value.trim() || disabled || submitting}
-              className="group flex items-center gap-2 rounded-full bg-gradient-to-r from-sage-500 to-sage-600 px-3 py-2 text-sm font-medium text-cream-50 shadow-[0_0_18px_rgba(86,116,112,0.35)] transition-all duration-300 hover:from-sage-600 hover:to-sage-700 hover:shadow-[0_0_24px_rgba(86,116,112,0.45)] disabled:cursor-not-allowed disabled:opacity-40 active:scale-95 sm:px-4"
+              className="group flex items-center gap-2 rounded-full bg-gradient-to-r from-sage-500 to-sage-600 px-3 py-2 text-sm font-medium text-cream-50 shadow-glow-gold transition-all duration-300 hover:-translate-y-0.5 hover:from-sage-600 hover:to-sage-700 hover:shadow-glow-gold-lg disabled:cursor-not-allowed disabled:opacity-40 active:scale-95 sm:px-4"
             >
               {submitting ? (
                 <>
@@ -272,19 +272,19 @@ function ChatInput({
 function RayBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 select-none overflow-hidden">
-      <div className="absolute inset-0 bg-[#0C2924]" />
+      <div className="absolute inset-0 bg-forest-900" />
       <div
         className="absolute left-1/2 top-[-10%] h-[70%] w-[180%] -translate-x-1/2 opacity-50 sm:w-[140%]"
         style={{
           background:
-            'radial-gradient(ellipse 55% 50% at 50% 0%, rgba(86, 116, 112, 0.42) 0%, rgba(12, 41, 36, 0.25) 42%, transparent 72%)',
+            'radial-gradient(ellipse 55% 50% at 50% 0%, rgba(182, 157, 116, 0.38) 0%, rgba(31, 40, 57, 0.28) 42%, transparent 72%)',
         }}
       />
       <div
         className="absolute left-1/2 top-1/3 h-[120%] w-[120%] -translate-x-1/2 opacity-30"
         style={{
           background:
-            'radial-gradient(circle at 50% 40%, rgba(243, 238, 237, 0.12) 0%, transparent 55%)',
+            'radial-gradient(circle at 50% 40%, rgba(245, 245, 239, 0.14) 0%, transparent 55%)',
         }}
       />
     </div>
@@ -295,10 +295,10 @@ function AnnouncementBadge({ text, href }: { text: string; href?: string }) {
   const className =
     'relative inline-flex min-h-[40px] items-center gap-2 overflow-hidden rounded-full px-5 py-2 text-sm font-medium text-cream-50 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]'
   const style: React.CSSProperties = {
-    background: 'linear-gradient(135deg, rgba(86,116,112,0.35), rgba(12,41,36,0.5))',
+    background: 'linear-gradient(135deg, rgba(182,157,116,0.4), rgba(31,40,57,0.55))',
     backdropFilter: 'blur(16px) saturate(130%)',
     boxShadow:
-      'inset 0 1px rgba(243,238,237,0.15), inset 0 -1px rgba(0,0,0,0.12), 0 8px 28px -8px rgba(0,0,0,0.35), 0 0 0 1px rgba(243,238,237,0.1)',
+      'inset 0 1px rgba(245,245,239,0.18), inset 0 -1px rgba(0,0,0,0.12), 0 8px 28px -8px rgba(0,0,0,0.35), 0 0 0 1px rgba(182,157,116,0.2)',
   }
 
   const inner = (
@@ -306,7 +306,7 @@ function AnnouncementBadge({ text, href }: { text: string; href?: string }) {
       <span
         className="pointer-events-none absolute left-0 right-0 top-0 h-1/2 opacity-60 mix-blend-overlay"
         style={{
-          background: 'radial-gradient(ellipse at center top, rgba(243, 238, 237, 0.18) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse at center top, rgba(245, 245, 239, 0.2) 0%, transparent 70%)',
         }}
       />
       <Scale className="relative z-10 size-4 text-cream-100" aria-hidden />
@@ -397,7 +397,7 @@ export function BoltStyleChat({
   onLanguageChange,
 }: BoltStyleChatProps) {
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl border border-sage-700/40 bg-[#0C2924] shadow-xl">
+    <div className="relative w-full overflow-hidden rounded-2xl border border-sage-500/30 bg-forest-900 shadow-elevated">
       <RayBackground />
       <form
         className="relative z-[1] flex flex-col items-center px-4 py-10 sm:px-8 sm:py-12"

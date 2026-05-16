@@ -41,7 +41,7 @@ export default function SourcesCitations({ sources }: SourcesProps) {
                 href={source.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex shrink-0 items-center justify-center rounded-lg bg-sage-500 px-3 py-2 text-sm font-semibold text-cream-50 shadow-sm transition hover:bg-sage-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-400 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-50"
+                className="btn-primary btn-sm shrink-0"
               >
                 View source
               </a>

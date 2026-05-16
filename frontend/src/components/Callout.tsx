@@ -3,10 +3,10 @@ import type { ReactNode } from 'react'
 type CalloutVariant = 'info' | 'warning' | 'danger' | 'success'
 
 const variantClass: Record<CalloutVariant, string> = {
-  info: 'border-sage-200 bg-cream-100 text-forest-900',
-  warning: 'border-sage-300 bg-sage-50 text-forest-900',
-  danger: 'border-forest-800 bg-forest-900 text-cream-200',
-  success: 'border-sage-200 bg-cream-50 text-forest-900',
+  info: 'border-sage-200 border-l-sage-500 bg-cream-100 text-forest-900',
+  warning: 'border-sage-300 border-l-sage-600 bg-sage-50 text-forest-900',
+  danger: 'border-forest-800 border-l-cream-200 bg-forest-900 text-cream-200',
+  success: 'border-sage-200 border-l-sage-500 bg-cream-50 text-forest-900',
 }
 
 export default function Callout({
@@ -23,7 +23,7 @@ export default function Callout({
   return (
     <div
       role="note"
-      className={`rounded-xl border px-4 py-3 text-sm leading-relaxed shadow-sm ${variantClass[variant]} ${className}`}
+      className={`rounded-xl border border-l-4 px-4 py-3 text-sm leading-relaxed shadow-sm ${variantClass[variant]} ${className}`}
     >
       {title ? (
         <p className="font-semibold tracking-tight">{title}</p>

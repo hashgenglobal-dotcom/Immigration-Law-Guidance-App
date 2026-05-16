@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import PageHeader from '@/components/PageHeader'
+import { RiskBadge } from '@/components/RiskBadge'
 
 interface Scenario {
   id: string
@@ -79,12 +80,29 @@ export default function ScenariosPage() {
   )
 }
 
+type RiskFilter = 'all' | Scenario['riskLevel']
+
 function ScenariosContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null)
+  const [query, setQuery] = useState('')
+  const [riskFilter, setRiskFilter] = useState<RiskFilter>('all')
 
   const requestedId = useMemo(() => searchParams.get('s'), [searchParams])
+
+  const filteredScenarios = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return scenarios.filter((s) => {
+      const matchesRisk = riskFilter === 'all' || s.riskLevel === riskFilter
+      const matchesQuery =
+        !q ||
+        s.title.toLowerCase().includes(q) ||
+        s.shortDescription.toLowerCase().includes(q) ||
+        s.description.toLowerCase().includes(q)
+      return matchesRisk && matchesQuery
+    })
+  }, [query, riskFilter])
 
   useEffect(() => {
     if (!requestedId) return
@@ -110,11 +128,68 @@ function ScenariosContent() {
         description="Pick a situation to see an overview and next steps. These are general guides—consult an attorney for advice about your specific case."
       />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {scenarios.map((scenario) => (
-          <ScenarioCard key={scenario.id} scenario={scenario} onOpen={() => openScenario(scenario)} />
-        ))}
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <label className="relative block w-full sm:max-w-md">
+          <span className="sr-only">Search scenarios</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by topic…"
+            className="w-full rounded-xl border border-sage-200 bg-cream-50 py-2.5 pl-10 pr-4 text-sm text-forest-900 shadow-sm transition-all duration-300 placeholder:text-sage-500 focus:-translate-y-0.5 focus:border-sage-400 focus:shadow-elevated focus:outline-none focus:ring-2 focus:ring-sage-400/30"
+          />
+          <svg
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-sage-500"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden
+          >
+            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8" />
+            <path d="M20 20l-3-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </label>
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by risk level">
+          {(['all', 'low', 'medium', 'high'] as const).map((level) => (
+            <button
+              key={level}
+              type="button"
+              onClick={() => setRiskFilter(level)}
+              className={`filter-pill ${
+                riskFilter === level
+                  ? level === 'all'
+                    ? 'filter-pill-active'
+                    : `filter-pill-active filter-pill-risk-${level}`
+                  : 'filter-pill-inactive'
+              }`}
+            >
+              {level === 'all' ? 'All' : level}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {filteredScenarios.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-sage-300 bg-cream-50 px-6 py-12 text-center">
+          <p className="text-lg font-semibold text-forest-900">No scenarios match</p>
+          <p className="mt-2 text-sm text-sage-800">Try a different search term or clear the risk filter.</p>
+          <button
+            type="button"
+            onClick={() => {
+              setQuery('')
+              setRiskFilter('all')
+            }}
+            className="mt-4 text-sm font-semibold text-sage-700 underline-offset-2 hover:underline"
+          >
+            Clear filters
+          </button>
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredScenarios.map((scenario) => (
+            <ScenarioCard key={scenario.id} scenario={scenario} onOpen={() => openScenario(scenario)} />
+          ))}
+        </div>
+      )}
 
       {selectedScenario ? <ScenarioModal scenario={selectedScenario} onClose={closeModal} /> : null}
     </div>
@@ -122,25 +197,15 @@ function ScenariosContent() {
 }
 
 function ScenarioCard({ scenario, onOpen }: { scenario: Scenario; onOpen: () => void }) {
-  const risk = {
-    low: 'border-sage-200 bg-cream-100 text-forest-900',
-    medium: 'border-sage-400 bg-sage-100 text-forest-900',
-    high: 'border-forest-800 bg-forest-900 text-cream-100',
-  }[scenario.riskLevel]
-
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="group w-full rounded-2xl border border-sage-200 bg-cream-50 p-6 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-sage-400 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-200"
+      className="group interactive-card w-full p-6 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-200"
     >
       <div className="flex items-start justify-between gap-4">
         <h3 className="text-lg font-semibold text-forest-900 transition-colors duration-200 group-hover:text-sage-700">{scenario.title}</h3>
-        <span
-          className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-transform duration-200 group-hover:scale-105 ${risk}`}
-        >
-          {scenario.riskLevel}
-        </span>
+        <RiskBadge level={scenario.riskLevel} className="transition-transform duration-200 group-hover:scale-105" />
       </div>
       <p className="mt-3 text-sm leading-relaxed text-sage-800">{scenario.shortDescription}</p>
       <p className="mt-4 flex items-center gap-1 text-sm font-semibold text-sage-700 transition-colors duration-200 group-hover:text-sage-900">
@@ -166,12 +231,6 @@ function ScenarioModal({ scenario, onClose }: { scenario: Scenario; onClose: () 
     panelRef.current?.focus()
   }, [scenario.id])
 
-  const risk = {
-    low: 'border-sage-200 bg-cream-100 text-forest-900',
-    medium: 'border-sage-400 bg-sage-100 text-forest-900',
-    high: 'border-forest-800 bg-forest-900 text-cream-100',
-  }[scenario.riskLevel]
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-forest-950/60 p-4 backdrop-blur-[2px] transition-opacity duration-300"
@@ -186,7 +245,7 @@ function ScenarioModal({ scenario, onClose }: { scenario: Scenario; onClose: () 
         aria-modal="true"
         aria-labelledby="scenario-modal-title"
         tabIndex={-1}
-        className="max-h-[min(90vh,860px)] w-full max-w-2xl animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-300 overflow-y-auto rounded-2xl border border-sage-200 bg-cream-50 p-6 shadow-2xl outline-none sm:p-8"
+        className="animate-modal-in max-h-[min(90vh,860px)] w-full max-w-2xl overflow-y-auto rounded-2xl border border-sage-200 bg-cream-50 p-6 shadow-2xl outline-none sm:p-8"
       >
         <div className="flex items-start justify-between gap-4">
           <h2 id="scenario-modal-title" className="text-2xl font-bold tracking-tight text-forest-900">
@@ -203,11 +262,7 @@ function ScenarioModal({ scenario, onClose }: { scenario: Scenario; onClose: () 
         </div>
 
         <div className="mt-4">
-          <span
-            className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wide ${risk}`}
-          >
-            {scenario.riskLevel} risk
-          </span>
+          <RiskBadge level={scenario.riskLevel} label={`${scenario.riskLevel} risk`} className="text-xs" />
         </div>
 
         <div className="mt-8 space-y-6">
@@ -237,7 +292,7 @@ function ScenarioModal({ scenario, onClose }: { scenario: Scenario; onClose: () 
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex items-center justify-center rounded-xl bg-sage-500 px-5 py-2.5 text-sm font-semibold text-cream-50 shadow-sm transition hover:bg-sage-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-400 focus-visible:ring-offset-2 focus-visible:ring-offset-cream-50"
+            className="btn-primary btn-sm"
           >
             Close
           </button>

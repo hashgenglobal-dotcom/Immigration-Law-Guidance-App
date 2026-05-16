@@ -3,6 +3,12 @@
 
 :root {
   color-scheme: light;
+  --color-navy: #1f2839;
+  --color-gold: #b69d74;
+  --color-gold-light: #d9c9b0;
+  --color-cream: #f5f5ef;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 html {
@@ -12,18 +18,345 @@ html {
 body {
   @apply antialiased text-forest-900 bg-cream-200;
   background-image:
-    radial-gradient(900px 480px at 8% -6%, rgb(86 116 112 / 0.08), transparent 55%),
-    radial-gradient(700px 400px at 100% 0%, rgb(12 41 36 / 0.06), transparent 50%),
-    linear-gradient(to bottom, #f3eeed 0%, #f7f4f2 45%, #f3eeed 100%);
+    radial-gradient(900px 480px at 8% -6%, rgb(182 157 116 / 0.12), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgb(31 40 57 / 0.06), transparent 50%),
+    linear-gradient(to bottom, #f5f5ef 0%, #fafaf7 45%, #f5f5ef 100%);
   background-attachment: fixed;
 }
 
 ::selection {
-  background: rgb(86 116 112 / 0.28);
+  background: rgb(182 157 116 / 0.35);
+}
+
+/* ——— Buttons ——— */
+@layer components {
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-outline-dark,
+  .btn-outline-light {
+    @apply relative inline-flex cursor-pointer items-center justify-center overflow-hidden rounded-xl font-semibold outline-none transition-all duration-300;
+    transition-timing-function: var(--ease-out-expo);
+  }
+
+  .btn-primary {
+    @apply bg-sage-500 text-cream-50 shadow-glow-gold;
+  }
+
+  .btn-primary:hover {
+    @apply -translate-y-0.5 bg-sage-600 shadow-glow-gold-lg;
+  }
+
+  .btn-primary:active {
+    @apply translate-y-0 scale-[0.98];
+  }
+
+  .btn-primary::before {
+    content: '';
+    @apply pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500;
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgb(255 255 255 / 0.22) 50%,
+      transparent 60%
+    );
+    transform: translateX(-120%);
+  }
+
+  .btn-primary:hover::before {
+    @apply opacity-100;
+    animation: btn-shine 0.75s var(--ease-out-expo);
+  }
+
+  .btn-secondary {
+    @apply border-2 border-sage-400 bg-cream-50 text-forest-900 shadow-sm;
+  }
+
+  .btn-secondary:hover {
+    @apply -translate-y-0.5 border-sage-500 bg-cream-100 shadow-elevated;
+  }
+
+  .btn-secondary:active {
+    @apply translate-y-0 scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply text-sage-700 hover:bg-sage-100/80 hover:text-forest-900;
+  }
+
+  .btn-outline-dark {
+    @apply border border-cream-200/35 bg-forest-800/50 text-cream-100 backdrop-blur-sm;
+  }
+
+  .btn-outline-dark:hover {
+    @apply -translate-y-0.5 border-sage-400/50 bg-forest-700/80 shadow-lg;
+  }
+
+  .btn-outline-light {
+    @apply border border-sage-200 bg-cream-50 text-forest-900 shadow-sm;
+  }
+
+  .btn-outline-light:hover {
+    @apply -translate-y-0.5 border-sage-400 shadow-elevated;
+  }
+
+  .btn-sm {
+    @apply px-4 py-2 text-sm;
+  }
+
+  .btn-md {
+    @apply px-6 py-3 text-sm;
+  }
+
+  .btn-lg {
+    @apply px-8 py-3.5 text-base;
+  }
+
+  .btn-pill {
+    @apply rounded-full;
+  }
+
+  .btn-inner {
+    @apply relative z-[1] inline-flex items-center gap-2;
+  }
+
+  .nav-link {
+    @apply relative rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300;
+    transition-timing-function: var(--ease-out-expo);
+  }
+
+  .nav-link::after {
+    content: '';
+    @apply absolute bottom-1 left-3 right-3 h-0.5 scale-x-0 rounded-full bg-sage-400 transition-transform duration-300;
+    transition-timing-function: var(--ease-out-expo);
+  }
+
+  .nav-link:hover::after {
+    @apply scale-x-100;
+  }
+
+  .nav-link-active {
+    @apply bg-sage-500 text-cream-50 shadow-sm;
+  }
+
+  .nav-link-active::after {
+    @apply hidden;
+  }
+
+  .interactive-card {
+    @apply relative overflow-hidden rounded-2xl border border-sage-200/80 bg-cream-50 shadow-card transition-all duration-300;
+    transition-timing-function: var(--ease-out-expo);
+  }
+
+  .interactive-card::before {
+    content: '';
+    @apply pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: linear-gradient(135deg, rgb(182 157 116 / 0.08) 0%, transparent 50%);
+  }
+
+  .interactive-card:hover {
+    @apply -translate-y-1 border-sage-300 shadow-elevated;
+  }
+
+  .interactive-card:hover::before {
+    @apply opacity-100;
+  }
+
+  .interactive-card:active {
+    @apply -translate-y-0.5 scale-[0.995];
+  }
+
+  .pill-link {
+    @apply inline-flex items-center gap-2 rounded-full border border-sage-200 bg-cream-50 px-4 py-2 text-sm font-semibold text-forest-900 shadow-sm transition-all duration-300;
+    transition-timing-function: var(--ease-out-expo);
+  }
+
+  .pill-link:hover {
+    @apply -translate-y-0.5 border-sage-400 bg-cream-100 shadow-elevated;
+  }
+
+  .pill-link:hover .pill-arrow {
+    @apply translate-x-0.5;
+  }
+
+  .pill-dark {
+    @apply rounded-full border border-sage-600/40 bg-forest-800/70 px-4 py-2 text-xs text-cream-100/95 transition-all duration-300 sm:text-sm;
+  }
+
+  .pill-dark:hover {
+    @apply -translate-y-0.5 border-sage-400/60 bg-forest-700/90 shadow-lg;
+  }
+
+  .filter-pill {
+    @apply rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide transition-all duration-300;
+    transition-timing-function: var(--ease-out-expo);
+  }
+
+  .filter-pill-active {
+    @apply bg-sage-500 text-cream-50 shadow-glow-gold;
+  }
+
+  .filter-pill-inactive {
+    @apply border border-sage-200 bg-cream-50 text-sage-800 hover:-translate-y-0.5 hover:border-sage-300 hover:shadow-sm;
+  }
+
+  /* Risk / urgency badges — red / yellow / green */
+  .risk-badge {
+    @apply inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide shadow-sm;
+  }
+
+  .risk-badge-high {
+    @apply border-red-800 bg-red-600 text-white;
+  }
+
+  .risk-badge-medium {
+    @apply border-yellow-600 bg-yellow-400 text-yellow-950;
+  }
+
+  .risk-badge-low {
+    @apply border-green-700 bg-green-600 text-white;
+  }
+
+  .filter-pill-risk-high.filter-pill-active {
+    @apply border-red-800 bg-red-600 text-white shadow-sm;
+  }
+
+  .filter-pill-risk-medium.filter-pill-active {
+    @apply border-yellow-600 bg-yellow-400 text-yellow-950 shadow-sm;
+  }
+
+  .filter-pill-risk-low.filter-pill-active {
+    @apply border-green-700 bg-green-600 text-white shadow-sm;
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.5s ease-out both;
+  }
+
+  .animate-fade-in-up-delay-1 {
+    animation: fade-in-up 0.5s ease-out 0.1s both;
+  }
+
+  .animate-fade-in-up-delay-2 {
+    animation: fade-in-up 0.5s ease-out 0.2s both;
+  }
+
+  .animate-fade-in-up-delay-3 {
+    animation: fade-in-up 0.5s ease-out 0.3s both;
+  }
+
+  .animate-fade-in-up-delay-4 {
+    animation: fade-in-up 0.5s ease-out 0.4s both;
+  }
+
+  .animate-fade-in-up-delay-5 {
+    animation: fade-in-up 0.5s ease-out 0.5s both;
+  }
+
+  .animate-modal-in {
+    animation: modal-in 0.35s var(--ease-out-expo) both;
+  }
+
+  .surface-card {
+    @apply rounded-2xl border border-sage-200/80 bg-cream-50 shadow-card;
+  }
+
+  .scroll-reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition:
+      opacity 0.7s var(--ease-out-expo),
+      transform 0.7s var(--ease-out-expo);
+  }
+
+  .scroll-reveal-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .icon-pop {
+    @apply transition-transform duration-300;
+    transition-timing-function: var(--ease-spring);
+  }
+
+  .group:hover .icon-pop {
+    @apply scale-110;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes btn-shine {
+  to {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes float-subtle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-float-subtle {
+  animation: float-subtle 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-fade-in-up-delay-1,
+  .animate-fade-in-up-delay-2,
+  .animate-fade-in-up-delay-3,
+  .animate-fade-in-up-delay-4,
+  .animate-fade-in-up-delay-5,
+  .animate-modal-in,
+  .animate-float-subtle,
+  .scroll-reveal {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .interactive-card:hover,
+  .pill-link:hover,
+  .pill-dark:hover {
+    transform: none;
+  }
+
+  .btn-primary::before {
+    display: none;
   }
 }

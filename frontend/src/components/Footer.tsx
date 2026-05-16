@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export default function Footer() {
   return (
-    <footer className="mt-auto border-t border-sage-800/50 bg-forest-900 text-cream-200/90">
+    <footer className="mt-auto border-t border-sage-600/30 bg-forest-900 text-cream-200/90">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 md:grid-cols-3">
           <div className="md:col-span-2">
@@ -21,7 +21,7 @@ export default function Footer() {
               immediately. Do not rely solely on this application for urgent legal matters.
             </p>
             <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 text-sm">
-              <Link className="font-medium text-sage-300 hover:text-cream-50" href="/ask">
+              <Link className="font-medium text-sage-300 transition-colors duration-300 hover:text-cream-50" href="/ask">
                 Ask a question
               </Link>
               <span className="text-sage-700" aria-hidden>

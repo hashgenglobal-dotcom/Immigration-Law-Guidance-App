@@ -16,15 +16,15 @@ function LogoMark() {
     <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden className="shrink-0 text-cream-200/90">
       <defs>
         <linearGradient id="logoGrad" x1="6" y1="4" x2="26" y2="28" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#567470" />
-          <stop offset="1" stopColor="#0C2924" />
+          <stop stopColor="#B69D74" />
+          <stop offset="1" stopColor="#1F2839" />
         </linearGradient>
       </defs>
       <rect x="3" y="6" width="26" height="20" rx="5" fill="url(#logoGrad)" opacity="0.95" />
       <path
         d="M11 22V12l5 4 5-4v10"
         fill="none"
-        stroke="#F3EEED"
+        stroke="#F5F5EF"
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -58,26 +58,42 @@ function HamburgerIcon({ open }: { open: boolean }) {
 export default function Header() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
     setOpen(false)
   }, [pathname])
 
   useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false)
     }
+    document.body.style.overflow = 'hidden'
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', onKey)
+    }
   }, [open])
 
   return (
-    <header className="sticky top-0 z-40 border-b border-sage-800/40 bg-forest-900/95 text-cream-200 shadow-sm backdrop-blur">
+    <header
+      className={`sticky top-0 z-40 border-b border-sage-600/25 bg-forest-900/98 text-cream-200 backdrop-blur-md transition-shadow duration-300 ${
+        scrolled ? 'shadow-lg shadow-forest-950/40' : 'shadow-md'
+      }`}
+    >
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link
           href="/"
-          className="flex items-center gap-3 rounded-md outline-none ring-offset-2 ring-offset-forest-900 focus-visible:ring-2 focus-visible:ring-cream-200/80"
+          className="group flex items-center gap-3 rounded-md outline-none ring-offset-2 ring-offset-forest-900 transition-transform duration-300 hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-cream-200/80"
         >
           <LogoMark />
           <span className="text-base font-semibold tracking-tight text-cream-50 sm:text-lg">Immigration Law Guidance</span>
@@ -90,8 +106,8 @@ export default function Header() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  active ? 'bg-sage-500 text-cream-50' : 'text-cream-200/90 hover:bg-forest-800/80 hover:text-cream-50'
+                className={`nav-link ${
+                  active ? 'nav-link-active' : 'text-cream-200/90 hover:bg-forest-800/80 hover:text-cream-50'
                 }`}
               >
                 {item.label}

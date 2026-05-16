@@ -1,46 +1,48 @@
 /** @type {import('tailwindcss').Config} */
 /**
- * Palette "16. Dark & Earthy" (exact swatches):
- * - Cream #F3EEED
- * - Sage #567470
- * - Forest #0C2924
+ * Palette "01. Subdued & Professional"
+ * - Off-white #F5F5EF
+ * - Muted gold #B69D74
+ * - Navy #1F2839
+ *
+ * Token names (cream / sage / forest) kept for stable class names across the app.
  */
 const cream = {
-  50: '#FBFAF9',
-  100: '#F7F4F2',
-  200: '#F3EEED',
-  DEFAULT: '#F3EEED',
-  300: '#E8E3E0',
-  400: '#DCD6D3',
+  50: '#FDFDFB',
+  100: '#FAFAF7',
+  200: '#F5F5EF',
+  DEFAULT: '#F5F5EF',
+  300: '#ECEBE4',
+  400: '#E0DFD6',
 }
 
 const sage = {
-  50: '#EEF3F2',
-  100: '#D9E3E1',
-  200: '#B5C9C5',
-  300: '#89A39E',
-  400: '#6D8782',
-  500: '#567470',
-  DEFAULT: '#567470',
-  600: '#4A635F',
-  700: '#3F5350',
-  800: '#354441',
-  900: '#2C3836',
+  50: '#F7F3ED',
+  100: '#EDE4D6',
+  200: '#D9C9B0',
+  300: '#C9B08A',
+  400: '#B69D74',
+  500: '#B69D74',
+  DEFAULT: '#B69D74',
+  600: '#9A8460',
+  700: '#7E6B4E',
+  800: '#63543D',
+  900: '#4A3F2E',
 }
 
 const forest = {
-  50: '#E9F1EF',
-  100: '#C5D9D4',
-  200: '#9CBAB2',
-  300: '#729A90',
-  400: '#4A7A6F',
-  500: '#2F5A52',
-  600: '#1A453E',
-  700: '#123731',
-  800: '#0E2F2A',
-  900: '#0C2924',
-  DEFAULT: '#0C2924',
-  950: '#061614',
+  50: '#E8EAEE',
+  100: '#C5CAD4',
+  200: '#9AA3B3',
+  300: '#6F7B92',
+  400: '#4A5769',
+  500: '#354252',
+  600: '#2A3544',
+  700: '#232D3A',
+  800: '#1F2839',
+  900: '#1F2839',
+  DEFAULT: '#1F2839',
+  950: '#151B27',
 }
 
 module.exports = {
@@ -55,8 +57,18 @@ module.exports = {
         cream,
         sage,
         forest,
-        /** Alias for components that still expect `primary` */
         primary: sage,
+        navy: forest,
+        gold: sage,
+      },
+      boxShadow: {
+        card: '0 1px 3px rgb(31 40 57 / 0.06), 0 8px 24px rgb(31 40 57 / 0.05)',
+        elevated: '0 4px 20px rgb(31 40 57 / 0.1), 0 1px 3px rgb(31 40 57 / 0.06)',
+        'glow-gold': '0 4px 14px rgb(182 157 116 / 0.35), 0 1px 3px rgb(31 40 57 / 0.08)',
+        'glow-gold-lg': '0 8px 28px rgb(182 157 116 / 0.45), 0 2px 8px rgb(31 40 57 / 0.1)',
+      },
+      transitionDuration: {
+        400: '400ms',
       },
     },
   },
