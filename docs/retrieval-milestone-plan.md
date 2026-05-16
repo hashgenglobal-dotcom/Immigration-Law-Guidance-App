@@ -148,6 +148,8 @@ Four scripts are planned for this milestone, following the same dry-run → real
 
 ---
 
+> **`scripts/hybrid_retrieve_legal_chunks.py` now exists.** Run with `uv run --project backend python scripts/hybrid_retrieve_legal_chunks.py`. Embeds a synthetic test query locally via Ollama `nomic-embed-text`, runs pgvector cosine-distance search and PostgreSQL `plainto_tsquery` full-text search against `legal_chunks WHERE is_active = TRUE`, then merges the two ranked lists using Reciprocal Rank Fusion (RRF score = 1/(60+vector_rank) + 1/(60+keyword_rank)). Prints per-signal candidate summaries and a merged hybrid ranking with citation, vector rank/distance, keyword rank/ts_rank, RRF scores, and a 500-character snippet — no answer generation, no question storage, no database writes, no public AI APIs.
+
 ### `scripts/hybrid_retrieve_legal_chunks.py`
 
 **Purpose:** Run combined vector + keyword retrieval for one synthetic query at a time.
