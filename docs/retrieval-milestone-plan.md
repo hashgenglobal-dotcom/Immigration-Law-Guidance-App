@@ -131,6 +131,8 @@ Four scripts are planned for this milestone, following the same dry-run → real
 
 ---
 
+> **`scripts/retrieve_legal_chunks.py` now exists.** Run with `uv run --project backend python scripts/retrieve_legal_chunks.py`. Embeds a synthetic test query locally via Ollama `nomic-embed-text`, verifies the resulting vector is exactly 768-dimensional, then runs a pgvector cosine-distance search over `legal_chunks WHERE is_active = TRUE`. Prints rank, citation, topic, subtopic, risk level, official URL, distance, and a 500-character snippet for each result — no answer generation, no question storage, no database writes, no public AI APIs.
+
 ### `scripts/retrieve_legal_chunks.py`
 
 **Purpose:** Run vector retrieval against the active chunks for one synthetic query at a time.
