@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet, ViewStyle } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, spacing } from '@/theme'
 
 export function ScreenScroll({
@@ -9,20 +10,26 @@ export function ScreenScroll({
   contentStyle?: ViewStyle
 }) {
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={[styles.content, contentStyle]}
-      keyboardShouldPersistTaps="handled"
-    >
-      {children}
-    </ScrollView>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, contentStyle]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {children}
+      </ScrollView>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  scroll: {
+  safe: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  scroll: {
+    flex: 1,
   },
   content: {
     padding: spacing.md,

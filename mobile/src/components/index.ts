@@ -1,3 +1,4 @@
+export { Chip, ChipRow } from './Chip'
 export { AnswerSectionCard } from './AnswerSectionCard'
 export { CitationCard } from './CitationCard'
 export { DisclaimerCard } from './DisclaimerCard'

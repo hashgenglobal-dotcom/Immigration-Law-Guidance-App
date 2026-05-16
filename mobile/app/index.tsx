@@ -1,11 +1,13 @@
 import { Text, StyleSheet, View } from 'react-native'
 import { useRouter } from 'expo-router'
-import {
-  DisclaimerCard,
-  PrimaryButton,
-  ScreenScroll,
-} from '@/components'
-import { colors, spacing, typography } from '@/theme'
+import { DisclaimerCard, PrimaryButton, ScreenScroll } from '@/components'
+import { colors, radii, spacing, typography } from '@/theme'
+
+const QUICK_TOPICS = [
+  'Asylum work authorization',
+  'Notice to Appear',
+  'Adjustment of status',
+] as const
 
 export default function HomeScreen() {
   const router = useRouter()
@@ -13,6 +15,7 @@ export default function HomeScreen() {
   return (
     <ScreenScroll>
       <View style={styles.hero}>
+        <View style={styles.heroAccent} />
         <Text style={styles.eyebrow}>HashGen Global LLC · MVP</Text>
         <Text style={styles.title}>Immigration Law Guidance</Text>
         <Text style={styles.subtitle}>
@@ -23,6 +26,15 @@ export default function HomeScreen() {
       <DisclaimerCard title="Important">
         {`GENERAL LEGAL INFORMATION, NOT LEGAL ADVICE.\nHIGH-RISK SITUATIONS - TAKE A LEGAL ADVICE FROM ATTORNEY`}
       </DisclaimerCard>
+
+      <Text style={styles.quickLabel}>Popular topics</Text>
+      <View style={styles.pillRow}>
+        {QUICK_TOPICS.map((topic) => (
+          <View key={topic} style={styles.pill}>
+            <Text style={styles.pillText}>{topic}</Text>
+          </View>
+        ))}
+      </View>
 
       <View style={styles.actions}>
         <PrimaryButton label="Ask a Question" onPress={() => router.push('/ask')} />
@@ -43,15 +55,26 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   hero: {
-    backgroundColor: colors.primary,
-    borderRadius: 16,
+    backgroundColor: colors.navy,
+    borderRadius: radii.lg,
     padding: spacing.lg,
     marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.navyMuted,
+    overflow: 'hidden',
+  },
+  heroAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: colors.gold,
   },
   eyebrow: {
     fontSize: typography.caption,
     fontWeight: '600',
-    color: '#bfdbfe',
+    color: colors.goldLight,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: spacing.sm,
@@ -59,16 +82,43 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.title,
     fontWeight: '800',
-    color: colors.white,
+    color: colors.onNavy,
     marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: typography.body,
     lineHeight: 24,
-    color: '#e0e7ff',
+    color: colors.cream,
+    opacity: 0.92,
+  },
+  quickLabel: {
+    fontSize: typography.small,
+    fontWeight: '700',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: spacing.sm,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  pill: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.goldLight,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  pillText: {
+    fontSize: typography.caption,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
   actions: {
-    marginTop: spacing.lg,
     marginBottom: spacing.md,
   },
   footer: {

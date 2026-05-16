@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import type { Scenario } from '@/lib/mockData'
 import { RiskBadge } from './RiskBadge'
-import { colors, spacing, typography } from '@/theme'
+import { colors, radii, spacing, typography } from '@/theme'
 
 export function ScenarioCard({
   scenario,
@@ -16,6 +16,7 @@ export function ScenarioCard({
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       accessibilityRole="button"
     >
+      <View style={styles.accent} />
       <View style={styles.header}>
         <Text style={styles.title}>{scenario.title}</Text>
         <RiskBadge level={scenario.riskLevel} />
@@ -31,18 +32,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: radii.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    overflow: 'hidden',
+    shadowColor: colors.navy,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   cardPressed: {
-    opacity: 0.92,
-    borderColor: colors.primaryLight,
+    transform: [{ scale: 0.98 }, { translateY: 1 }],
+    borderColor: colors.gold,
+    shadowOpacity: 0.14,
+  },
+  accent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: colors.gold,
+    opacity: 0.85,
   },
   header: {
     flexDirection: 'row',
@@ -50,6 +62,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
     marginBottom: spacing.sm,
+    marginTop: spacing.xs,
   },
   title: {
     flex: 1,
@@ -66,6 +79,6 @@ const styles = StyleSheet.create({
   cta: {
     fontSize: typography.small,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.goldDark,
   },
 })
