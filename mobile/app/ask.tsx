@@ -1,173 +1,156 @@
-import { useState } from 'react'
-import { StyleSheet, Text, TextInput, View } from 'react-native'
+import { useCallback, useRef, useState } from 'react'
 import {
-  AnswerSectionCard,
-  Chip,
-  ChipRow,
-  CitationCard,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import {
+  AssistantAnswerContent,
+  ChatAssistantText,
+  ChatComposer,
+  ChatMessage,
+  ChatUserText,
   DisclaimerCard,
-  LoadingIndicator,
-  PrimaryButton,
-  ScreenScroll,
 } from '@/components'
+import { ASK_INTRO_MESSAGE } from '@/lib/legalCopy'
 import { mockAnswer, type MockAnswer } from '@/lib/mockData'
-import { colors, radii, spacing, typography } from '@/theme'
+import { colors, spacing, typography } from '@/theme'
 
-const LANGUAGES = [
-  { value: 'en', label: 'English' },
-  { value: 'es', label: 'Spanish (soon)', disabled: true },
-  { value: 'zh', label: 'Chinese (soon)', disabled: true },
-] as const
+type Turn =
+  | { id: string; role: 'user'; text: string }
+  | { id: string; role: 'assistant'; answer: MockAnswer }
+  | { id: string; role: 'assistant'; pending: true }
 
-const MAX_CHARS = 500
+let turnId = 0
+function nextId() {
+  turnId += 1
+  return `turn-${turnId}`
+}
 
 export default function AskScreen() {
-  const [question, setQuestion] = useState('')
-  const [language, setLanguage] = useState('en')
+  const [draft, setDraft] = useState('')
+  const [turns, setTurns] = useState<Turn[]>([])
   const [loading, setLoading] = useState(false)
-  const [answer, setAnswer] = useState<MockAnswer | null>(null)
+  const scrollRef = useRef<ScrollView>(null)
 
-  const handleSubmit = () => {
-    if (!question.trim() || loading) return
+  const scrollToEnd = useCallback(() => {
+    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }))
+  }, [])
+
+  const handleSend = () => {
+    const text = draft.trim()
+    if (!text || loading) return
+
+    const userTurn: Turn = { id: nextId(), role: 'user', text }
+    const pendingId = nextId()
+    setDraft('')
     setLoading(true)
-    setAnswer(null)
+    setTurns((prev) => [...prev, userTurn, { id: pendingId, role: 'assistant', pending: true }])
+    scrollToEnd()
+
     setTimeout(() => {
-      setAnswer(mockAnswer)
+      setTurns((prev) =>
+        prev.map((t) =>
+          t.id === pendingId && t.role === 'assistant' && 'pending' in t
+            ? { id: pendingId, role: 'assistant', answer: mockAnswer }
+            : t,
+        ),
+      )
       setLoading(false)
-    }, 1200)
+      scrollToEnd()
+    }, 1100)
   }
 
-  const charCount = question.length
-
   return (
-    <ScreenScroll>
-      <DisclaimerCard title="Privacy note">
-        Do not enter emergency information. Questions are not stored on this device or sent to a server in this mock
-        build.
-      </DisclaimerCard>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+      >
+        <ScrollView
+          ref={scrollRef}
+          style={styles.messages}
+          contentContainerStyle={styles.messagesContent}
+          keyboardShouldPersistTaps="handled"
+          onContentSizeChange={scrollToEnd}
+          showsVerticalScrollIndicator={false}
+        >
+          <DisclaimerCard compact title="Privacy">
+            Questions are not stored on this device or sent to a server in this preview build. Do not enter emergency
+            details.
+          </DisclaimerCard>
 
-      <Text style={styles.label}>Your immigration question</Text>
-      <TextInput
-        style={[styles.input, question.trim().length > 0 && styles.inputActive]}
-        value={question}
-        onChangeText={(t) => setQuestion(t.slice(0, MAX_CHARS))}
-        placeholder="Example: Can I apply for work authorization while my asylum case is pending?"
-        placeholderTextColor={colors.textMuted}
-        multiline
-        textAlignVertical="top"
-        editable={!loading}
-      />
-      <Text style={styles.charCount}>
-        {charCount}/{MAX_CHARS}
-      </Text>
+          <ChatMessage role="assistant">
+            <ChatAssistantText>{ASK_INTRO_MESSAGE}</ChatAssistantText>
+          </ChatMessage>
 
-      <Text style={styles.label}>Language</Text>
-      <ChipRow>
-        {LANGUAGES.map((lang) => (
-          <Chip
-            key={lang.value}
-            label={lang.label}
-            selected={language === lang.value}
-            disabled={'disabled' in lang && lang.disabled}
-            onPress={() => !('disabled' in lang && lang.disabled) && setLanguage(lang.value)}
-          />
-        ))}
-      </ChipRow>
+          {turns.map((turn) => {
+            if (turn.role === 'user') {
+              return (
+                <ChatMessage key={turn.id} role="user">
+                  <ChatUserText>{turn.text}</ChatUserText>
+                </ChatMessage>
+              )
+            }
+            if ('pending' in turn) {
+              return (
+                <ChatMessage key={turn.id} role="assistant">
+                  <View style={styles.pendingRow}>
+                    <ActivityIndicator size="small" color={colors.bronze} />
+                    <Text style={styles.pendingText}>Reviewing official-style sources…</Text>
+                  </View>
+                </ChatMessage>
+              )
+            }
+            return (
+              <ChatMessage key={turn.id} role="assistant">
+                <AssistantAnswerContent answer={turn.answer} />
+              </ChatMessage>
+            )
+          })}
+        </ScrollView>
 
-      <PrimaryButton
-        label={loading ? 'Processing…' : 'Get information'}
-        onPress={handleSubmit}
-        disabled={!question.trim() || loading}
-      />
-
-      {loading ? <LoadingIndicator /> : null}
-
-      {answer && !loading ? (
-        <View style={styles.answer}>
-          <AnswerSectionCard title="Short answer">
-            <Text style={styles.body}>{answer.shortAnswer}</Text>
-          </AnswerSectionCard>
-
-          <AnswerSectionCard title="Simple explanation">
-            <Text style={styles.body}>{answer.simpleExplanation}</Text>
-          </AnswerSectionCard>
-
-          <AnswerSectionCard title="Possible risks" variant="risks">
-            {answer.possibleRisks.map((risk, i) => (
-              <Text key={i} style={styles.listItem}>
-                • {risk}
-              </Text>
-            ))}
-          </AnswerSectionCard>
-
-          <AnswerSectionCard title="What to do next" variant="steps">
-            {answer.whatToDoNext.map((step, i) => (
-              <Text key={i} style={styles.listItem}>
-                {i + 1}. {step}
-              </Text>
-            ))}
-          </AnswerSectionCard>
-
-          <Text style={styles.sourcesHeading}>Official sources</Text>
-          {answer.sources.map((source, i) => (
-            <CitationCard key={i} source={source} />
-          ))}
-
-          <DisclaimerCard title="Legal disclaimer">{answer.disclaimer}</DisclaimerCard>
-        </View>
-      ) : null}
-    </ScreenScroll>
+        <ChatComposer
+          value={draft}
+          onChangeText={setDraft}
+          onSend={handleSend}
+          disabled={loading}
+          loading={loading}
+        />
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  label: {
-    fontSize: typography.body,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: spacing.sm,
-    marginTop: spacing.md,
+  safe: {
+    flex: 1,
+    backgroundColor: colors.creamMuted,
   },
-  input: {
-    minHeight: 120,
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.md,
+  flex: {
+    flex: 1,
+  },
+  messages: {
+    flex: 1,
+  },
+  messagesContent: {
     padding: spacing.md,
-    fontSize: typography.body,
-    color: colors.text,
-    lineHeight: 24,
+    paddingBottom: spacing.sm,
   },
-  inputActive: {
-    borderColor: colors.gold,
+  pendingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
-  charCount: {
+  pendingText: {
     fontSize: typography.caption,
     color: colors.textMuted,
-    textAlign: 'right',
-    marginTop: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  answer: {
-    marginTop: spacing.md,
-  },
-  body: {
-    fontSize: typography.body,
-    lineHeight: 24,
-    color: colors.textSecondary,
-  },
-  listItem: {
-    fontSize: typography.body,
-    lineHeight: 24,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-  },
-  sourcesHeading: {
-    fontSize: typography.subheading,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: spacing.sm,
-    marginTop: spacing.sm,
+    fontStyle: 'italic',
   },
 })

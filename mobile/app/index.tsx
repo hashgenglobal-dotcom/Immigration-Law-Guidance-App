@@ -1,6 +1,8 @@
-import { Text, StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { DisclaimerCard, PrimaryButton, ScreenScroll } from '@/components'
+import { brand } from '@/lib/brand'
+import { LEGAL_DISCLAIMER_FULL } from '@/lib/legalCopy'
 import { colors, radii, spacing, typography } from '@/theme'
 
 const QUICK_TOPICS = [
@@ -13,28 +15,17 @@ export default function HomeScreen() {
   const router = useRouter()
 
   return (
-    <ScreenScroll>
+    <ScreenScroll contentStyle={styles.scroll}>
       <View style={styles.hero}>
-        <View style={styles.heroAccent} />
-        <Text style={styles.eyebrow}>HashGen Global LLC · MVP</Text>
-        <Text style={styles.title}>Immigration Law Guidance</Text>
+        <Text style={styles.eyebrow}>{brand.motto}</Text>
+        <Text style={styles.title}>{brand.name}</Text>
+        <Text style={styles.tagline}>{brand.tagline}</Text>
         <Text style={styles.subtitle}>
-          Privacy-first legal information grounded in official sources—not unchecked AI memory.
+          Plain-language guidance grounded in official sources—not unchecked AI memory.
         </Text>
       </View>
 
-      <DisclaimerCard title="Important">
-        {`GENERAL LEGAL INFORMATION, NOT LEGAL ADVICE.\nHIGH-RISK SITUATIONS - TAKE A LEGAL ADVICE FROM ATTORNEY`}
-      </DisclaimerCard>
-
-      <Text style={styles.quickLabel}>Popular topics</Text>
-      <View style={styles.pillRow}>
-        {QUICK_TOPICS.map((topic) => (
-          <View key={topic} style={styles.pill}>
-            <Text style={styles.pillText}>{topic}</Text>
-          </View>
-        ))}
-      </View>
+      <DisclaimerCard compact>{LEGAL_DISCLAIMER_FULL}</DisclaimerCard>
 
       <View style={styles.actions}>
         <PrimaryButton label="Ask a Question" onPress={() => router.push('/ask')} />
@@ -43,89 +34,97 @@ export default function HomeScreen() {
           variant="secondary"
           onPress={() => router.push('/scenarios')}
         />
-        <PrimaryButton label="About" variant="secondary" onPress={() => router.push('/about')} />
+        <PrimaryButton label="About" variant="ghost" onPress={() => router.push('/about')} />
       </View>
 
-      <Text style={styles.footer}>
-        This app does not provide legal advice and does not replace an immigration attorney.
-      </Text>
+      <Text style={styles.quickLabel}>Popular topics</Text>
+      <View style={styles.pillRow}>
+        {QUICK_TOPICS.map((topic) => (
+          <Pressable
+            key={topic}
+            onPress={() => router.push('/ask')}
+            style={({ pressed }) => [styles.pill, pressed && styles.pillPressed]}
+          >
+            <Text style={styles.pillText}>{topic}</Text>
+          </Pressable>
+        ))}
+      </View>
     </ScreenScroll>
   )
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    paddingTop: spacing.sm,
+  },
   hero: {
     backgroundColor: colors.navy,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.navyMuted,
-    overflow: 'hidden',
-  },
-  heroAccent: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: colors.gold,
+    borderColor: colors.bronze,
   },
   eyebrow: {
     fontSize: typography.caption,
     fontWeight: '600',
-    color: colors.goldLight,
-    letterSpacing: 1,
+    color: colors.bronzeLight,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
-    marginBottom: spacing.sm,
+    marginBottom: 4,
   },
   title: {
-    fontSize: typography.title,
+    fontSize: typography.heading,
     fontWeight: '800',
     color: colors.onNavy,
-    marginBottom: spacing.sm,
+    marginBottom: 2,
+  },
+  tagline: {
+    fontSize: typography.small,
+    fontWeight: '600',
+    color: colors.cream,
+    marginBottom: spacing.xs,
+    opacity: 0.95,
   },
   subtitle: {
-    fontSize: typography.body,
-    lineHeight: 24,
+    fontSize: typography.caption,
+    lineHeight: 16,
     color: colors.cream,
-    opacity: 0.92,
+    opacity: 0.88,
+  },
+  actions: {
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
   },
   quickLabel: {
-    fontSize: typography.small,
+    fontSize: typography.caption,
     fontWeight: '700',
     color: colors.textMuted,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
     marginBottom: spacing.sm,
   },
   pillRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
+    gap: spacing.xs + 2,
   },
   pill: {
     backgroundColor: colors.surface,
     borderRadius: radii.full,
     borderWidth: 1,
-    borderColor: colors.goldLight,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    borderColor: colors.border,
+    paddingVertical: 6,
+    paddingHorizontal: spacing.sm + 2,
+  },
+  pillPressed: {
+    opacity: 0.85,
+    borderColor: colors.bronze,
   },
   pillText: {
     fontSize: typography.caption,
-    fontWeight: '600',
+    fontWeight: '500',
     color: colors.textSecondary,
-  },
-  actions: {
-    marginBottom: spacing.md,
-  },
-  footer: {
-    fontSize: typography.small,
-    lineHeight: 22,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: spacing.md,
   },
 })

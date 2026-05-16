@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "Immigration Law Guidance",
-    "slug": "immigration-law-guidance",
+    "name": "SourcePath",
+    "slug": "sourcepath",
     "version": "0.1.0",
     "orientation": "portrait",
-    "scheme": "immigration-law-guidance",
+    "scheme": "sourcepath",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -20,6 +20,10 @@
         "backgroundColor": "#1e40af"
       },
       "package": "com.hashgen.immigrationlawguidance"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
     },
     "plugins": [
       "expo-router",

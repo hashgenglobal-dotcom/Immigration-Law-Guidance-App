@@ -1,5 +1,7 @@
+export { AssistantAnswerContent } from './AssistantAnswerContent'
 export { Chip, ChipRow } from './Chip'
-export { AnswerSectionCard } from './AnswerSectionCard'
+export { ChatAssistantText, ChatMessage, ChatUserText } from './ChatMessage'
+export { ChatComposer } from './ChatComposer'
 export { CitationCard } from './CitationCard'
 export { DisclaimerCard } from './DisclaimerCard'
 export { LoadingIndicator } from './LoadingIndicator'

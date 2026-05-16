@@ -17,6 +17,7 @@ import {
   ScenarioCard,
   ScreenScroll,
 } from '@/components'
+import { LEGAL_DISCLAIMER_SHORT } from '@/lib/legalCopy'
 import { mockScenarios, type Scenario } from '@/lib/mockData'
 import { colors, radii, spacing, typography } from '@/theme'
 
@@ -42,10 +43,9 @@ export default function ScenariosScreen() {
 
   return (
     <>
-      <ScreenScroll>
+      <ScreenScroll contentStyle={styles.scroll}>
         <Text style={styles.intro}>
-          General guides for common situations. Always confirm with official sources and consult an attorney for your
-          specific case.
+          Guides for common situations. Confirm with official sources and an attorney for your case.
         </Text>
 
         <TextInput
@@ -97,7 +97,10 @@ export default function ScenariosScreen() {
         {selected ? (
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{selected.title}</Text>
+              <View style={styles.modalHeaderText}>
+                <Text style={styles.modalTitle}>{selected.title}</Text>
+                <RiskBadge level={selected.riskLevel} small />
+              </View>
               <Pressable
                 onPress={() => setSelected(null)}
                 hitSlop={12}
@@ -107,22 +110,20 @@ export default function ScenariosScreen() {
               </Pressable>
             </View>
             <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
-              <RiskBadge level={selected.riskLevel} />
               <Text style={styles.sectionLabel}>Overview</Text>
               <Text style={styles.body}>{selected.overview}</Text>
               <Text style={styles.sectionLabel}>Key points</Text>
               {selected.keyPoints.map((point, i) => (
-                <Text key={i} style={styles.body}>
-                  • {point}
+                <Text key={i} style={styles.bullet}>
+                  · {point}
                 </Text>
               ))}
               <Text style={styles.sectionLabel}>Official sources</Text>
               {selected.sources.map((source, i) => (
-                <CitationCard key={i} source={source} />
+                <CitationCard key={i} source={source} compact />
               ))}
-              <DisclaimerCard title="Legal disclaimer">
-                This is general legal information, not legal advice. Consult with a qualified immigration attorney for
-                your specific situation.
+              <DisclaimerCard compact title="Legal disclaimer">
+                {LEGAL_DISCLAIMER_SHORT}
               </DisclaimerCard>
             </ScrollView>
           </View>
@@ -133,11 +134,14 @@ export default function ScenariosScreen() {
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    paddingTop: spacing.sm,
+  },
   intro: {
-    fontSize: typography.body,
-    lineHeight: 24,
+    fontSize: typography.small,
+    lineHeight: 18,
     color: colors.textSecondary,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   search: {
     backgroundColor: colors.surface,
@@ -145,35 +149,35 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    fontSize: typography.body,
+    paddingVertical: spacing.sm,
+    fontSize: typography.small,
     color: colors.text,
     marginBottom: spacing.sm,
   },
   empty: {
     alignItems: 'center',
-    paddingVertical: spacing.xl,
+    paddingVertical: spacing.lg,
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: colors.border,
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
     backgroundColor: colors.surface,
   },
   emptyTitle: {
-    fontSize: typography.subheading,
+    fontSize: typography.small,
     fontWeight: '700',
     color: colors.text,
   },
   emptyBody: {
-    fontSize: typography.small,
+    fontSize: typography.caption,
     color: colors.textMuted,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
   emptyAction: {
-    marginTop: spacing.md,
-    fontSize: typography.small,
+    marginTop: spacing.sm,
+    fontSize: typography.caption,
     fontWeight: '600',
-    color: colors.gold,
+    color: colors.bronzeDark,
   },
   modal: {
     flex: 1,
@@ -183,49 +187,58 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: spacing.md,
-    padding: spacing.md,
-    paddingTop: spacing.lg,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     backgroundColor: colors.surface,
   },
-  modalTitle: {
+  modalHeaderText: {
     flex: 1,
-    fontSize: typography.heading,
+    gap: spacing.xs,
+  },
+  modalTitle: {
+    fontSize: typography.subheading,
     fontWeight: '700',
     color: colors.text,
+    lineHeight: 20,
   },
   closeBtn: {
     borderRadius: radii.sm,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.xs,
     paddingVertical: spacing.xs,
   },
   closeBtnPressed: {
     opacity: 0.7,
   },
   close: {
-    fontSize: typography.body,
+    fontSize: typography.small,
     fontWeight: '600',
-    color: colors.gold,
+    color: colors.bronzeDark,
   },
   modalContent: {
     padding: spacing.md,
     paddingBottom: spacing.xl,
   },
   sectionLabel: {
-    fontSize: typography.small,
+    fontSize: typography.caption,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
     color: colors.textMuted,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
   },
   body: {
-    fontSize: typography.body,
-    lineHeight: 24,
+    fontSize: typography.small,
+    lineHeight: 19,
     color: colors.textSecondary,
-    marginBottom: spacing.sm,
+  },
+  bullet: {
+    fontSize: typography.small,
+    lineHeight: 19,
+    color: colors.textSecondary,
+    marginBottom: 4,
   },
 })

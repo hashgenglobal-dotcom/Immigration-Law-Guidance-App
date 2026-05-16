@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text } from 'react-native'
 import { colors, radii, spacing, typography } from '@/theme'
 
 export function PrimaryButton({
@@ -6,28 +6,41 @@ export function PrimaryButton({
   onPress,
   variant = 'primary',
   disabled,
+  compact,
 }: {
   label: string
   onPress: () => void
-  variant?: 'primary' | 'secondary'
+  variant?: 'primary' | 'secondary' | 'ghost'
   disabled?: boolean
+  compact?: boolean
 }) {
   const isPrimary = variant === 'primary'
+  const isGhost = variant === 'ghost'
+
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
         styles.base,
-        isPrimary ? styles.primary : styles.secondary,
+        compact && styles.baseCompact,
+        isPrimary && styles.primary,
+        variant === 'secondary' && styles.secondary,
+        isGhost && styles.ghost,
         disabled && styles.disabled,
         pressed && !disabled && styles.pressed,
-        pressed && !disabled && isPrimary && styles.pressedPrimary,
       ]}
       accessibilityRole="button"
     >
-      {isPrimary ? <View style={[styles.shine, disabled && styles.hidden]} /> : null}
-      <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelSecondary]}>
+      <Text
+        style={[
+          styles.label,
+          compact && styles.labelCompact,
+          isPrimary && styles.labelPrimary,
+          variant === 'secondary' && styles.labelSecondary,
+          isGhost && styles.labelGhost,
+        ]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -37,57 +50,49 @@ export function PrimaryButton({
 const styles = StyleSheet.create({
   base: {
     borderRadius: radii.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 4,
+    paddingHorizontal: spacing.md,
     alignItems: 'center',
     marginBottom: spacing.sm,
-    overflow: 'hidden',
+  },
+  baseCompact: {
+    paddingVertical: spacing.sm,
+    marginBottom: 0,
   },
   primary: {
-    backgroundColor: colors.gold,
-    shadowColor: colors.gold,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 4,
+    backgroundColor: colors.navy,
   },
   secondary: {
     backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: colors.gold,
+    borderWidth: 1.5,
+    borderColor: colors.bronze,
+  },
+  ghost: {
+    backgroundColor: 'transparent',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
   },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.45,
   },
   pressed: {
-    transform: [{ scale: 0.97 }],
-  },
-  pressedPrimary: {
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-  },
-  shine: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderTopLeftRadius: radii.md,
-    borderTopRightRadius: radii.md,
-  },
-  hidden: {
-    opacity: 0,
+    opacity: 0.88,
   },
   label: {
     fontSize: typography.body,
-    fontWeight: '700',
-    zIndex: 1,
+    fontWeight: '600',
+  },
+  labelCompact: {
+    fontSize: typography.small,
   },
   labelPrimary: {
-    color: colors.onPrimary,
+    color: colors.onNavy,
   },
   labelSecondary: {
     color: colors.navy,
+  },
+  labelGhost: {
+    color: colors.bronzeDark,
+    fontWeight: '600',
   },
 })
