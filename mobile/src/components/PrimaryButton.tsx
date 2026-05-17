@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text } from 'react-native'
-import { colors, radii, spacing, typography } from '@/theme'
+import { colors, fontFamily, layout, radii, spacing, typography } from '@/theme'
 
 export function PrimaryButton({
   label,
@@ -49,27 +49,28 @@ export function PrimaryButton({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radii.md,
-    paddingVertical: spacing.sm + 4,
+    minHeight: layout.minTouchTarget,
+    borderRadius: radii.button,
     paddingHorizontal: spacing.md,
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing.sm,
   },
   baseCompact: {
-    paddingVertical: spacing.sm,
+    minHeight: layout.minTouchTarget,
     marginBottom: 0,
   },
   primary: {
-    backgroundColor: colors.navy,
+    backgroundColor: colors.brandNavy,
   },
   secondary: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceWhite,
     borderWidth: 1.5,
-    borderColor: colors.bronze,
+    borderColor: colors.brandBronze,
   },
   ghost: {
     backgroundColor: 'transparent',
-    paddingVertical: spacing.xs,
+    minHeight: layout.minTouchTarget,
     paddingHorizontal: spacing.sm,
   },
   disabled: {
@@ -79,8 +80,9 @@ const styles = StyleSheet.create({
     opacity: 0.88,
   },
   label: {
+    fontFamily: fontFamily.body,
     fontSize: typography.body,
-    fontWeight: '600',
+    fontWeight: '400',
   },
   labelCompact: {
     fontSize: typography.small,
@@ -89,10 +91,9 @@ const styles = StyleSheet.create({
     color: colors.onNavy,
   },
   labelSecondary: {
-    color: colors.navy,
+    color: colors.brandNavy,
   },
   labelGhost: {
     color: colors.bronzeDark,
-    fontWeight: '600',
   },
 })

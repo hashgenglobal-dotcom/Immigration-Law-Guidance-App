@@ -9,15 +9,16 @@
     "newArchEnabled": true,
     "splash": {
       "resizeMode": "contain",
-      "backgroundColor": "#1e40af"
+      "backgroundColor": "#1F2839"
     },
+    "backgroundColor": "#F4F0E6",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hashgen.immigrationlawguidance"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#1e40af"
+        "backgroundColor": "#1F2839"
       },
       "package": "com.hashgen.immigrationlawguidance"
     },

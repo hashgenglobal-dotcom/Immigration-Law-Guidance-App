@@ -1,130 +1,85 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
-import { DisclaimerCard, PrimaryButton, ScreenScroll } from '@/components'
-import { brand } from '@/lib/brand'
-import { LEGAL_DISCLAIMER_FULL } from '@/lib/legalCopy'
-import { colors, radii, spacing, typography } from '@/theme'
-
-const QUICK_TOPICS = [
-  'Asylum work authorization',
-  'Notice to Appear',
-  'Adjustment of status',
-] as const
+import { ScreenScroll } from '@/components'
+import { DigitalBackdrop, FadeIn } from '@/components/digital'
+import { DisclaimerAccordion, HomeExploreSection, HomeHero } from '@/components/home'
+import { colors, spacing, textStyles } from '@/theme'
 
 export default function HomeScreen() {
   const router = useRouter()
 
   return (
-    <ScreenScroll contentStyle={styles.scroll}>
-      <View style={styles.hero}>
-        <Text style={styles.eyebrow}>{brand.motto}</Text>
-        <Text style={styles.title}>{brand.name}</Text>
-        <Text style={styles.tagline}>{brand.tagline}</Text>
-        <Text style={styles.subtitle}>
-          Plain-language guidance grounded in official sources—not unchecked AI memory.
-        </Text>
-      </View>
+    <View style={styles.screen}>
+      <DigitalBackdrop variant="home" />
+      <ScreenScroll contentStyle={styles.scroll}>
+        <View style={styles.main}>
+          <FadeIn>
+            <HomeHero onOpenAssistant={() => router.push('/ask')} />
+          </FadeIn>
 
-      <DisclaimerCard compact>{LEGAL_DISCLAIMER_FULL}</DisclaimerCard>
+          <HomeExploreSection
+            onNavigate={(route) => router.push(route)}
+          />
+        </View>
 
-      <View style={styles.actions}>
-        <PrimaryButton label="Ask a Question" onPress={() => router.push('/ask')} />
-        <PrimaryButton
-          label="Browse Scenarios"
-          variant="secondary"
-          onPress={() => router.push('/scenarios')}
-        />
-        <PrimaryButton label="About" variant="ghost" onPress={() => router.push('/about')} />
-      </View>
-
-      <Text style={styles.quickLabel}>Popular topics</Text>
-      <View style={styles.pillRow}>
-        {QUICK_TOPICS.map((topic) => (
-          <Pressable
-            key={topic}
-            onPress={() => router.push('/ask')}
-            style={({ pressed }) => [styles.pill, pressed && styles.pillPressed]}
-          >
-            <Text style={styles.pillText}>{topic}</Text>
-          </Pressable>
-        ))}
-      </View>
-    </ScreenScroll>
+        <View style={styles.pageEnd}>
+          <DisclaimerAccordion />
+          <View style={styles.footer}>
+            <View style={styles.footerRule} />
+            <Pressable
+              onPress={() => router.push('/about')}
+              style={({ pressed }) => [styles.aboutLink, pressed && styles.aboutPressed]}
+              accessibilityRole="link"
+            >
+              <Text style={styles.aboutText}>About SourcePath</Text>
+            </Pressable>
+          </View>
+        </View>
+      </ScreenScroll>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.parchment,
+  },
   scroll: {
-    paddingTop: spacing.sm,
+    flexGrow: 1,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
+    backgroundColor: 'transparent',
+    zIndex: 1,
   },
-  hero: {
-    backgroundColor: colors.navy,
-    borderRadius: radii.md,
+  main: {
+    flexGrow: 1,
+  },
+  pageEnd: {
+    marginTop: spacing.lg,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingTop: spacing.md,
+  },
+  footerRule: {
+    alignSelf: 'stretch',
+    height: 1,
+    backgroundColor: 'rgba(156, 123, 92, 0.2)',
+    marginBottom: spacing.md,
+  },
+  aboutLink: {
+    minHeight: 48,
+    justifyContent: 'center',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.bronze,
   },
-  eyebrow: {
-    fontSize: typography.caption,
+  aboutPressed: {
+    opacity: 0.65,
+  },
+  aboutText: {
+    ...textStyles.small,
     fontWeight: '600',
-    color: colors.bronzeLight,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: typography.heading,
-    fontWeight: '800',
-    color: colors.onNavy,
-    marginBottom: 2,
-  },
-  tagline: {
-    fontSize: typography.small,
-    fontWeight: '600',
-    color: colors.cream,
-    marginBottom: spacing.xs,
-    opacity: 0.95,
-  },
-  subtitle: {
-    fontSize: typography.caption,
-    lineHeight: 16,
-    color: colors.cream,
-    opacity: 0.88,
-  },
-  actions: {
-    marginTop: spacing.md,
-    marginBottom: spacing.md,
-  },
-  quickLabel: {
-    fontSize: typography.caption,
-    fontWeight: '700',
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginBottom: spacing.sm,
-  },
-  pillRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs + 2,
-  },
-  pill: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.full,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 6,
-    paddingHorizontal: spacing.sm + 2,
-  },
-  pillPressed: {
-    opacity: 0.85,
-    borderColor: colors.bronze,
-  },
-  pillText: {
-    fontSize: typography.caption,
-    fontWeight: '500',
-    color: colors.textSecondary,
+    color: colors.brandBronze,
+    textAlign: 'center',
   },
 })

@@ -11,15 +11,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import {
   AssistantAnswerContent,
-  ChatAssistantText,
   ChatComposer,
   ChatMessage,
   ChatUserText,
-  DisclaimerCard,
 } from '@/components'
-import { ASK_INTRO_MESSAGE } from '@/lib/legalCopy'
+import { WelcomeCard } from '@/components/chat'
+import { DigitalBackdrop } from '@/components/digital'
 import { mockAnswer, type MockAnswer } from '@/lib/mockData'
-import { colors, spacing, typography } from '@/theme'
+import { colors, fontFamily, spacing, typography } from '@/theme'
 
 type Turn =
   | { id: string; role: 'user'; text: string }
@@ -42,7 +41,7 @@ export default function AskScreen() {
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }))
   }, [])
 
-  const handleSend = () => {
+  const handleSend = useCallback(() => {
     const text = draft.trim()
     if (!text || loading) return
 
@@ -64,10 +63,13 @@ export default function AskScreen() {
       setLoading(false)
       scrollToEnd()
     }, 1100)
-  }
+  }, [draft, loading, scrollToEnd])
+
+  const isEmpty = turns.length === 0
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <DigitalBackdrop variant="ask" />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -76,19 +78,14 @@ export default function AskScreen() {
         <ScrollView
           ref={scrollRef}
           style={styles.messages}
-          contentContainerStyle={styles.messagesContent}
+          contentContainerStyle={[styles.messagesContent, isEmpty && styles.messagesEmpty]}
           keyboardShouldPersistTaps="handled"
-          onContentSizeChange={scrollToEnd}
+          onContentSizeChange={() => {
+            if (!isEmpty) scrollToEnd()
+          }}
           showsVerticalScrollIndicator={false}
         >
-          <DisclaimerCard compact title="Privacy">
-            Questions are not stored on this device or sent to a server in this preview build. Do not enter emergency
-            details.
-          </DisclaimerCard>
-
-          <ChatMessage role="assistant">
-            <ChatAssistantText>{ASK_INTRO_MESSAGE}</ChatAssistantText>
-          </ChatMessage>
+          {isEmpty ? <WelcomeCard /> : null}
 
           {turns.map((turn) => {
             if (turn.role === 'user') {
@@ -102,8 +99,8 @@ export default function AskScreen() {
               return (
                 <ChatMessage key={turn.id} role="assistant">
                   <View style={styles.pendingRow}>
-                    <ActivityIndicator size="small" color={colors.bronze} />
-                    <Text style={styles.pendingText}>Reviewing official-style sources…</Text>
+                    <ActivityIndicator size="small" color={colors.brandNavy} />
+                    <Text style={styles.pendingText}>Reviewing official sources…</Text>
                   </View>
                 </ChatMessage>
               )
@@ -120,6 +117,7 @@ export default function AskScreen() {
           value={draft}
           onChangeText={setDraft}
           onSend={handleSend}
+          onSuggestionPress={setDraft}
           disabled={loading}
           loading={loading}
         />
@@ -131,10 +129,11 @@ export default function AskScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.creamMuted,
+    backgroundColor: colors.parchment,
   },
   flex: {
     flex: 1,
+    zIndex: 1,
   },
   messages: {
     flex: 1,
@@ -142,6 +141,11 @@ const styles = StyleSheet.create({
   messagesContent: {
     padding: spacing.md,
     paddingBottom: spacing.sm,
+    flexGrow: 1,
+    backgroundColor: colors.parchment,
+  },
+  messagesEmpty: {
+    justifyContent: 'center',
   },
   pendingRow: {
     flexDirection: 'row',
@@ -149,8 +153,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   pendingText: {
+    fontFamily: fontFamily.body,
     fontSize: typography.caption,
-    color: colors.textMuted,
+    color: colors.brandNavy,
+    opacity: 0.65,
     fontStyle: 'italic',
   },
 })

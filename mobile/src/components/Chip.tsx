@@ -52,8 +52,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm + 2,
   },
   chipSelected: {
-    backgroundColor: colors.navy,
-    borderColor: colors.navy,
+    backgroundColor: colors.bronze,
+    borderColor: colors.bronze,
   },
   chipDisabled: {
     opacity: 0.45,
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   labelSelected: {
-    color: colors.onNavy,
+    color: colors.onPrimary,
   },
   labelDisabled: {
     color: colors.textMuted,

@@ -1,80 +1,98 @@
-import { StyleSheet, Text, View } from 'react-native'
-import { DisclaimerCard, ScreenScroll } from '@/components'
-import { brand } from '@/lib/brand'
-import { LEGAL_DISCLAIMER_FULL } from '@/lib/legalCopy'
-import { colors, spacing, typography } from '@/theme'
+import { StyleSheet, View } from 'react-native'
+import { ScreenScroll } from '@/components'
+import {
+  AboutFeatureCard,
+  AboutFooter,
+  AboutHero,
+  AboutSectionTitle,
+  LegalNoticeBanner,
+} from '@/components/about'
+import { DigitalBackdrop, FadeIn } from '@/components/digital'
+import { colors, spacing } from '@/theme'
 
-function Section({ title, children }: { title: string; children: string }) {
+const FEATURES = [
+  {
+    title: 'What this app does',
+    description:
+      'Plain-language immigration information, common procedures, and links to official government sources—built for a citation-first experience.',
+    icon: 'checkmark-circle' as const,
+    accent: 'navy' as const,
+  },
+  {
+    title: 'What this app does not do',
+    description:
+      'No legal advice, representation, or attorney–client relationship. Does not replace an attorney or handle emergencies.',
+    icon: 'close-circle' as const,
+    accent: 'bronze' as const,
+  },
+  {
+    title: 'Privacy-first design',
+    description:
+      'Minimal data collection with strong privacy controls. Answers grounded in retrieved official materials—not model memory alone.',
+    icon: 'shield-checkmark' as const,
+    accent: 'bronze' as const,
+  },
+  {
+    title: 'Official sources first',
+    description:
+      'Cites regulations, statutes, and agency guidance you can verify. Always read the linked source and confirm it applies to your facts.',
+    icon: 'library' as const,
+    accent: 'navy' as const,
+  },
+] as const
+
+export default function AboutScreen() {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      <Text style={styles.sectionBody}>{children}</Text>
+    <View style={styles.screen}>
+      <DigitalBackdrop variant="about" />
+      <ScreenScroll contentStyle={styles.scroll}>
+        <FadeIn>
+          <AboutHero />
+        </FadeIn>
+
+        <AboutSectionTitle
+          title="Our principles"
+          subtitle="How SourcePath earns your trust"
+        />
+
+        <View style={styles.grid}>
+          {FEATURES.map((feature, i) => (
+            <AboutFeatureCard
+              key={feature.title}
+              index={i + 1}
+              title={feature.title}
+              description={feature.description}
+              icon={feature.icon}
+              accent={feature.accent}
+            />
+          ))}
+        </View>
+
+        <LegalNoticeBanner />
+
+        <AboutFooter />
+      </ScreenScroll>
     </View>
   )
 }
 
-export default function AboutScreen() {
-  return (
-    <ScreenScroll contentStyle={styles.scroll}>
-      <Section title="What this app does">
-        Plain-language immigration information, common procedures, and links to official government sources. Built for a
-        privacy-first, citation-first experience when connected to verified legal text.
-      </Section>
-
-      <Section title="What this app does not do">
-        No legal advice, representation, or attorney–client relationship. Does not replace an immigration attorney or
-        handle emergencies. This preview does not store your questions.
-      </Section>
-
-      <Section title="Privacy-first design">
-        Minimal data collection: process questions with strong privacy controls and ground answers in retrieved official
-        materials—not model memory alone.
-      </Section>
-
-      <Section title="Official sources first">
-        Answers cite regulations, statutes, and agency guidance you can verify. Read the linked source and confirm it
-        applies to your facts.
-      </Section>
-
-      <DisclaimerCard compact title="Not a lawyer">
-        {LEGAL_DISCLAIMER_FULL}
-      </DisclaimerCard>
-
-      <Text style={styles.footer}>
-        {brand.name} · {brand.tagline}
-        {'\n'}
-        {brand.motto} · {brand.company} · Mobile preview (mock data)
-      </Text>
-    </ScreenScroll>
-  )
-}
-
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.parchment,
+  },
   scroll: {
     paddingTop: spacing.sm,
+    paddingBottom: spacing.xl,
+    backgroundColor: 'transparent',
+    zIndex: 1,
   },
-  section: {
-    marginBottom: spacing.md,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  sectionTitle: {
-    fontSize: typography.small,
-    fontWeight: '700',
-    color: colors.text,
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: spacing.md,
+    columnGap: spacing.sm,
     marginBottom: spacing.xs,
-  },
-  sectionBody: {
-    fontSize: typography.small,
-    lineHeight: 19,
-    color: colors.textSecondary,
-  },
-  footer: {
-    fontSize: typography.caption,
-    lineHeight: 16,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: spacing.sm,
   },
 })

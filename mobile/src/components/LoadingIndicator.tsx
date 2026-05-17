@@ -4,7 +4,7 @@ import { colors, spacing, typography } from '@/theme'
 export function LoadingIndicator({ message = 'Retrieving information…' }: { message?: string }) {
   return (
     <View style={styles.wrap} accessibilityRole="progressbar">
-      <ActivityIndicator size="large" color={colors.gold} />
+      <ActivityIndicator size="large" color={colors.bronze} />
       <Text style={styles.text}>{message}</Text>
       <Text style={styles.hint}>Mock response — no network call in this build</Text>
     </View>
