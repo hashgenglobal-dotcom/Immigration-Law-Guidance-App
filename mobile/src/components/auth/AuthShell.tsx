@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { DotGrid } from '@/components/digital/DotGrid'
+import { NavyBackground } from '@/components/ui/NavyBackground'
 import { colors, spacing } from '@/theme'
 
 export function AuthShell({
@@ -21,11 +21,7 @@ export function AuthShell({
 
   return (
     <View style={styles.root}>
-      <LinearGradient
-        colors={['#151B27', colors.brandNavy, '#243044']}
-        locations={[0, 0.45, 1]}
-        style={StyleSheet.absoluteFill}
-      />
+      <NavyBackground />
       <DotGrid opacity={0.14} />
       {scroll ? (
         <ScrollView

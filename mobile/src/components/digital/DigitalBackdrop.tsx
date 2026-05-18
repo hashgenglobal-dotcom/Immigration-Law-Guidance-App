@@ -1,28 +1,18 @@
 import { StyleSheet, View } from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
 import { DotGrid } from './DotGrid'
 import { colors } from '@/theme'
 
 type BackdropVariant = 'home' | 'ask' | 'scenarios' | 'about'
 
-const ORB_COLORS: Record<BackdropVariant, readonly [string, string, string, string]> = {
-  home: ['rgba(31, 40, 57, 0.07)', 'transparent', 'rgba(156, 123, 92, 0.09)', 'transparent'],
-  ask: ['rgba(156, 123, 92, 0.08)', 'transparent', 'rgba(31, 40, 57, 0.06)', 'transparent'],
-  scenarios: ['rgba(31, 40, 57, 0.08)', 'transparent', 'rgba(156, 123, 92, 0.07)', 'transparent'],
-  about: ['rgba(156, 123, 92, 0.07)', 'transparent', 'rgba(31, 40, 57, 0.05)', 'transparent'],
-}
-
-/** Soft gradient orbs + dot grid — adds depth without blocking touches */
+/** Soft orbs + dot grid — adds depth without native gradients */
 export function DigitalBackdrop({ variant = 'home' }: { variant?: BackdropVariant }) {
+  const bronzeTint = variant === 'ask' ? 0.09 : 0.07
+  const navyTint = variant === 'scenarios' ? 0.08 : 0.06
+
   return (
     <View style={styles.root} pointerEvents="none">
-      <LinearGradient
-        colors={ORB_COLORS[variant]}
-        locations={[0, 0.35, 0.65, 1]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      />
+      <View style={[styles.wash, { backgroundColor: `rgba(156, 123, 92, ${bronzeTint})` }]} />
+      <View style={[styles.washBottom, { backgroundColor: `rgba(31, 40, 57, ${navyTint})` }]} />
       <DotGrid opacity={0.14} />
       <View style={[styles.orb, styles.orbTop]} />
       <View style={[styles.orb, styles.orbBottom]} />
@@ -36,9 +26,19 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.parchment,
   },
-  gradient: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.9,
+  wash: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '45%',
+  },
+  washBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '40%',
   },
   orb: {
     position: 'absolute',

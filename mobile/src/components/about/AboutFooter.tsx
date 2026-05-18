@@ -1,28 +1,20 @@
 import { Image, StyleSheet, Text, View } from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import { appImages } from '@/assets/images'
+import { ImageFadeOverlay } from '@/components/ui/ImageFadeOverlay'
+import { NavyBackground } from '@/components/ui/NavyBackground'
 import { brand } from '@/lib/brand'
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme'
 
 export function AboutFooter() {
   return (
     <View style={styles.wrap}>
-      <LinearGradient
-        colors={[colors.brandNavy, '#151B27', colors.brandNavy]}
-        locations={[0, 0.5, 1]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
-      >
+      <View style={styles.gradient}>
+        <NavyBackground />
         <View style={styles.watermarkWrap} pointerEvents="none">
           <Image source={appImages.heroAccent} style={styles.watermark} resizeMode="cover" />
         </View>
-        <LinearGradient
-          colors={['rgba(31,40,57,0.75)', 'rgba(31,40,57,0.95)']}
-          style={styles.watermarkFade}
-          pointerEvents="none"
-        />
+        <ImageFadeOverlay variant="dark" />
         <View style={styles.content}>
           <View style={styles.topRule} />
           <View style={styles.brandRow}>
@@ -41,7 +33,7 @@ export function AboutFooter() {
           </View>
           <Text style={styles.previewNote}>Mobile preview · Mock data only</Text>
         </View>
-      </LinearGradient>
+      </View>
     </View>
   )
 }
@@ -57,6 +49,7 @@ const styles = StyleSheet.create({
   gradient: {
     position: 'relative',
     overflow: 'hidden',
+    backgroundColor: colors.brandNavy,
   },
   watermarkWrap: {
     position: 'absolute',
@@ -70,9 +63,6 @@ const styles = StyleSheet.create({
   watermark: {
     width: '100%',
     height: '100%',
-  },
-  watermarkFade: {
-    ...StyleSheet.absoluteFillObject,
   },
   content: {
     padding: spacing.lg,

@@ -19,7 +19,6 @@
     "expo-asset": "~11.0.5",
     "expo-constants": "~17.0.8",
     "expo-font": "~13.0.4",
-    "expo-linear-gradient": "~14.0.2",
     "expo-linking": "~7.0.5",
     "expo-router": "~4.0.21",
     "expo-splash-screen": "~0.29.24",

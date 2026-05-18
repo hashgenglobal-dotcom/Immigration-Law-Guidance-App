@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { Animated, StyleSheet, Text, View } from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
 import { StatusBar } from 'expo-status-bar'
 import { SourcePathLogoMark } from '@/components/brand/SourcePathLogoMark'
+import { NavyBackground } from '@/components/ui/NavyBackground'
 import { brand } from '@/lib/brand'
 import { colors, fontFamily, radii, spacing } from '@/theme'
 
@@ -29,10 +29,7 @@ export function SourcePathBootScreen() {
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      <LinearGradient
-        colors={['#151B27', colors.brandNavy, '#243044']}
-        style={StyleSheet.absoluteFill}
-      />
+      <NavyBackground />
       <View style={styles.mesh} pointerEvents="none">
         {Array.from({ length: 8 }).map((_, i) => (
           <View key={i} style={[styles.meshDot, { left: `${10 + i * 11}%` as `${number}%` }]} />
