@@ -1,26 +1,57 @@
+import { useEffect } from 'react'
 import { Stack } from 'expo-router'
+import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { colors } from '@/theme'
+import { SourcePathBootScreen } from '@/components/boot/SourcePathBootScreen'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
+import { useAppFonts } from '@/hooks/useAppFonts'
+
+SplashScreen.preventAutoHideAsync()
+
+function RootNavigator() {
+  return (
+    <Stack screenOptions={{ headerShown: false }} initialRouteName="(main)">
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen
+        name="(main)"
+        options={{
+          headerShown: false,
+          gestureEnabled: false,
+        }}
+      />
+    </Stack>
+  )
+}
+
+function AppShell() {
+  const fontsLoaded = useAppFonts()
+  const { isReady } = useAuth()
+
+  useEffect(() => {
+    if (fontsLoaded && isReady) {
+      SplashScreen.hideAsync()
+    }
+  }, [fontsLoaded, isReady])
+
+  if (!fontsLoaded || !isReady) {
+    return <SourcePathBootScreen />
+  }
+
+  return (
+    <>
+      <StatusBar style="light" />
+      <RootNavigator />
+    </>
+  )
+}
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: colors.navy },
-          headerTintColor: colors.onPrimary,
-          headerTitleStyle: { fontWeight: '700', fontSize: 17 },
-          headerShadowVisible: true,
-          contentStyle: { backgroundColor: colors.background },
-        }}
-      >
-        <Stack.Screen name="index" options={{ title: 'Immigration Law Guidance' }} />
-        <Stack.Screen name="ask" options={{ title: 'Ask a Question' }} />
-        <Stack.Screen name="scenarios" options={{ title: 'Scenario Guides' }} />
-        <Stack.Screen name="about" options={{ title: 'About' }} />
-      </Stack>
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
     </SafeAreaProvider>
   )
 }

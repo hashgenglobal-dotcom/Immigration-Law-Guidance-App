@@ -1,7 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import type { Scenario } from '@/lib/mockData'
 import { RiskBadge } from './RiskBadge'
-import { colors, radii, spacing, typography } from '@/theme'
+import { cardStandard, colors, fontFamily, layout, radii, spacing } from '@/theme'
+
+const CARD_MARGIN_BOTTOM = 16
 
 export function ScenarioCard({
   scenario,
@@ -13,72 +16,107 @@ export function ScenarioCard({
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={({ pressed }) => [styles.cardOuter, pressed && styles.cardPressed]}
       accessibilityRole="button"
     >
-      <View style={styles.accent} />
-      <View style={styles.header}>
-        <Text style={styles.title}>{scenario.title}</Text>
-        <RiskBadge level={scenario.riskLevel} />
+      <View style={styles.navyAccent} />
+      <View style={styles.card}>
+        <View style={styles.main}>
+          <View style={styles.titleRow}>
+            <Text style={styles.title} numberOfLines={2}>
+              {scenario.title}
+            </Text>
+            <RiskBadge level={scenario.riskLevel} small />
+          </View>
+          <Text style={styles.description} numberOfLines={2}>
+            {scenario.shortDescription}
+          </Text>
+          <View style={styles.footer}>
+            <Text style={styles.openLabel}>Open guide</Text>
+            <Ionicons name="arrow-forward" size={14} color={colors.brandBronze} />
+          </View>
+        </View>
+        <View style={styles.bookmarkWrap} pointerEvents="none">
+          <Ionicons name="bookmark-outline" size={20} color={colors.brandBronze} />
+        </View>
       </View>
-      <Text style={styles.description}>{scenario.shortDescription}</Text>
-      <Text style={styles.cta}>View overview →</Text>
     </Pressable>
   )
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: 1,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+  cardOuter: {
+    flexDirection: 'row',
+    marginBottom: CARD_MARGIN_BOTTOM,
+    minHeight: layout.minTouchTarget,
     overflow: 'hidden',
-    shadowColor: colors.navy,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    ...cardStandard,
   },
   cardPressed: {
-    transform: [{ scale: 0.98 }, { translateY: 1 }],
-    borderColor: colors.gold,
-    shadowOpacity: 0.14,
+    opacity: 0.97,
+    transform: [{ scale: 0.995 }],
   },
-  accent: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    backgroundColor: colors.gold,
-    opacity: 0.85,
+  navyAccent: {
+    width: 4,
+    backgroundColor: colors.brandNavy,
   },
-  header: {
+  card: {
+    flex: 1,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surfaceWhite,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(31, 40, 57, 0.06)',
+  },
+  main: {
+    flex: 1,
+    paddingRight: spacing.sm,
+  },
+  titleRow: {
+    flexDirection: 'row',
     alignItems: 'flex-start',
+    justifyContent: 'space-between',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
-    marginTop: spacing.xs,
+    marginBottom: 6,
   },
   title: {
     flex: 1,
-    fontSize: typography.subheading,
-    fontWeight: '700',
-    color: colors.text,
+    fontFamily: fontFamily.heading,
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 20,
+    color: colors.brandNavy,
   },
   description: {
-    fontSize: typography.body,
-    lineHeight: 24,
-    color: colors.textSecondary,
+    fontFamily: fontFamily.body,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '400',
+    color: colors.brandNavy,
+    opacity: 0.68,
     marginBottom: spacing.sm,
   },
-  cta: {
-    fontSize: typography.small,
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  openLabel: {
+    fontFamily: fontFamily.body,
+    fontSize: 12,
     fontWeight: '600',
-    color: colors.goldDark,
+    color: colors.brandBronze,
+  },
+  bookmarkWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bronzeTint,
+    borderWidth: 1,
+    borderColor: 'rgba(31, 40, 57, 0.06)',
   },
 })

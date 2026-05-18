@@ -26,7 +26,7 @@ export function ScreenScroll({
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
   },
   scroll: {
     flex: 1,

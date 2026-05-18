@@ -6,14 +6,22 @@ const typeLabels: Record<OfficialSource['type'], string> = {
   regulation: 'Regulation',
   statute: 'Statute',
   case: 'Case law',
-  guidance: 'Agency guidance',
+  guidance: 'Guidance',
 }
 
-export function CitationCard({ source }: { source: OfficialSource }) {
+export function CitationCard({
+  source,
+  compact,
+}: {
+  source: OfficialSource
+  compact?: boolean
+}) {
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>{source.title}</Text>
-      <Text style={styles.meta}>
+    <View style={[styles.card, compact && styles.cardCompact]}>
+      <Text style={[styles.title, compact && styles.titleCompact]} numberOfLines={2}>
+        {source.title}
+      </Text>
+      <Text style={styles.meta} numberOfLines={1}>
         {typeLabels[source.type]} · {source.citation}
       </Text>
       <Pressable
@@ -21,7 +29,7 @@ export function CitationCard({ source }: { source: OfficialSource }) {
         style={({ pressed }) => [styles.link, pressed && styles.linkPressed]}
         accessibilityRole="link"
       >
-        <Text style={styles.linkText}>View official source</Text>
+        <Text style={styles.linkText}>View source</Text>
       </Pressable>
     </View>
   )
@@ -29,36 +37,42 @@ export function CitationCard({ source }: { source: OfficialSource }) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.creamMuted,
     borderColor: colors.border,
     borderWidth: 1,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
-    borderRadius: 12,
-    padding: spacing.md,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.bronze,
+    borderRadius: 8,
+    padding: spacing.sm + 2,
     marginBottom: spacing.sm,
   },
+  cardCompact: {
+    padding: spacing.sm,
+    marginBottom: spacing.xs,
+  },
   title: {
-    fontSize: typography.body,
+    fontSize: typography.small,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: spacing.xs,
+    marginBottom: 2,
+  },
+  titleCompact: {
+    fontSize: typography.caption,
   },
   meta: {
     fontSize: typography.caption,
     color: colors.textMuted,
-    marginBottom: spacing.sm,
+    marginBottom: 4,
   },
   link: {
     alignSelf: 'flex-start',
-    paddingVertical: spacing.xs,
   },
   linkPressed: {
     opacity: 0.7,
   },
   linkText: {
-    fontSize: typography.small,
+    fontSize: typography.caption,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.bronzeDark,
   },
 })

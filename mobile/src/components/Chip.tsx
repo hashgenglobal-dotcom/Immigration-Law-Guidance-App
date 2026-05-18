@@ -40,20 +40,20 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
+    gap: spacing.xs + 2,
+    marginBottom: spacing.sm,
   },
   chip: {
     borderRadius: radii.full,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    paddingHorizontal: spacing.sm + 2,
   },
   chipSelected: {
-    backgroundColor: colors.gold,
-    borderColor: colors.gold,
+    backgroundColor: colors.bronze,
+    borderColor: colors.bronze,
   },
   chipDisabled: {
     opacity: 0.45,
@@ -63,9 +63,10 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.96 }],
   },
   label: {
-    fontSize: typography.small,
+    fontSize: typography.caption,
     fontWeight: '600',
     color: colors.textSecondary,
+    textTransform: 'capitalize',
   },
   labelSelected: {
     color: colors.onPrimary,

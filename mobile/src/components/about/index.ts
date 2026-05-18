@@ -1,0 +1,8 @@
+export { AboutFeatureCard } from './AboutFeatureCard'
+export { AboutFooter } from './AboutFooter'
+export { AboutHero } from './AboutHero'
+export { AboutPrincipleCard } from './AboutPrincipleCard'
+export { AboutPrinciplesPanel } from './AboutPrinciplesPanel'
+export { AboutSectionTitle } from './AboutSectionTitle'
+export { AboutTrustStrip } from './AboutTrustStrip'
+export { LegalNoticeBanner } from './LegalNoticeBanner'
