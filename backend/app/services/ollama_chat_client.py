@@ -57,6 +57,7 @@ class OllamaChatClient:
         messages: list[dict[str, str]],
         model: str = DEFAULT_CHAT_MODEL,
         ollama_base_url: str | None = None,
+        ollama_api_key: str | None = None,
         timeout_seconds: int = DEFAULT_CHAT_TIMEOUT_SECONDS,
         temperature: float = 0.2,
     ) -> str:
@@ -73,6 +74,11 @@ class OllamaChatClient:
         ollama_base_url:
             Per-call override for the Ollama base URL. Takes priority over
             the instance value and ``settings.ollama_base_url``.
+        ollama_api_key:
+            Optional bearer credential for Ollama Cloud or private
+            authenticated endpoints. When provided, sent as
+            ``Authorization: Bearer <key>``. Omit for local Ollama.
+            Never logged, printed, or included in error messages.
         timeout_seconds:
             Total request timeout in seconds.
         temperature:
@@ -100,10 +106,13 @@ class OllamaChatClient:
             "stream": False,
             "options": {"temperature": temperature},
         }
+        headers: dict[str, str] = {}
+        if ollama_api_key:
+            headers["Authorization"] = f"Bearer {ollama_api_key}"
 
         try:
             async with httpx.AsyncClient(timeout=timeout_seconds) as client:
-                response = await client.post(endpoint, json=payload)
+                response = await client.post(endpoint, json=payload, headers=headers)
                 response.raise_for_status()
         except httpx.TimeoutException:
             raise OllamaChatClientError(

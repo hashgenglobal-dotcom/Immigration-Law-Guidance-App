@@ -66,6 +66,12 @@ class Settings(BaseSettings):
         default="http://localhost:11434",
         validation_alias="OLLAMA_BASE_URL",
     )
+    # Optional. Required only for Ollama Cloud or private authenticated endpoints.
+    # Omit entirely for local Ollama (the default case). Never log or expose this value.
+    ollama_api_key: str | None = Field(
+        default=None,
+        validation_alias="OLLAMA_API_KEY",
+    )
 
     # PRIVACY: full user question text and full generated answer text
     # must NOT be stored by default. This flag stays False unless an
