@@ -66,6 +66,25 @@ class Settings(BaseSettings):
         default="http://localhost:11434",
         validation_alias="OLLAMA_BASE_URL",
     )
+    # Optional. When set, chat generation uses this endpoint instead of
+    # ollama_base_url, allowing embeddings to stay local while chat uses a
+    # remote or cloud Ollama instance. Falls back to ollama_base_url if unset.
+    ollama_chat_base_url: str | None = Field(
+        default=None,
+        validation_alias="OLLAMA_CHAT_BASE_URL",
+    )
+    # Chat model used by /api/chat. Defaults to llama3.1:8b for local Ollama.
+    # Override with a model available in your Ollama Cloud account when using cloud inference.
+    ollama_chat_model: str = Field(
+        default="llama3.1:8b",
+        validation_alias="OLLAMA_CHAT_MODEL",
+    )
+    # Optional. Required only for Ollama Cloud or private authenticated endpoints.
+    # Omit entirely for local Ollama (the default case). Never log or expose this value.
+    ollama_api_key: str | None = Field(
+        default=None,
+        validation_alias="OLLAMA_API_KEY",
+    )
 
     # PRIVACY: full user question text and full generated answer text
     # must NOT be stored by default. This flag stays False unless an
