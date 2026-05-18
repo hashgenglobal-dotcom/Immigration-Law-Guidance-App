@@ -21,8 +21,8 @@ export default function MainLayout() {
   const { session, onboardingComplete, isGuest } = useAuth()
 
   if (!session) {
-    if (!onboardingComplete) return <Redirect href="/(auth)/welcome" />
-    return <Redirect href="/(auth)/choice" />
+    if (!onboardingComplete) return <Redirect href="/welcome" />
+    return <Redirect href="/choice" />
   }
 
   return (

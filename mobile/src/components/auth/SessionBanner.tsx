@@ -11,7 +11,7 @@ export function SessionBanner() {
 
   const exitGuestMode = async () => {
     await signOut()
-    router.replace('/(auth)/choice')
+    router.replace('/choice')
   }
 
   if (!isGuest) return null
@@ -28,7 +28,7 @@ export function SessionBanner() {
       </Pressable>
       <Pressable
         style={styles.guestMain}
-        onPress={() => router.push('/(auth)/signup')}
+        onPress={() => router.push('/signup')}
       >
         <View style={styles.guestBadge}>
           <Text style={styles.guestBadgeText}>GUEST MODE</Text>

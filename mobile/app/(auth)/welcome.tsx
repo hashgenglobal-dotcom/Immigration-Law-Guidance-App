@@ -13,7 +13,7 @@ export default function WelcomeScreen() {
 
   const handleContinue = async () => {
     await completeOnboarding()
-    router.replace('/(auth)/choice')
+    router.replace('/choice')
   }
 
   return (

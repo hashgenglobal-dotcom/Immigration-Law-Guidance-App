@@ -11,8 +11,7 @@ SplashScreen.preventAutoHideAsync()
 
 function RootNavigator() {
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
+    <Stack screenOptions={{ headerShown: false }} initialRouteName="(main)">
       <Stack.Screen name="(auth)" />
       <Stack.Screen
         name="(main)"

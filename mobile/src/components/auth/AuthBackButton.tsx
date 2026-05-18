@@ -3,7 +3,7 @@ import { useRouter, type Href } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, fontFamily, layout, spacing } from '@/theme'
 
-export function AuthBackButton({ fallback = '/(auth)/choice' }: { fallback?: Href }) {
+export function AuthBackButton({ fallback = '/choice' }: { fallback?: Href }) {
   const router = useRouter()
 
   const handleBack = () => {

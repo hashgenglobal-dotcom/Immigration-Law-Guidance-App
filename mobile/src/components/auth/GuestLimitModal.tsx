@@ -17,7 +17,7 @@ export function GuestLimitModal({
   const goToAuthChoice = async () => {
     onClose()
     await signOut()
-    router.replace('/(auth)/choice')
+    router.replace('/choice')
   }
 
   return (
@@ -36,7 +36,7 @@ export function GuestLimitModal({
             style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
             onPress={() => {
               onClose()
-              router.push('/(auth)/signup')
+              router.push('/signup')
             }}
           >
             <Text style={styles.primaryLabel}>Try preview sign-up</Text>
@@ -45,7 +45,7 @@ export function GuestLimitModal({
             style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
             onPress={() => {
               onClose()
-              router.push('/(auth)/login')
+              router.push('/login')
             }}
           >
             <Text style={styles.secondaryLabel}>Try preview sign-in</Text>

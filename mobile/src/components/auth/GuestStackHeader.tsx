@@ -20,7 +20,7 @@ export function GuestStackHeader({ options, navigation }: NativeStackHeaderProps
       return
     }
     await signOut()
-    router.replace('/(auth)/choice')
+    router.replace('/choice')
   }
 
   return (

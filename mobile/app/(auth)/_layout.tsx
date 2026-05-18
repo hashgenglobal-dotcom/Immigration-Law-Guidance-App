@@ -5,7 +5,7 @@ export default function AuthLayout() {
   const { session } = useAuth()
 
   if (session?.mode === 'user') {
-    return <Redirect href="/(main)" />
+    return <Redirect href="/" />
   }
 
   return (

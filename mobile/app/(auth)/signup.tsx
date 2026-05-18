@@ -24,7 +24,7 @@ export default function SignupScreen() {
     setBusy(true)
     try {
       await signUp(name, email, password)
-      router.replace('/(main)')
+      router.replace('/')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not create account.')
     } finally {
@@ -74,7 +74,7 @@ export default function SignupScreen() {
           variant="onDark"
           disabled={busy}
         />
-        <Pressable onPress={() => router.replace('/(auth)/login')} style={styles.linkWrap}>
+        <Pressable onPress={() => router.replace('/login')} style={styles.linkWrap}>
           <Text style={styles.link}>Try preview sign-in instead</Text>
         </Pressable>
       </FadeIn>

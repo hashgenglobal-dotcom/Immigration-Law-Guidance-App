@@ -16,12 +16,12 @@ export default function AuthChoiceScreen() {
 
   const handleGuest = async () => {
     await signInAsGuest()
-    router.replace('/(main)')
+    router.replace('/')
   }
 
   return (
     <AuthShell scroll>
-      <AuthBackButton fallback="/(auth)/welcome" />
+      <AuthBackButton fallback="/welcome" />
 
       <View style={styles.logoWrap}>
         <SourcePathLogoMark size={80} />
@@ -43,12 +43,12 @@ export default function AuthChoiceScreen() {
         </Text>
         <PrimaryButton
           label="Try preview sign-up"
-          onPress={() => router.push('/(auth)/signup')}
+          onPress={() => router.push('/signup')}
           variant="onDark"
         />
         <PrimaryButton
           label="Try preview sign-in"
-          onPress={() => router.push('/(auth)/login')}
+          onPress={() => router.push('/login')}
           variant="secondary"
         />
       </View>

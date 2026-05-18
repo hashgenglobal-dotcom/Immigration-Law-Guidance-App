@@ -23,7 +23,7 @@ export default function LoginScreen() {
     setBusy(true)
     try {
       await signIn(email, password)
-      router.replace('/(main)')
+      router.replace('/')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not sign in.')
     } finally {
@@ -66,7 +66,7 @@ export default function LoginScreen() {
           variant="onDark"
           disabled={busy}
         />
-        <Pressable onPress={() => router.replace('/(auth)/signup')} style={styles.linkWrap}>
+        <Pressable onPress={() => router.replace('/signup')} style={styles.linkWrap}>
           <Text style={styles.link}>Try preview sign-up instead</Text>
         </Pressable>
       </FadeIn>

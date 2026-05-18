@@ -12,7 +12,7 @@ export function AccountActions() {
 
   const handleSignOut = async () => {
     await signOut()
-    router.replace('/(auth)/choice')
+    router.replace('/choice')
   }
 
   return (
