@@ -33,7 +33,7 @@ export function SessionBanner() {
         <View style={styles.guestBadge}>
           <Text style={styles.guestBadgeText}>GUEST MODE</Text>
         </View>
-        <Text style={styles.guestSub}>Limited access · Tap to unlock full access</Text>
+        <Text style={styles.guestSub}>Limited access · Tap for preview full access</Text>
         <Ionicons name="chevron-forward" size={18} color={colors.brandBronzeLight} />
       </Pressable>
     </View>

@@ -7,6 +7,7 @@ import { AuthShell } from '@/components/auth/AuthShell'
 import { PrimaryButton } from '@/components'
 import { FadeIn } from '@/components/digital'
 import { useAuth } from '@/context/AuthContext'
+import { AUTH_PREVIEW_NOTICE } from '@/lib/legalCopy'
 import { colors, fontFamily, spacing } from '@/theme'
 
 export default function LoginScreen() {
@@ -35,8 +36,12 @@ export default function LoginScreen() {
       <AuthBackButton />
 
       <FadeIn>
-        <Text style={styles.title}>Sign in</Text>
-        <Text style={styles.sub}>Full access to Ask, scenarios, and future saved guidance.</Text>
+        <Text style={styles.title}>Preview sign-in</Text>
+        <Text style={styles.sub}>
+          Unlocks full access for this app session only. Not a real account—credentials are not
+          saved.
+        </Text>
+        <Text style={styles.notice}>{AUTH_PREVIEW_NOTICE}</Text>
       </FadeIn>
 
       <FadeIn delay={100}>
@@ -56,13 +61,13 @@ export default function LoginScreen() {
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <PrimaryButton
-          label={busy ? 'Signing in…' : 'Sign in'}
+          label={busy ? 'Starting preview…' : 'Continue (preview)'}
           onPress={handleLogin}
           variant="onDark"
           disabled={busy}
         />
         <Pressable onPress={() => router.replace('/(auth)/signup')} style={styles.linkWrap}>
-          <Text style={styles.link}>Need an account? Create one</Text>
+          <Text style={styles.link}>Try preview sign-up instead</Text>
         </Pressable>
       </FadeIn>
     </AuthShell>
@@ -82,6 +87,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.surfaceWhite,
     opacity: 0.75,
+    marginBottom: spacing.sm,
+  },
+  notice: {
+    fontFamily: fontFamily.body,
+    fontSize: 11,
+    lineHeight: 16,
+    color: colors.surfaceWhite,
+    opacity: 0.55,
     marginBottom: spacing.lg,
   },
   error: {

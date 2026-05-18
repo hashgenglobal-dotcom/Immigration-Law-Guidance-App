@@ -1,9 +1,8 @@
 export type AuthMode = 'guest' | 'user'
 
+/** In-memory preview only — no email or display name stored */
 export type UserSession = {
   mode: 'user'
-  email: string
-  displayName: string
 }
 
 export type GuestSession = {

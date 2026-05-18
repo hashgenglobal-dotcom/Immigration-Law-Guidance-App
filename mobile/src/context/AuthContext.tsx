@@ -21,6 +21,7 @@ type AuthContextValue = {
   canSendGuestChat: boolean
   completeOnboarding: () => Promise<void>
   signInAsGuest: () => Promise<void>
+  /** Preview only — session lives in memory for this app run; no credentials persisted */
   signIn: (email: string, password: string) => Promise<void>
   signUp: (displayName: string, email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
@@ -34,22 +35,55 @@ async function readOnboarding(): Promise<boolean> {
   return v === 'true'
 }
 
-async function readSession(): Promise<AppSession | null> {
-  const raw = await AsyncStorage.getItem(STORAGE_KEYS.session)
+function parseGuestSession(raw: string | null): GuestSession | null {
   if (!raw) return null
   try {
-    return JSON.parse(raw) as AppSession
+    const parsed = JSON.parse(raw) as { mode?: string; guestChatsUsed?: number }
+    if (parsed.mode !== 'guest' || typeof parsed.guestChatsUsed !== 'number') {
+      return null
+    }
+    return {
+      mode: 'guest',
+      guestChatsUsed: Math.max(0, Math.min(GUEST_CHAT_LIMIT, parsed.guestChatsUsed)),
+    }
   } catch {
     return null
   }
 }
 
-async function persistSession(session: AppSession | null) {
-  if (!session) {
+/** Only guest sessions are written to AsyncStorage — never user PII */
+async function readPersistedGuestSession(): Promise<GuestSession | null> {
+  const raw = await AsyncStorage.getItem(STORAGE_KEYS.session)
+  const guest = parseGuestSession(raw)
+  if (raw && !guest) {
+    await AsyncStorage.removeItem(STORAGE_KEYS.session)
+  }
+  return guest
+}
+
+async function persistGuestSession(guest: GuestSession | null) {
+  if (!guest) {
     await AsyncStorage.removeItem(STORAGE_KEYS.session)
     return
   }
-  await AsyncStorage.setItem(STORAGE_KEYS.session, JSON.stringify(session))
+  await AsyncStorage.setItem(
+    STORAGE_KEYS.session,
+    JSON.stringify({ mode: 'guest', guestChatsUsed: guest.guestChatsUsed }),
+  )
+}
+
+/** Remove any legacy session that stored user email/displayName */
+async function purgeLegacyUserSession() {
+  const raw = await AsyncStorage.getItem(STORAGE_KEYS.session)
+  if (!raw) return
+  try {
+    const parsed = JSON.parse(raw) as { mode?: string }
+    if (parsed.mode === 'user') {
+      await AsyncStorage.removeItem(STORAGE_KEYS.session)
+    }
+  } catch {
+    await AsyncStorage.removeItem(STORAGE_KEYS.session)
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -60,10 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true
     ;(async () => {
-      const [onboarded, stored] = await Promise.all([readOnboarding(), readSession()])
+      await purgeLegacyUserSession()
+      const [onboarded, guest] = await Promise.all([readOnboarding(), readPersistedGuestSession()])
       if (!mounted) return
       setOnboardingComplete(onboarded)
-      setSession(stored)
+      setSession(guest)
       setIsReady(true)
     })()
     return () => {
@@ -78,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInAsGuest = useCallback(async () => {
     const guest: GuestSession = { mode: 'guest', guestChatsUsed: 0 }
-    await persistSession(guest)
+    await persistGuestSession(guest)
     setSession(guest)
   }, [])
 
@@ -87,12 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!trimmed || password.length < 6) {
       throw new Error('Enter a valid email and password (6+ characters).')
     }
-    const user: UserSession = {
-      mode: 'user',
-      email: trimmed,
-      displayName: trimmed.split('@')[0] ?? 'Member',
-    }
-    await persistSession(user)
+    const user: UserSession = { mode: 'user' }
     setSession(user)
   }, [])
 
@@ -102,15 +132,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!name || !trimmed || password.length < 6) {
       throw new Error('Fill in all fields. Password must be at least 6 characters.')
     }
-    const user: UserSession = { mode: 'user', email: trimmed, displayName: name }
-    await persistSession(user)
+    const user: UserSession = { mode: 'user' }
     setSession(user)
   }, [])
 
   const signOut = useCallback(async () => {
-    await persistSession(null)
+    if (session?.mode === 'guest') {
+      await persistGuestSession(null)
+    }
     setSession(null)
-  }, [])
+  }, [session])
 
   const recordGuestChat = useCallback(async (): Promise<boolean> => {
     if (!session || session.mode !== 'guest') return true
@@ -119,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mode: 'guest',
       guestChatsUsed: session.guestChatsUsed + 1,
     }
-    await persistSession(next)
+    await persistGuestSession(next)
     setSession(next)
     return true
   }, [session])

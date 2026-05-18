@@ -30,22 +30,27 @@ export default function AuthChoiceScreen() {
       <Text style={styles.eyebrow}>Welcome to {brand.name}</Text>
       <Text style={styles.title}>Choose How To Continue</Text>
       <Text style={styles.sub}>
-        Pick how you want to use SourcePath. Accounts unlock everything; guest mode is a limited
-        preview.
+        Pick how you want to use SourcePath. Guest mode saves only your preview question count on
+        this device—no email or password is stored.
       </Text>
 
       <View style={styles.sectionCard}>
         <AccessBadge variant="full" />
-        <Text style={styles.sectionTitle}>Sign Up / Sign In</Text>
+        <Text style={styles.sectionTitle}>Preview full access</Text>
         <Text style={styles.sectionHint}>
-          Full access — unlimited Ask, all scenario guides, and saved guidance when available.
+          Try unlimited Ask for this app session only. Real sign-in is not live yet—nothing you
+          enter is saved on your device.
         </Text>
         <PrimaryButton
-          label="Create Account"
+          label="Try preview sign-up"
           onPress={() => router.push('/(auth)/signup')}
           variant="onDark"
         />
-        <PrimaryButton label="Sign In" onPress={() => router.push('/(auth)/login')} variant="secondary" />
+        <PrimaryButton
+          label="Try preview sign-in"
+          onPress={() => router.push('/(auth)/login')}
+          variant="secondary"
+        />
       </View>
 
       <View style={styles.sectionCard}>
