@@ -135,6 +135,7 @@ class ChatService:
 
         answer = await self._chat_client.generate_chat_response(
             messages=messages,
+            model=self._settings.ollama_chat_model,
             ollama_base_url=self._settings.ollama_chat_base_url or self._settings.ollama_base_url,
             ollama_api_key=self._settings.ollama_api_key,
         )

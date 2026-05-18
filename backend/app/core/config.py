@@ -73,6 +73,12 @@ class Settings(BaseSettings):
         default=None,
         validation_alias="OLLAMA_CHAT_BASE_URL",
     )
+    # Chat model used by /api/chat. Defaults to llama3.1:8b for local Ollama.
+    # Override with a model available in your Ollama Cloud account when using cloud inference.
+    ollama_chat_model: str = Field(
+        default="llama3.1:8b",
+        validation_alias="OLLAMA_CHAT_MODEL",
+    )
     # Optional. Required only for Ollama Cloud or private authenticated endpoints.
     # Omit entirely for local Ollama (the default case). Never log or expose this value.
     ollama_api_key: str | None = Field(
