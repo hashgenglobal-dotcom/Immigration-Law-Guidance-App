@@ -10,7 +10,11 @@ export function AboutSectionTitle({
 }) {
   return (
     <View style={styles.wrap}>
-      <View style={styles.accent} />
+      <View style={styles.iconCluster}>
+        <View style={[styles.dot, styles.dotNavy]} />
+        <View style={[styles.dot, styles.dotBronze]} />
+        <View style={[styles.dot, styles.dotNavy]} />
+      </View>
       <View style={styles.copy}>
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -26,12 +30,22 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  accent: {
-    width: 4,
-    alignSelf: 'stretch',
-    minHeight: 32,
-    borderRadius: 2,
+  iconCluster: {
+    paddingTop: 6,
+    gap: 4,
+    alignItems: 'center',
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  dotNavy: {
     backgroundColor: colors.brandNavy,
+    opacity: 0.85,
+  },
+  dotBronze: {
+    backgroundColor: colors.brandBronze,
   },
   copy: {
     flex: 1,

@@ -1,16 +1,18 @@
 import { StyleSheet, View } from 'react-native'
 import { ScreenScroll } from '@/components'
 import {
-  AboutFeatureCard,
   AboutFooter,
   AboutHero,
+  AboutPrincipleCard,
+  AboutPrinciplesPanel,
   AboutSectionTitle,
   LegalNoticeBanner,
 } from '@/components/about'
+import { AccountActions } from '@/components/auth/AccountActions'
 import { DigitalBackdrop, FadeIn } from '@/components/digital'
 import { colors, spacing } from '@/theme'
 
-const FEATURES = [
+const PRINCIPLES = [
   {
     title: 'What this app does',
     description:
@@ -50,27 +52,39 @@ export default function AboutScreen() {
           <AboutHero />
         </FadeIn>
 
-        <AboutSectionTitle
-          title="Our principles"
-          subtitle="How SourcePath earns your trust"
-        />
-
-        <View style={styles.grid}>
-          {FEATURES.map((feature, i) => (
-            <AboutFeatureCard
-              key={feature.title}
-              index={i + 1}
-              title={feature.title}
-              description={feature.description}
-              icon={feature.icon}
-              accent={feature.accent}
+        <FadeIn delay={100}>
+          <AboutPrinciplesPanel>
+            <AboutSectionTitle
+              title="Our principles"
+              subtitle="How SourcePath earns your trust"
             />
-          ))}
-        </View>
+            <View style={styles.principlesList}>
+              {PRINCIPLES.map((feature, i) => (
+                <FadeIn key={feature.title} delay={160 + i * 70}>
+                  <AboutPrincipleCard
+                    index={i + 1}
+                    title={feature.title}
+                    description={feature.description}
+                    icon={feature.icon}
+                    accent={feature.accent}
+                  />
+                </FadeIn>
+              ))}
+            </View>
+          </AboutPrinciplesPanel>
+        </FadeIn>
 
-        <LegalNoticeBanner />
+        <FadeIn delay={450}>
+          <LegalNoticeBanner />
+        </FadeIn>
 
-        <AboutFooter />
+        <FadeIn delay={500}>
+          <AccountActions />
+        </FadeIn>
+
+        <FadeIn delay={520}>
+          <AboutFooter />
+        </FadeIn>
       </ScreenScroll>
     </View>
   )
@@ -87,12 +101,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     zIndex: 1,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: spacing.md,
-    columnGap: spacing.sm,
-    marginBottom: spacing.xs,
+  principlesList: {
+    gap: 2,
   },
 })

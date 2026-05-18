@@ -1,85 +1,35 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { useRouter } from 'expo-router'
-import { ScreenScroll } from '@/components'
-import { DigitalBackdrop, FadeIn } from '@/components/digital'
-import { DisclaimerAccordion, HomeExploreSection, HomeHero } from '@/components/home'
-import { colors, spacing, textStyles } from '@/theme'
+import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import { Redirect } from 'expo-router'
+import { useAuth } from '@/context/AuthContext'
+import { colors } from '@/theme'
 
-export default function HomeScreen() {
-  const router = useRouter()
+/** Entry gate — routes to welcome, auth choice, or main app */
+export default function RootIndex() {
+  const { isReady, session, onboardingComplete } = useAuth()
 
-  return (
-    <View style={styles.screen}>
-      <DigitalBackdrop variant="home" />
-      <ScreenScroll contentStyle={styles.scroll}>
-        <View style={styles.main}>
-          <FadeIn>
-            <HomeHero onOpenAssistant={() => router.push('/ask')} />
-          </FadeIn>
+  if (!isReady) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color={colors.brandBronze} />
+      </View>
+    )
+  }
 
-          <HomeExploreSection
-            onNavigate={(route) => router.push(route)}
-          />
-        </View>
+  if (!session) {
+    if (!onboardingComplete) {
+      return <Redirect href="/(auth)/welcome" />
+    }
+    return <Redirect href="/(auth)/choice" />
+  }
 
-        <View style={styles.pageEnd}>
-          <DisclaimerAccordion />
-          <View style={styles.footer}>
-            <View style={styles.footerRule} />
-            <Pressable
-              onPress={() => router.push('/about')}
-              style={({ pressed }) => [styles.aboutLink, pressed && styles.aboutPressed]}
-              accessibilityRole="link"
-            >
-              <Text style={styles.aboutText}>About SourcePath</Text>
-            </Pressable>
-          </View>
-        </View>
-      </ScreenScroll>
-    </View>
-  )
+  return <Redirect href="/(main)" />
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  loading: {
     flex: 1,
-    backgroundColor: colors.parchment,
-  },
-  scroll: {
-    flexGrow: 1,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xl,
-    backgroundColor: 'transparent',
-    zIndex: 1,
-  },
-  main: {
-    flexGrow: 1,
-  },
-  pageEnd: {
-    marginTop: spacing.lg,
-  },
-  footer: {
     alignItems: 'center',
-    paddingTop: spacing.md,
-  },
-  footerRule: {
-    alignSelf: 'stretch',
-    height: 1,
-    backgroundColor: 'rgba(156, 123, 92, 0.2)',
-    marginBottom: spacing.md,
-  },
-  aboutLink: {
-    minHeight: 48,
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  aboutPressed: {
-    opacity: 0.65,
-  },
-  aboutText: {
-    ...textStyles.small,
-    fontWeight: '600',
-    color: colors.brandBronze,
-    textAlign: 'center',
+    backgroundColor: colors.brandNavy,
   },
 })

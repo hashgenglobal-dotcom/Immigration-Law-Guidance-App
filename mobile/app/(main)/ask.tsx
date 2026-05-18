@@ -1,4 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
+import { useAuth } from '@/context/AuthContext'
+import { GuestLimitModal } from '@/components/auth/GuestLimitModal'
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -32,18 +34,32 @@ function nextId() {
 }
 
 export default function AskScreen() {
+  const { isGuest, canSendGuestChat, recordGuestChat } = useAuth()
   const [draft, setDraft] = useState('')
   const [turns, setTurns] = useState<Turn[]>([])
   const [loading, setLoading] = useState(false)
+  const [limitModal, setLimitModal] = useState(false)
   const scrollRef = useRef<ScrollView>(null)
 
   const scrollToEnd = useCallback(() => {
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }))
   }, [])
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback(async () => {
     const text = draft.trim()
     if (!text || loading) return
+
+    if (isGuest) {
+      if (!canSendGuestChat) {
+        setLimitModal(true)
+        return
+      }
+      const allowed = await recordGuestChat()
+      if (!allowed) {
+        setLimitModal(true)
+        return
+      }
+    }
 
     const userTurn: Turn = { id: nextId(), role: 'user', text }
     const pendingId = nextId()
@@ -63,7 +79,7 @@ export default function AskScreen() {
       setLoading(false)
       scrollToEnd()
     }, 1100)
-  }, [draft, loading, scrollToEnd])
+  }, [draft, loading, scrollToEnd, isGuest, canSendGuestChat, recordGuestChat])
 
   const isEmpty = turns.length === 0
 
@@ -122,6 +138,7 @@ export default function AskScreen() {
           loading={loading}
         />
       </KeyboardAvoidingView>
+      <GuestLimitModal visible={limitModal} onClose={() => setLimitModal(false)} />
     </SafeAreaView>
   )
 }

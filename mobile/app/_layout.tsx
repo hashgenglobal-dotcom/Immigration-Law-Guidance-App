@@ -3,47 +3,56 @@ import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { SourcePathBootScreen } from '@/components/boot/SourcePathBootScreen'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { useAppFonts } from '@/hooks/useAppFonts'
-import { brand } from '@/lib/brand'
-import { colors, fontFamily } from '@/theme'
 
 SplashScreen.preventAutoHideAsync()
 
-export default function RootLayout() {
+function RootNavigator() {
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen
+        name="(main)"
+        options={{
+          headerShown: false,
+          gestureEnabled: false,
+        }}
+      />
+    </Stack>
+  )
+}
+
+function AppShell() {
   const fontsLoaded = useAppFonts()
+  const { isReady } = useAuth()
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsLoaded && isReady) {
       SplashScreen.hideAsync()
     }
-  }, [fontsLoaded])
+  }, [fontsLoaded, isReady])
 
-  if (!fontsLoaded) {
-    return null
+  if (!fontsLoaded || !isReady) {
+    return <SourcePathBootScreen />
   }
 
   return (
-    <SafeAreaProvider>
+    <>
       <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: colors.brandNavy },
-          headerTintColor: colors.onNavy,
-          headerTitleStyle: {
-            fontFamily: fontFamily.heading,
-            fontWeight: '600',
-            fontSize: 17,
-            color: colors.onNavy,
-          },
-          headerShadowVisible: true,
-          contentStyle: { backgroundColor: colors.backgroundBase },
-        }}
-      >
-        <Stack.Screen name="index" options={{ title: brand.name }} />
-        <Stack.Screen name="ask" options={{ title: 'Ask a question' }} />
-        <Stack.Screen name="scenarios" options={{ title: 'Scenario Guides' }} />
-        <Stack.Screen name="about" options={{ title: 'About' }} />
-      </Stack>
+      <RootNavigator />
+    </>
+  )
+}
+
+export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
     </SafeAreaProvider>
   )
 }

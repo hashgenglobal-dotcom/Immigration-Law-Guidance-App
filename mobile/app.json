@@ -7,17 +7,20 @@
     "scheme": "sourcepath",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "icon": "./assets/images/sourcepath-icon-shield-torch-digital.png",
     "splash": {
+      "backgroundColor": "#1F2839",
       "resizeMode": "contain",
-      "backgroundColor": "#1F2839"
+      "image": "./assets/images/sourcepath-icon-shield-torch-digital.png"
     },
-    "backgroundColor": "#F4F0E6",
+    "backgroundColor": "#1F2839",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hashgen.immigrationlawguidance"
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/images/sourcepath-icon-shield-torch-digital.png",
         "backgroundColor": "#1F2839"
       },
       "package": "com.hashgen.immigrationlawguidance"
@@ -29,7 +32,13 @@
     "plugins": [
       "expo-router",
       "expo-asset",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1F2839"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

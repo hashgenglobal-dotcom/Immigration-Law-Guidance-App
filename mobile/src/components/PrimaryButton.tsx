@@ -10,11 +10,12 @@ export function PrimaryButton({
 }: {
   label: string
   onPress: () => void
-  variant?: 'primary' | 'secondary' | 'ghost'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'onDark'
   disabled?: boolean
   compact?: boolean
 }) {
   const isPrimary = variant === 'primary'
+  const isOnDark = variant === 'onDark'
   const isGhost = variant === 'ghost'
 
   return (
@@ -26,6 +27,7 @@ export function PrimaryButton({
         compact && styles.baseCompact,
         isPrimary && styles.primary,
         variant === 'secondary' && styles.secondary,
+        isOnDark && styles.onDark,
         isGhost && styles.ghost,
         disabled && styles.disabled,
         pressed && !disabled && styles.pressed,
@@ -38,6 +40,7 @@ export function PrimaryButton({
           compact && styles.labelCompact,
           isPrimary && styles.labelPrimary,
           variant === 'secondary' && styles.labelSecondary,
+          isOnDark && styles.labelOnDark,
           isGhost && styles.labelGhost,
         ]}
       >
@@ -68,6 +71,11 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.brandBronze,
   },
+  onDark: {
+    backgroundColor: colors.surfaceWhite,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
   ghost: {
     backgroundColor: 'transparent',
     minHeight: layout.minTouchTarget,
@@ -93,7 +101,12 @@ const styles = StyleSheet.create({
   labelSecondary: {
     color: colors.brandNavy,
   },
+  labelOnDark: {
+    color: colors.brandNavy,
+    fontWeight: '600',
+  },
   labelGhost: {
-    color: colors.bronzeDark,
+    color: colors.brandBronzeLight,
+    fontWeight: '600',
   },
 })
