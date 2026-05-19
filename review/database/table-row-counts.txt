@@ -1,0 +1,10 @@
+    table_name    | row_count 
+------------------+-----------
+ source_registry  |         7
+ raw_documents    |       728
+ legal_documents  |       728
+ legal_sections   |      2578
+ legal_chunks     |     11583
+ dataset_versions |         4
+(6 rows)
+
