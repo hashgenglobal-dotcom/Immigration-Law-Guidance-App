@@ -1,13 +1,24 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, fontFamily, radii, shadows, spacing } from '@/theme'
 
+const NARROW_WIDTH = 360
+
 export function ScenariosHeader({ guideCount }: { guideCount: number }) {
+  const { width } = useWindowDimensions()
+  const narrow = width < NARROW_WIDTH
+
   return (
     <View style={styles.wrap}>
-      <View style={styles.hero}>
-        <View style={styles.iconRing}>
-          <Ionicons name="library-outline" size={22} color={colors.surfaceWhite} />
+      <View style={[styles.hero, narrow && styles.heroNarrow]}>
+        <View style={styles.topRow}>
+          <View style={styles.iconRing}>
+            <Ionicons name="library-outline" size={22} color={colors.surfaceWhite} />
+          </View>
+          <View style={styles.countBadge}>
+            <Text style={styles.countValue}>{guideCount}</Text>
+            <Text style={styles.countLabel}>guides</Text>
+          </View>
         </View>
         <View style={styles.copy}>
           <Text style={styles.eyebrow}>Browse</Text>
@@ -15,10 +26,6 @@ export function ScenariosHeader({ guideCount }: { guideCount: number }) {
           <Text style={styles.subtitle}>
             Step-by-step paths for common situations—always verify with official sources.
           </Text>
-        </View>
-        <View style={styles.countBadge}>
-          <Text style={styles.countValue}>{guideCount}</Text>
-          <Text style={styles.countLabel}>guides</Text>
         </View>
       </View>
     </View>
@@ -30,15 +37,21 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   hero: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
     backgroundColor: colors.brandNavy,
     borderRadius: radii.card,
     padding: spacing.md,
     borderWidth: 1,
     borderColor: 'rgba(156, 123, 92, 0.35)',
     ...shadows.soft,
+  },
+  heroNarrow: {
+    padding: spacing.sm + 4,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
   },
   iconRing: {
     width: 44,
@@ -47,11 +60,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(156, 123, 92, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 2,
   },
   copy: {
     flex: 1,
-    paddingRight: spacing.xs,
   },
   eyebrow: {
     fontFamily: fontFamily.body,
@@ -80,7 +91,7 @@ const styles = StyleSheet.create({
   countBadge: {
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 44,
+    minWidth: 48,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radii.button,

@@ -21,8 +21,8 @@ export function HomeChatPrompt({ onPress }: { onPress: () => void }) {
           <Ionicons name="sparkles" size={18} color={colors.brandBronze} />
         </View>
       </View>
-      <Text style={styles.placeholder} numberOfLines={1}>
-        Ask your immigration question…
+      <Text style={styles.placeholder} numberOfLines={2}>
+        Ask an immigration question…
       </Text>
       <View style={styles.openBadge}>
         <Ionicons name="chatbubble-ellipses" size={18} color={colors.surfaceWhite} />
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(156, 123, 92, 0.5)',
     backgroundColor: 'rgba(42, 53, 68, 0.94)',
-    paddingVertical: 6,
+    paddingVertical: 8,
     paddingLeft: 8,
     paddingRight: 6,
     gap: spacing.xs,
@@ -60,6 +60,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 0,
   },
   iconChip: {
     width: 32,
@@ -71,19 +72,23 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
     fontFamily: fontFamily.body,
     fontSize: 14,
+    lineHeight: 18,
     color: colors.surfaceWhite,
-    opacity: 0.85,
+    opacity: 0.9,
     paddingHorizontal: spacing.xs,
   },
   openBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 0,
     backgroundColor: colors.brandBronze,
     borderRadius: radii.full,
-    paddingHorizontal: spacing.sm + 2,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
     minHeight: 36,
   },

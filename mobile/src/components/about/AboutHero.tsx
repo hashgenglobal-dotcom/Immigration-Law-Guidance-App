@@ -94,6 +94,7 @@ const styles = StyleSheet.create({
     color: colors.surfaceWhite,
     opacity: 0.8,
     marginBottom: spacing.md,
+    flexShrink: 1,
   },
   mottoPill: {
     flexDirection: 'row',

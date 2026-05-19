@@ -93,5 +93,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.surfaceWhite,
     opacity: 0.82,
+    flexShrink: 1,
   },
 })
