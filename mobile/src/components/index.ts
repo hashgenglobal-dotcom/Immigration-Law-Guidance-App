@@ -1,5 +1,5 @@
 export { AppIcon } from './icons'
-export { AssistantAnswerContent } from './AssistantAnswerContent'
+export { AssistantAnswerContent, AssistantChatContent } from './AssistantAnswerContent'
 export * from './about'
 export * from './chat'
 export * from './home'

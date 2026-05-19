@@ -12,20 +12,22 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import {
-  AssistantAnswerContent,
+  AssistantChatContent,
   ChatComposer,
   ChatMessage,
   ChatUserText,
 } from '@/components'
 import { WelcomeCard } from '@/components/chat'
 import { DigitalBackdrop } from '@/components/digital'
-import { mockAnswer, type MockAnswer } from '@/lib/mockData'
+import { ChatApiError, sendChatMessage, toAssistantContent } from '@/lib/chatApi'
+import type { ChatAssistantContent } from '@/types/chat'
 import { colors, fontFamily, spacing, typography } from '@/theme'
 
 type Turn =
   | { id: string; role: 'user'; text: string }
-  | { id: string; role: 'assistant'; answer: MockAnswer }
+  | { id: string; role: 'assistant'; content: ChatAssistantContent }
   | { id: string; role: 'assistant'; pending: true }
+  | { id: string; role: 'assistant'; error: string }
 
 let turnId = 0
 function nextId() {
@@ -49,16 +51,9 @@ export default function AskScreen() {
     const text = draft.trim()
     if (!text || loading) return
 
-    if (isGuest) {
-      if (!canSendGuestChat) {
-        setLimitModal(true)
-        return
-      }
-      const allowed = await recordGuestChat()
-      if (!allowed) {
-        setLimitModal(true)
-        return
-      }
+    if (isGuest && !canSendGuestChat) {
+      setLimitModal(true)
+      return
     }
 
     const userTurn: Turn = { id: nextId(), role: 'user', text }
@@ -68,17 +63,48 @@ export default function AskScreen() {
     setTurns((prev) => [...prev, userTurn, { id: pendingId, role: 'assistant', pending: true }])
     scrollToEnd()
 
-    setTimeout(() => {
+    try {
+      const response = await sendChatMessage(text, 5)
+      const content = toAssistantContent(response)
+
+      if (isGuest) {
+        const allowed = await recordGuestChat()
+        if (!allowed) {
+          setTurns((prev) =>
+            prev.filter((t) => t.id !== pendingId).concat({
+              id: nextId(),
+              role: 'assistant',
+              error: 'Guest preview limit reached for this device.',
+            }),
+          )
+          setLimitModal(true)
+          return
+        }
+      }
+
       setTurns((prev) =>
         prev.map((t) =>
           t.id === pendingId && t.role === 'assistant' && 'pending' in t
-            ? { id: pendingId, role: 'assistant', answer: mockAnswer }
+            ? { id: pendingId, role: 'assistant', content }
             : t,
         ),
       )
+    } catch (err) {
+      const message =
+        err instanceof ChatApiError
+          ? err.message
+          : 'Could not connect to the guidance service. Please check the backend and try again.'
+      setTurns((prev) =>
+        prev.map((t) =>
+          t.id === pendingId && t.role === 'assistant' && 'pending' in t
+            ? { id: pendingId, role: 'assistant', error: message }
+            : t,
+        ),
+      )
+    } finally {
       setLoading(false)
       scrollToEnd()
-    }, 1100)
+    }
   }, [draft, loading, scrollToEnd, isGuest, canSendGuestChat, recordGuestChat])
 
   const isEmpty = turns.length === 0
@@ -121,9 +147,18 @@ export default function AskScreen() {
                 </ChatMessage>
               )
             }
+            if ('error' in turn) {
+              return (
+                <ChatMessage key={turn.id} role="assistant">
+                  <View style={styles.errorBox}>
+                    <Text style={styles.errorText}>{turn.error}</Text>
+                  </View>
+                </ChatMessage>
+              )
+            }
             return (
               <ChatMessage key={turn.id} role="assistant">
-                <AssistantAnswerContent answer={turn.answer} />
+                <AssistantChatContent content={turn.content} />
               </ChatMessage>
             )
           })}
@@ -175,5 +210,18 @@ const styles = StyleSheet.create({
     color: colors.brandNavy,
     opacity: 0.65,
     fontStyle: 'italic',
+  },
+  errorBox: {
+    padding: spacing.sm,
+    borderRadius: 8,
+    backgroundColor: colors.bronzeTint,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.brandBronze,
+  },
+  errorText: {
+    fontFamily: fontFamily.body,
+    fontSize: typography.small,
+    lineHeight: 20,
+    color: colors.brandNavy,
   },
 })
