@@ -67,21 +67,6 @@ export default function AskScreen() {
       const response = await sendChatMessage(text, 5)
       const content = toAssistantContent(response)
 
-      if (isGuest) {
-        const allowed = await recordGuestChat()
-        if (!allowed) {
-          setTurns((prev) =>
-            prev.filter((t) => t.id !== pendingId).concat({
-              id: nextId(),
-              role: 'assistant',
-              error: 'Guest preview limit reached for this device.',
-            }),
-          )
-          setLimitModal(true)
-          return
-        }
-      }
-
       setTurns((prev) =>
         prev.map((t) =>
           t.id === pendingId && t.role === 'assistant' && 'pending' in t
@@ -89,6 +74,11 @@ export default function AskScreen() {
             : t,
         ),
       )
+
+      if (isGuest) {
+        const allowed = await recordGuestChat()
+        if (!allowed) setLimitModal(true)
+      }
     } catch (err) {
       const message =
         err instanceof ChatApiError
