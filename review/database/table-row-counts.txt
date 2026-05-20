@@ -1,3 +1,7 @@
+# Table row counts (dev database snapshot)
+# Generated for MVP source validation — May 19, 2026
+# Restore context: review/database/README.md
+
     table_name    | row_count 
 ------------------+-----------
  source_registry  |         7
@@ -6,5 +10,12 @@
  legal_sections   |      2578
  legal_chunks     |     11583
  dataset_versions |         4
-(6 rows)
 
+# legal_chunks by dataset_version (active MVP sources)
+# version_name                      | chunks | embedded | is_active=TRUE
+# ecfr-title8-full-2026-05-11     |   9314 |     9314 |           9314
+# uscis-pm-2026-05-19               |    877 |      877 |            877
+# ina-2026-05-19                    |   1387 |     1387 |           1387
+# ecfr-title8-sample-2026-05-11     |      5 |        5 |              5  (status: ready)
+
+# BIA / EOIR: 0 chunks (post-MVP; source blocked)
