@@ -7,12 +7,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '@/context/AuthContext'
 import { colors, fontFamily, spacing } from '@/theme'
 
-/** Custom navy header with always-visible back control for guest sessions */
-export function GuestStackHeader({ options, navigation }: NativeStackHeaderProps) {
+/** Custom navy header for guest sessions — back only on nested main screens, not Home */
+export function GuestStackHeader({ options, navigation, route }: NativeStackHeaderProps) {
   const insets = useSafeAreaInsets()
   const router = useRouter()
   const { signOut } = useAuth()
   const title = getHeaderTitle(options, '')
+  const isHome = route.name === 'index'
 
   const handleBack = async () => {
     if (navigation.canGoBack()) {
@@ -26,15 +27,19 @@ export function GuestStackHeader({ options, navigation }: NativeStackHeaderProps
   return (
     <View style={[styles.wrap, { paddingTop: insets.top }]}>
       <View style={styles.bar}>
-        <Pressable
-          onPress={handleBack}
-          style={({ pressed }) => [styles.backBtn, pressed && styles.pressed]}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="arrow-back" size={22} color={colors.onNavy} />
-          <Text style={styles.backLabel}>Back</Text>
-        </Pressable>
+        {isHome ? (
+          <View style={styles.leadingSpacer} accessibilityElementsHidden />
+        ) : (
+          <Pressable
+            onPress={handleBack}
+            style={({ pressed }) => [styles.backBtn, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Go back to home"
+          >
+            <Ionicons name="arrow-back" size={22} color={colors.onNavy} />
+            <Text style={styles.backLabel}>Back</Text>
+          </Pressable>
+        )}
 
         <Text style={styles.title} numberOfLines={1}>
           {title}
@@ -61,6 +66,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingBottom: spacing.sm,
     gap: spacing.sm,
+  },
+  leadingSpacer: {
+    minWidth: 72,
   },
   backBtn: {
     flexDirection: 'row',

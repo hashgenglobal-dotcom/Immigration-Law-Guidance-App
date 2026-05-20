@@ -218,6 +218,7 @@ const styles = StyleSheet.create({
   },
   modalHeaderText: {
     flex: 1,
+    minWidth: 0,
     gap: spacing.xs,
   },
   modalEyebrow: {
@@ -234,6 +235,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.surfaceWhite,
     lineHeight: 22,
+    flexShrink: 1,
   },
   closeBtn: {
     width: 40,

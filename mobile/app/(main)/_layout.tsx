@@ -36,7 +36,13 @@ export default function MainLayout() {
           : memberHeaderOptions),
       }}
     >
-      <Stack.Screen name="index" options={{ title: brand.name }} />
+      <Stack.Screen
+        name="index"
+        options={{
+          title: brand.name,
+          headerBackVisible: false,
+        }}
+      />
       <Stack.Screen name="ask" options={{ title: 'Ask a question' }} />
       <Stack.Screen name="scenarios" options={{ title: 'Scenario Guides' }} />
       <Stack.Screen name="about" options={{ title: 'About' }} />

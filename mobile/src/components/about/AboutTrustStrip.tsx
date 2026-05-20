@@ -19,7 +19,9 @@ export function AboutTrustStrip() {
           <View style={styles.iconRing}>
             <Ionicons name={p.icon} size={16} color={colors.brandBronzeLight} />
           </View>
-          <Text style={styles.label}>{p.label}</Text>
+          <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+            {p.label}
+          </Text>
         </View>
       ))}
     </View>
@@ -37,9 +39,11 @@ const styles = StyleSheet.create({
   },
   item: {
     flex: 1,
+    minWidth: 0,
     alignItems: 'center',
     gap: 6,
     paddingVertical: spacing.sm,
+    paddingHorizontal: 2,
     borderRadius: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
   },
@@ -58,7 +62,8 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     color: colors.surfaceWhite,
-    letterSpacing: 0.6,
+    letterSpacing: 0.4,
     textTransform: 'uppercase',
+    textAlign: 'center',
   },
 })
