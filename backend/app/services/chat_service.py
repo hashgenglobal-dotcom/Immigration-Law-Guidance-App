@@ -20,6 +20,7 @@ from app.core.config import Settings, get_settings
 from app.schemas.chat import ChatCitation, ChatResponse, ChatUsedChunk
 from app.schemas.retrieval import RetrievalResult
 from app.services.ollama_chat_client import OllamaChatClient
+from app.services.mvp_source_scope import mvp_source_families_from_versions
 from app.services.retrieval_service import RetrievalService
 
 _DISCLAIMER = (
@@ -125,10 +126,13 @@ class ChatService:
         normalized = message.strip().lower()
         query_hash = hashlib.sha256(normalized.encode()).hexdigest()
 
-        results, active_dataset = await self._retrieval_service.retrieve_hybrid(
-            query=message,
-            top_k=top_k,
+        results, active_datasets, active_dataset = (
+            await self._retrieval_service.retrieve_hybrid(
+                query=message,
+                top_k=top_k,
+            )
         )
+        mvp_sources = mvp_source_families_from_versions(active_datasets)
 
         if not results:
             return ChatResponse(
@@ -137,6 +141,8 @@ class ChatService:
                 citations=[],
                 disclaimer=_DISCLAIMER,
                 active_dataset=active_dataset,
+                active_datasets=active_datasets,
+                mvp_sources=mvp_sources,
                 used_chunks=[],
             )
 
@@ -155,6 +161,8 @@ class ChatService:
             citations=self._to_citations(results),
             disclaimer=_DISCLAIMER,
             active_dataset=active_dataset,
+            active_datasets=active_datasets,
+            mvp_sources=mvp_sources,
             used_chunks=self._to_used_chunks(results),
         )
 
@@ -258,6 +266,8 @@ class ChatService:
                 risk_level=r.risk_level,
                 hybrid_score=r.hybrid_score,
                 snippet=r.snippet,
+                dataset_version=r.dataset_version,
+                source_family=r.source_family,
             )
             for r in results
         ]

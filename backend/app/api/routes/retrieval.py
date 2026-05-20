@@ -23,6 +23,7 @@ from fastapi import status as http_status
 from app.core.config import Settings, get_settings
 from app.schemas.retrieval import RetrievalRequest, RetrievalResponse
 from app.services.ollama_embedding_client import EmbeddingClientError
+from app.services.mvp_source_scope import mvp_source_families_from_versions
 from app.services.retrieval_service import RetrievalService
 
 router = APIRouter(tags=["retrieval"])
@@ -58,7 +59,7 @@ async def retrieve_hybrid(
     service = RetrievalService(settings)
 
     try:
-        results, active_dataset = await service.retrieve_hybrid(
+        results, active_datasets, active_dataset = await service.retrieve_hybrid(
             query=body.query,
             top_k=body.top_k,
         )
@@ -94,5 +95,7 @@ async def retrieve_hybrid(
         query_hash=query_hash,
         top_k=body.top_k,
         active_dataset=active_dataset,
+        active_datasets=active_datasets,
+        mvp_sources=mvp_source_families_from_versions(active_datasets),
         results=results,
     )

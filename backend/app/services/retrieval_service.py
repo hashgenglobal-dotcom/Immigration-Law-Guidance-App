@@ -22,6 +22,10 @@ from typing import Any
 
 from app.core.config import Settings, get_settings
 from app.schemas.retrieval import RetrievalResult
+from app.services.mvp_source_scope import (
+    format_active_dataset_summary,
+    source_family_from_version,
+)
 from app.services.ollama_embedding_client import (
     EmbeddingClientError,
     embed_query,
@@ -54,14 +58,15 @@ class RetrievalService:
         self,
         query: str,
         top_k: int = 5,
-    ) -> tuple[list[RetrievalResult], str | None]:
+    ) -> tuple[list[RetrievalResult], list[str], str | None]:
         """Run hybrid retrieval for a single query.
 
         Embeds the query locally with Ollama nomic-embed-text, runs
         pgvector cosine-distance search and PostgreSQL plainto_tsquery
-        full-text search over ``legal_chunks WHERE is_active = TRUE``,
-        fuses both ranked lists with Reciprocal Rank Fusion (RRF_K=60),
-        and returns ranked RetrievalResult objects.
+        full-text search over active MVP chunks (``dataset_versions.status =
+        'active'`` and ``legal_chunks.is_active = TRUE``), fuses both ranked
+        lists with Reciprocal Rank Fusion (RRF_K=60), and returns ranked
+        RetrievalResult objects.
 
         Parameters
         ----------
@@ -73,10 +78,12 @@ class RetrievalService:
 
         Returns
         -------
-        (results, active_dataset_name)
+        (results, active_datasets, active_dataset_summary)
             ``results`` — ranked list of :class:`RetrievalResult`.
-            ``active_dataset_name`` — ``version_name`` of the active
-            dataset, or ``None`` if none is active.
+            ``active_datasets`` — all ``version_name`` values with
+            ``status = 'active'`` (MVP uses three co-active sources).
+            ``active_dataset_summary`` — legacy single-string summary for
+            API fields named ``active_dataset``.
 
         Raises
         ------
@@ -103,7 +110,7 @@ class RetrievalService:
 
         async with connect(self._settings) as conn:
             async with conn.cursor() as cur:
-                active_dataset = await self._fetch_active_dataset(cur)
+                active_datasets = await self._fetch_active_datasets(cur)
                 vector_rows = await self._vector_search(cur, vec_literal)
                 keyword_rows = await self._keyword_search(cur, stripped)
 
@@ -124,24 +131,31 @@ class RetrievalService:
                 vector_distance=row["vector_distance"],
                 keyword_score=row["kw_score"],
                 snippet=row["snippet"],
+                dataset_version=row.get("dataset_version"),
+                source_family=source_family_from_version(row.get("dataset_version")),
             )
             for rank, row in enumerate(fused, start=1)
         ]
 
-        return results, active_dataset
+        summary = format_active_dataset_summary(active_datasets)
+        return results, active_datasets, summary
 
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
 
     @staticmethod
-    async def _fetch_active_dataset(cur: Any) -> str | None:
-        """Return the version_name of the currently active dataset, or None."""
+    async def _fetch_active_datasets(cur: Any) -> list[str]:
+        """Return all dataset version names with status ``active`` (MVP co-active set)."""
         await cur.execute(
-            "SELECT version_name FROM dataset_versions WHERE status = 'active' LIMIT 1"
+            """
+            SELECT version_name
+            FROM dataset_versions
+            WHERE status = 'active'
+            ORDER BY version_name
+            """
         )
-        row = await cur.fetchone()
-        return row[0] if row else None
+        return [row[0] for row in await cur.fetchall()]
 
     @staticmethod
     async def _vector_search(
@@ -162,10 +176,13 @@ class RetrievalService:
                 lc.subtopic,
                 lc.risk_level,
                 lc.official_url,
+                dv.version_name                         AS dataset_version,
                 lc.embedding <-> %s::vector             AS distance,
                 LEFT(lc.chunk_text, %s)                 AS snippet
             FROM legal_chunks lc
-            WHERE lc.is_active = TRUE
+            INNER JOIN dataset_versions dv ON dv.id = lc.dataset_version_id
+            WHERE dv.status = 'active'
+              AND lc.is_active = TRUE
               AND lc.embedding IS NOT NULL
             ORDER BY lc.embedding <-> %s::vector
             LIMIT %s
@@ -180,8 +197,9 @@ class RetrievalService:
                 "subtopic": r[3],
                 "risk_level": r[4],
                 "official_url": r[5],
-                "distance": float(r[6]) if r[6] is not None else None,
-                "snippet": r[7] or "",
+                "dataset_version": r[6],
+                "distance": float(r[7]) if r[7] is not None else None,
+                "snippet": r[8] or "",
             }
             for r in await cur.fetchall()
         ]
@@ -205,10 +223,13 @@ class RetrievalService:
                 lc.subtopic,
                 lc.risk_level,
                 lc.official_url,
+                dv.version_name                                             AS dataset_version,
                 ts_rank_cd(lc.search_vector, plainto_tsquery('english', %s)) AS kw_score,
                 LEFT(lc.chunk_text, %s)                                     AS snippet
             FROM legal_chunks lc
-            WHERE lc.is_active = TRUE
+            INNER JOIN dataset_versions dv ON dv.id = lc.dataset_version_id
+            WHERE dv.status = 'active'
+              AND lc.is_active = TRUE
               AND lc.search_vector IS NOT NULL
               AND lc.search_vector @@ plainto_tsquery('english', %s)
             ORDER BY ts_rank_cd(lc.search_vector, plainto_tsquery('english', %s)) DESC
@@ -224,8 +245,9 @@ class RetrievalService:
                 "subtopic": r[3],
                 "risk_level": r[4],
                 "official_url": r[5],
-                "kw_score": float(r[6]) if r[6] is not None else None,
-                "snippet": r[7] or "",
+                "dataset_version": r[6],
+                "kw_score": float(r[7]) if r[7] is not None else None,
+                "snippet": r[8] or "",
             }
             for r in await cur.fetchall()
         ]
@@ -256,6 +278,7 @@ class RetrievalService:
                 "subtopic": row["subtopic"],
                 "risk_level": row["risk_level"],
                 "official_url": row["official_url"],
+                "dataset_version": row.get("dataset_version"),
                 "snippet": row["snippet"],
                 "vector_rank": rank,
                 "vector_distance": row["distance"],
@@ -282,6 +305,7 @@ class RetrievalService:
                     "subtopic": row["subtopic"],
                     "risk_level": row["risk_level"],
                     "official_url": row["official_url"],
+                    "dataset_version": row.get("dataset_version"),
                     "snippet": row["snippet"],
                     "vector_rank": None,
                     "vector_distance": None,

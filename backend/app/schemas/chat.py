@@ -66,6 +66,14 @@ class ChatUsedChunk(BaseModel):
     risk_level: str | None = None
     hybrid_score: float = Field(..., description="Reciprocal Rank Fusion score (higher = more relevant).")
     snippet: str = Field(..., description="Up to 500-character excerpt from the chunk content.")
+    dataset_version: str | None = Field(
+        None,
+        description="Dataset version name for this chunk.",
+    )
+    source_family: str | None = Field(
+        None,
+        description="MVP source family for this chunk.",
+    )
 
 
 class ChatResponse(BaseModel):
@@ -88,7 +96,15 @@ class ChatResponse(BaseModel):
     )
     active_dataset: str | None = Field(
         None,
-        description="Name of the currently active dataset version that was searched.",
+        description="Summary of dataset versions searched (backward-compatible string).",
+    )
+    active_datasets: list[str] = Field(
+        default_factory=list,
+        description="All dataset_versions with status='active' included in search.",
+    )
+    mvp_sources: list[str] = Field(
+        default_factory=list,
+        description="Deduplicated MVP source families (eCFR, INA, USCIS PM).",
     )
     used_chunks: list[ChatUsedChunk]
 
