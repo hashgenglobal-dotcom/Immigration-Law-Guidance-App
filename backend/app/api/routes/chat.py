@@ -58,6 +58,7 @@ async def chat(
         return await service.generate_chat_response(
             message=body.message,
             top_k=body.top_k,
+            selected_category=body.selected_category,
         )
     except OllamaChatClientError:
         # Local Ollama chat model is unreachable or returned an invalid

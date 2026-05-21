@@ -19,6 +19,13 @@ import hashlib
 from app.core.config import Settings, get_settings
 from app.schemas.chat import ChatCitation, ChatResponse, ChatUsedChunk
 from app.schemas.retrieval import RetrievalResult
+from app.schemas.chat import ClarificationOption
+from app.services.guided_intake import (
+    build_clarification,
+    detect_broad_topic,
+    is_valid_category_value,
+    resolve_retrieval_query,
+)
 from app.services.ollama_chat_client import OllamaChatClient
 from app.services.retrieval_service import RetrievalService
 
@@ -94,6 +101,7 @@ class ChatService:
         self,
         message: str,
         top_k: int = 5,
+        selected_category: str | None = None,
     ) -> ChatResponse:
         """Generate a grounded plain-language legal information response.
 
@@ -125,8 +133,33 @@ class ChatService:
         normalized = message.strip().lower()
         query_hash = hashlib.sha256(normalized.encode()).hexdigest()
 
+        if selected_category and not is_valid_category_value(selected_category):
+            selected_category = None
+
+        if not selected_category:
+            topic = detect_broad_topic(message)
+            if topic:
+                payload = build_clarification(topic)
+                if payload:
+                    return ChatResponse(
+                        status="needs_clarification",
+                        query_hash=query_hash,
+                        answer=payload.answer,
+                        clarifying_question=payload.clarifying_question,
+                        options=[
+                            ClarificationOption(label=o.label, value=o.value)
+                            for o in payload.options
+                        ],
+                        citations=[],
+                        disclaimer=_DISCLAIMER,
+                        active_dataset=None,
+                        used_chunks=[],
+                    )
+
+        retrieval_query = resolve_retrieval_query(message, selected_category)
+
         results, active_dataset = await self._retrieval_service.retrieve_hybrid(
-            query=message,
+            query=retrieval_query,
             top_k=top_k,
         )
 
@@ -140,7 +173,7 @@ class ChatService:
                 used_chunks=[],
             )
 
-        messages = self._build_messages(message, results)
+        messages = self._build_messages(message, results, selected_category)
 
         answer = await self._chat_client.generate_chat_response(
             messages=messages,
@@ -166,6 +199,7 @@ class ChatService:
     def _build_messages(
         message: str,
         results: list[RetrievalResult],
+        selected_category: str | None = None,
     ) -> list[dict[str, str]]:
         """Build the Ollama messages list from the user message and retrieved chunks.
 
@@ -173,8 +207,16 @@ class ChatService:
         passed to the local chat model and never persisted or logged.
         """
         context = ChatService._build_source_context(results)
+        category_note = ""
+        if selected_category:
+            category_note = (
+                f"\nThe user selected immigration category: {selected_category}. "
+                "Focus your answer on that category only. Do not discuss unrelated pathways "
+                "unless the sources require a brief cross-reference.\n"
+            )
         user_content = (
-            f"Question: {message}\n\n"
+            f"Question: {message}\n"
+            f"{category_note}\n"
             f"Retrieved legal sources:\n{context}\n\n"
             "Answer only from the retrieved sources above. "
             "Include citations from the sources in your answer."
