@@ -68,6 +68,78 @@ class AnswerFormattingTests(unittest.TestCase):
         weak = [_chunk(hybrid_score=0.01, snippet="short")]
         self.assertTrue(retrieval_looks_weak(weak))
 
+    def test_duplicate_headers_collapsed_to_one(self) -> None:
+        duped = (
+            "Short answer:\n"
+            "Short answer:\n"
+            "F-1 students may work.\n\n"
+            "What this means:\n"
+            "What this means:\n"
+            "Practical training.\n\n"
+            "Typical next steps:\n"
+            "Typical next steps:\n"
+            "1. File I-765.\n\n"
+            "Official sources:\n"
+            "Official sources:\n"
+            "8 CFR § 214.2\n\n"
+            "Important caution:\n"
+            "Important caution:\n"
+            "Not legal advice."
+        )
+        out = ensure_structured_answer(duped, high_risk=False)
+        for header in (
+            "short answer:",
+            "what this means:",
+            "typical next steps:",
+            "official sources:",
+            "important caution:",
+        ):
+            self.assertEqual(out.lower().count(header), 1, f"Expected exactly one '{header}'")
+        self.assertIn("F-1 students may work.", out)
+
+    def test_structured_missing_caution_appends_not_wraps(self) -> None:
+        no_caution = (
+            "Short answer:\n"
+            "You may request EAD.\n\n"
+            "What this means:\n"
+            "This is work authorization.\n\n"
+            "Typical next steps:\n"
+            "1. File I-765.\n\n"
+            "Official sources:\n"
+            "8 CFR § 274a.12"
+        )
+        out = ensure_structured_answer(no_caution, high_risk=False)
+        self.assertIn("Important caution:", out)
+        self.assertEqual(out.lower().count("important caution:"), 1)
+        self.assertEqual(out.lower().count("short answer:"), 1)
+        self.assertIn("You may request EAD.", out)
+        self.assertNotIn("See the short answer above.", out)
+
+    def test_each_header_at_most_once(self) -> None:
+        mixed_dups = (
+            "Short answer:\n"
+            "Short answer:\n"
+            "Content.\n\n"
+            "What this means:\n"
+            "Something.\n\n"
+            "Typical next steps:\n"
+            "1. Step.\n\n"
+            "Official sources:\n"
+            "Citation.\n\n"
+            "Important caution:\n"
+            "Important caution:\n"
+            "Not legal advice."
+        )
+        out = ensure_structured_answer(mixed_dups, high_risk=False)
+        for header in (
+            "short answer:",
+            "what this means:",
+            "typical next steps:",
+            "official sources:",
+            "important caution:",
+        ):
+            self.assertLessEqual(out.lower().count(header), 1, f"Duplicate header: {header}")
+
 
 class ChatServiceFormattingTests(unittest.IsolatedAsyncioTestCase):
     async def test_direct_answer_is_structured(self) -> None:

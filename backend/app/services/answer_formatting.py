@@ -155,11 +155,53 @@ def has_required_sections(answer: str) -> bool:
     return all(h.lower() in lower for h in _SECTION_HEADERS)
 
 
+def _deduplicate_sections(text: str) -> str:
+    """Remove duplicate required section headers, keeping first non-empty content per header."""
+    lower = text.lower()
+    if not any(lower.count(h.lower()) > 1 for h in _SECTION_HEADERS):
+        return text
+
+    header_pat = re.compile(
+        r'^(' + '|'.join(re.escape(h) for h in _SECTION_HEADERS) + r')[ \t]*$',
+        re.MULTILINE,
+    )
+    matches = list(header_pat.finditer(text))
+    if len(matches) < 2:
+        return text
+
+    preamble = text[: matches[0].start()].strip()
+
+    raw: list[tuple[str, str]] = []
+    for i, m in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        raw.append((m.group(1), text[m.end() : end].strip()))
+
+    best: dict[str, str] = {}
+    order: list[str] = []
+    for header, content in raw:
+        if header not in best:
+            best[header] = content
+            order.append(header)
+        elif content.strip() and not best[header].strip():
+            best[header] = content
+
+    parts: list[str] = []
+    if preamble:
+        parts.append(preamble)
+    for header in order:
+        c = best[header]
+        parts.append(f"{header}\n{c}" if c else header)
+
+    return "\n\n".join(parts)
+
+
 def ensure_structured_answer(answer: str, *, high_risk: bool) -> str:
-    """Light post-processing if the model omitted section headers."""
+    """Post-process LLM answer: normalize headers, deduplicate, add missing caution, or wrap if unstructured."""
     normalized = normalize_section_headers(answer)
-    if has_required_sections(normalized):
-        return normalized
+    deduped = _deduplicate_sections(normalized)
+
+    if has_required_sections(deduped):
+        return deduped
 
     caution = (
         "This is general information from the retrieved sources only, not legal advice. "
@@ -171,9 +213,13 @@ def ensure_structured_answer(answer: str, *, high_risk: bool) -> str:
             "Consider speaking with a qualified immigration attorney promptly."
         )
 
+    lower = deduped.lower()
+    if "short answer:" in lower and "important caution:" not in lower:
+        return deduped.rstrip() + f"\n\nImportant caution:\n{caution}"
+
     return (
         "Short answer:\n"
-        f"{normalized}\n\n"
+        f"{deduped}\n\n"
         "What this means:\n"
         "See the short answer above.\n\n"
         "Typical next steps:\n"
