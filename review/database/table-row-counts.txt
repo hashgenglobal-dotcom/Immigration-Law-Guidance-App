@@ -1,21 +1,25 @@
 # Table row counts (dev database snapshot)
-# Generated for MVP source validation — May 19, 2026
-# Restore context: review/database/README.md
+# Generated for MVP database handoff — May 21, 2026
+# Restore context: review/validation/mvp-database-handoff.md
 
     table_name    | row_count 
 ------------------+-----------
- source_registry  |         7
- raw_documents    |       728
- legal_documents  |       728
- legal_sections   |      2578
- legal_chunks     |     11583
- dataset_versions |         4
+ source_registry  |         9
+ raw_documents    |       728+
+ legal_documents  |       728+
+ legal_sections   |      2578+
+ legal_chunks     |     37006
+ dataset_versions |         8
 
-# legal_chunks by dataset_version (active MVP sources)
-# version_name                      | chunks | embedded | is_active=TRUE
-# ecfr-title8-full-2026-05-11     |   9314 |     9314 |           9314
-# uscis-pm-2026-05-19               |    877 |      877 |            877
-# ina-2026-05-19                    |   1387 |     1387 |           1387
-# ecfr-title8-sample-2026-05-11     |      5 |        5 |              5  (status: ready)
+# MVP active embedded (handoff target after cleanup)
+# ecfr-title8-full-2026-05-11     | 9314
+# ina-2026-05-19                  | 1387
+# uscis-pm-2026-05-19             |  877
+# uscis-official-pages-2026-05-20 |   11
+# TOTAL MVP_ACTIVE_EMBEDDED       | 11589
 
-# BIA / EOIR: 0 chunks (post-MVP; source blocked)
+# NOT MVP — deactivate before handoff:
+# ecfr-title8-sample-2026-05-11   | 5 active (dataset status=ready)
+# bia-2026-05-21                  | 25412 active, 0 embedded
+
+# privacy_safe_answer_logs: 0 rows (May 21, 2026)
