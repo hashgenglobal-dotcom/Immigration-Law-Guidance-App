@@ -26,6 +26,12 @@ from app.services.guided_intake import (
     is_valid_category_value,
     resolve_retrieval_query,
 )
+from app.services.answer_formatting import (
+    build_format_system_addon,
+    ensure_structured_answer,
+    is_high_risk_topic,
+    retrieval_looks_weak,
+)
 from app.services.ollama_chat_client import OllamaChatClient
 from app.services.retrieval_service import RetrievalService
 
@@ -63,8 +69,20 @@ _SYSTEM_PROMPT = (
 )
 
 _NO_RESULTS_ANSWER = (
-    "Based on the currently available legal sources, I cannot answer confidently from the available sources. "
-    "Please consult a qualified immigration attorney for guidance specific to your situation."
+    "Short answer:\n"
+    "I cannot answer confidently from the legal sources currently available for this question.\n\n"
+    "What this means:\n"
+    "The retrieved official sources did not contain enough directly relevant material to "
+    "support a reliable explanation.\n\n"
+    "Typical next steps:\n"
+    "1. Rephrase your question with your immigration category (for example, asylum pending, "
+    "adjustment of status, or F-1 OPT).\n"
+    "2. Review primary USCIS, eCFR, and INA materials on the topic.\n"
+    "3. Consult a qualified immigration attorney for case-specific guidance.\n\n"
+    "Official sources:\n"
+    "(None retrieved for this question.)\n\n"
+    "Important caution:\n"
+    "Source coverage is limited for this query. This is general information only, not legal advice."
 )
 
 
@@ -173,14 +191,24 @@ class ChatService:
                 used_chunks=[],
             )
 
-        messages = self._build_messages(message, results, selected_category)
+        high_risk = is_high_risk_topic(message, results)
+        weak_sources = retrieval_looks_weak(results)
 
-        answer = await self._chat_client.generate_chat_response(
+        messages = self._build_messages(
+            message,
+            results,
+            selected_category,
+            high_risk=high_risk,
+            weak_sources=weak_sources,
+        )
+
+        raw_answer = await self._chat_client.generate_chat_response(
             messages=messages,
             model=self._settings.ollama_chat_model,
             ollama_base_url=self._settings.ollama_chat_base_url or self._settings.ollama_base_url,
             ollama_api_key=self._settings.ollama_api_key,
         )
+        answer = ensure_structured_answer(raw_answer, high_risk=high_risk)
 
         return ChatResponse(
             query_hash=query_hash,
@@ -200,6 +228,9 @@ class ChatService:
         message: str,
         results: list[RetrievalResult],
         selected_category: str | None = None,
+        *,
+        high_risk: bool = False,
+        weak_sources: bool = False,
     ) -> list[dict[str, str]]:
         """Build the Ollama messages list from the user message and retrieved chunks.
 
@@ -221,8 +252,13 @@ class ChatService:
             "Answer only from the retrieved sources above. "
             "Include citations from the sources in your answer."
         )
+        format_addon = build_format_system_addon(
+            high_risk=high_risk,
+            weak_sources=weak_sources,
+            selected_category=selected_category,
+        )
         return [
-            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "system", "content": f"{_SYSTEM_PROMPT}\n\n{format_addon}"},
             {"role": "user", "content": user_content},
         ]
 

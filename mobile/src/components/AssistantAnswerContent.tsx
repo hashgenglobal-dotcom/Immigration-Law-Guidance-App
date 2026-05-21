@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native'
 import type { MockAnswer } from '@/lib/mockData'
+import { hasStructuredSections, parseFormattedAnswer } from '@/lib/parseFormattedAnswer'
 import type { ChatAssistantContent } from '@/types/chat'
 import { CitationCard } from './CitationCard'
 import { colors, fontFamily, radii, spacing, typography } from '@/theme'
@@ -71,12 +72,35 @@ export function AssistantChatContent({ content }: { content: ChatAssistantConten
         ) : null}
       </View>
 
-      <Text style={styles.heading}>Information</Text>
-      <Text style={styles.body}>{content.answer}</Text>
+      {hasStructuredSections(content.answer) ? (
+        parseFormattedAnswer(content.answer).map((section) => (
+          <View key={section.title} style={styles.sectionBlock}>
+            <Text
+              style={
+                section.title === 'Important caution' ? styles.headingCaution : styles.heading
+              }
+            >
+              {section.title}
+            </Text>
+            <Text
+              style={
+                section.title === 'Important caution' ? styles.bodyCaution : styles.body
+              }
+            >
+              {section.body}
+            </Text>
+          </View>
+        ))
+      ) : (
+        <>
+          <Text style={styles.heading}>Information</Text>
+          <Text style={styles.body}>{content.answer}</Text>
+        </>
+      )}
 
       {content.citations.length > 0 ? (
         <>
-          <Text style={styles.heading}>Official sources</Text>
+          <Text style={styles.heading}>Source links</Text>
           {content.citations.map((citation, i) => (
             <CitationCard key={`${citation.citation}-${i}`} apiCitation={citation} compact />
           ))}
@@ -101,6 +125,10 @@ export function AssistantChatContent({ content }: { content: ChatAssistantConten
 const styles = StyleSheet.create({
   wrap: {
     gap: spacing.xs,
+  },
+  sectionBlock: {
+    gap: 4,
+    marginBottom: spacing.xs,
   },
   privacyRow: {
     gap: 2,
@@ -129,6 +157,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     marginTop: spacing.xs,
   },
+  headingCaution: {
+    fontFamily: fontFamily.body,
+    fontSize: typography.caption,
+    fontWeight: '600',
+    color: colors.brandNavy,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginTop: spacing.xs,
+  },
   lead: {
     fontFamily: fontFamily.body,
     fontSize: typography.small,
@@ -142,6 +179,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.brandNavy,
     opacity: 0.85,
+  },
+  bodyCaution: {
+    fontFamily: fontFamily.body,
+    fontSize: typography.small,
+    lineHeight: 20,
+    color: colors.brandNavy,
+    opacity: 0.9,
   },
   bullet: {
     fontFamily: fontFamily.body,
