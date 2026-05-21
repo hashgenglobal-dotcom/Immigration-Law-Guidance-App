@@ -62,6 +62,14 @@ class RetrievalResult(BaseModel):
     vector_distance: float | None = Field(None, description="Cosine distance (lower = more similar).")
     keyword_score: float | None = Field(None, description="ts_rank_cd score from full-text search.")
     snippet: str = Field(..., description="Up to 500-character excerpt from the chunk content.")
+    dataset_version: str | None = Field(
+        None,
+        description="Dataset version name for this chunk (e.g. ina-2026-05-19).",
+    )
+    source_family: str | None = Field(
+        None,
+        description="MVP source family for this chunk (eCFR, INA, USCIS Policy Manual).",
+    )
 
 
 class RetrievalResponse(BaseModel):
@@ -75,7 +83,18 @@ class RetrievalResponse(BaseModel):
     top_k: int
     active_dataset: str | None = Field(
         None,
-        description="Name of the currently active dataset version that was searched.",
+        description=(
+            "Summary of dataset versions searched. For MVP this is typically "
+            "a multi-source label listing all co-active datasets."
+        ),
+    )
+    active_datasets: list[str] = Field(
+        default_factory=list,
+        description="All dataset_versions with status='active' included in search.",
+    )
+    mvp_sources: list[str] = Field(
+        default_factory=list,
+        description="Deduplicated MVP source families covered by active_datasets.",
     )
     results: list[RetrievalResult]
 
