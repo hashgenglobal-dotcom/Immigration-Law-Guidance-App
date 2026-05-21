@@ -1,4 +1,4 @@
-# Post-MVP task status (branch: `post-mvp`)
+# Post-MVP task status (branch: `feature/post-mvp`)
 
 | ID | Status | Commit note |
 |----|--------|-------------|

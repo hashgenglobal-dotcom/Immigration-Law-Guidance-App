@@ -1,6 +1,10 @@
 # Post-MVP integration branch
 
-All post-MVP tasks (POST-00 … POST-11) are developed on the **`post-mvp`** git branch.
+All post-MVP tasks (POST-00 … POST-11) live on **`feature/post-mvp`**.
+
+**Base branch:** `feature/retrieval-quality-mvp-tuning` (full MVP stack — not `main`).
+
+**Do not merge into `main` until** MVP tasks 1–6 are on `main`, then merge `feature/post-mvp`.
 
 | ID | Task | Path / branch artifact |
 |----|------|------------------------|

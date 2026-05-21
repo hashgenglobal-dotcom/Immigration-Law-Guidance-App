@@ -5,7 +5,7 @@
 **MVP merge & QA:** Rishi (other contributor) — merges MVP branches 1–6 and runs full-stack testing  
 **Post-MVP implementation:** Hash / agent branches — **one branch pushed at a time** for review  
 
-**Base branch for all post-MVP work:** `main` (rebase onto `main` after Rishi merges the MVP stack from `feature/retrieval-quality-mvp-tuning`)
+**Base branch for all post-MVP work:** `feature/retrieval-quality-mvp-tuning` on branch **`feature/post-mvp`** (not `main`). Merge MVP → `main` first, then merge `feature/post-mvp`.
 
 ---
 
