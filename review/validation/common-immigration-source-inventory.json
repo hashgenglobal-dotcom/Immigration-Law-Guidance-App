@@ -1,0 +1,214 @@
+{
+  "version": "2026-05-20",
+  "description": "Official source inventory for common immigrant question categories. No blogs or attorney marketing pages.",
+  "mvp_ingested_sources": [
+    {
+      "source_name": "eCFR Title 8",
+      "source_type": "regulation",
+      "base_url": "https://www.ecfr.gov/current/title-8",
+      "dataset_version": "ecfr-title8-full-2026-05-11",
+      "access_method": "bulk_xml"
+    },
+    {
+      "source_name": "USCIS Policy Manual",
+      "source_type": "policy",
+      "base_url": "https://www.uscis.gov/policy-manual",
+      "dataset_version": "uscis-pm-2026-05-19",
+      "access_method": "html_crawl"
+    },
+    {
+      "source_name": "U.S. Code Title 8 (INA)",
+      "source_type": "statute",
+      "base_url": "https://www.law.cornell.edu/uscode/text/8",
+      "dataset_version": "ina-2026-05-19",
+      "access_method": "html_fetch"
+    }
+  ],
+  "supplemental_dataset": {
+    "source_name": "USCIS Official Pages",
+    "source_type": "form",
+    "base_url": "https://www.uscis.gov",
+    "dataset_version_pattern": "uscis-official-pages-YYYY-MM-DD",
+    "access_method": "html_fetch",
+    "ingest_script": "review/scripts/ingest_uscis_official_pages.py"
+  },
+  "categories": [
+    {
+      "id": "ead_i765",
+      "title": "EAD / Form I-765",
+      "coverage_status": "partial",
+      "primary_regulation": ["8 CFR § 274a.12", "8 CFR § 274a.13", "8 CFR § 214.2"],
+      "primary_statute": ["8 U.S.C. § 1324a"],
+      "primary_policy": ["USCIS Policy Manual Vol 10"],
+      "official_urls": [
+        {"url": "https://www.uscis.gov/i-765", "kind": "uscis_form", "ingest": true},
+        {"url": "https://www.uscis.gov/i-765/instructions", "kind": "form_instructions", "ingest": true},
+        {"url": "https://www.ecfr.gov/current/title-8/part-274a", "kind": "ecfr", "ingest": false},
+        {"url": "https://www.uscis.gov/policy-manual/volume-10", "kind": "uscis_pm", "ingest": false}
+      ],
+      "validation_queries": ["How do I apply for EAD?", "What is Form I-765?"]
+    },
+    {
+      "id": "opt_stem",
+      "title": "OPT / STEM OPT",
+      "coverage_status": "partial",
+      "primary_regulation": ["8 CFR § 214.2", "8 CFR § 217.2"],
+      "primary_statute": ["8 U.S.C. § 1184"],
+      "primary_policy": ["USCIS Policy Manual Vol 2 Part F", "Vol 12 Part K"],
+      "official_urls": [
+        {"url": "https://studyinthestates.dhs.gov/students/get-started/12-month-opt", "kind": "dhs_study_states", "ingest": true, "note": "F-1 OPT official DHS guidance"},
+        {"url": "https://studyinthestates.dhs.gov/students/stem-opt-hub", "kind": "dhs_study_states", "ingest": true},
+        {"url": "https://www.ecfr.gov/current/title-8/section-214.2", "kind": "ecfr", "ingest": false}
+      ],
+      "validation_queries": ["What is OPT?", "What is STEM OPT?", "Can F-1 students work?"]
+    },
+    {
+      "id": "asylum_ead",
+      "title": "Asylum and asylum EAD",
+      "coverage_status": "covered",
+      "primary_regulation": ["8 CFR § 208.7", "8 CFR § 274a.12"],
+      "primary_statute": ["8 U.S.C. § 1158"],
+      "primary_policy": ["USCIS Policy Manual Vol 5 Part B"],
+      "official_urls": [
+        {"url": "https://www.ecfr.gov/current/title-8/section-208.7", "kind": "ecfr", "ingest": false},
+        {"url": "https://www.uscis.gov/i-765", "kind": "uscis_form", "ingest": true}
+      ],
+      "validation_queries": ["Can asylum applicants get work authorization?"]
+    },
+    {
+      "id": "aos_i485",
+      "title": "Adjustment of status / Form I-485",
+      "coverage_status": "covered",
+      "primary_regulation": ["8 CFR § 245.1", "8 CFR § 1245.1"],
+      "primary_statute": ["8 U.S.C. § 1255"],
+      "primary_policy": ["USCIS Policy Manual Vol 7"],
+      "official_urls": [
+        {"url": "https://www.uscis.gov/i-485", "kind": "uscis_form", "ingest": true},
+        {"url": "https://www.uscis.gov/i-485/instructions", "kind": "form_instructions", "ingest": true},
+        {"url": "https://www.ecfr.gov/current/title-8/part-245", "kind": "ecfr", "ingest": false}
+      ],
+      "validation_queries": ["What is adjustment of status?"]
+    },
+    {
+      "id": "advance_parole",
+      "title": "Advance parole / Form I-131",
+      "coverage_status": "covered",
+      "primary_regulation": ["8 CFR § 1245.13", "8 CFR § 223.1"],
+      "primary_statute": ["8 U.S.C. § 1255"],
+      "primary_policy": ["USCIS Policy Manual Vol 3 Part B", "Vol 3 Part F"],
+      "official_urls": [
+        {"url": "https://www.uscis.gov/i-131", "kind": "uscis_form", "ingest": true},
+        {"url": "https://www.uscis.gov/i-131/instructions", "kind": "form_instructions", "ingest": true}
+      ],
+      "validation_queries": ["What is advance parole?", "Can I travel while I-485 is pending?"]
+    },
+    {
+      "id": "naturalization",
+      "title": "Naturalization / Form N-400",
+      "coverage_status": "covered",
+      "primary_regulation": ["8 CFR § 316.10"],
+      "primary_statute": ["8 U.S.C. § 1427", "8 U.S.C. § 1101"],
+      "primary_policy": ["USCIS Policy Manual Vol 12 Part D", "Vol 12 Part F"],
+      "official_urls": [
+        {"url": "https://www.uscis.gov/n-400", "kind": "uscis_form", "ingest": true},
+        {"url": "https://www.uscis.gov/n-400/instructions", "kind": "form_instructions", "ingest": true}
+      ],
+      "validation_queries": ["What is good moral character for naturalization?"]
+    },
+    {
+      "id": "nta_removal",
+      "title": "Notice to Appear / removal proceedings",
+      "coverage_status": "partial",
+      "primary_regulation": ["8 CFR § 239.1", "8 CFR § 239.2"],
+      "primary_statute": ["8 U.S.C. § 1229"],
+      "primary_policy": ["USCIS Policy Manual Vol 8 Part E"],
+      "official_urls": [
+        {"url": "https://www.ecfr.gov/current/title-8/section-239.1", "kind": "ecfr", "ingest": false},
+        {"url": "https://www.uscis.gov/policy-manual/volume-8-part-e", "kind": "uscis_pm", "ingest": false}
+      ],
+      "validation_queries": ["What is a Notice to Appear?"],
+      "notes": "Hybrid rank may surface adjacent removal sections before 239.1; regulatory text is ingested."
+    },
+    {
+      "id": "status_i539",
+      "title": "Change/extension of status / Form I-539",
+      "coverage_status": "partial",
+      "primary_regulation": ["8 CFR § 214.1", "8 CFR § 214.2"],
+      "primary_statute": ["8 U.S.C. § 1184"],
+      "primary_policy": ["USCIS Policy Manual Vol 2"],
+      "official_urls": [
+        {"url": "https://www.uscis.gov/i-539", "kind": "uscis_form", "ingest": true},
+        {"url": "https://www.uscis.gov/i-539/instructions", "kind": "form_instructions", "ingest": true}
+      ],
+      "validation_queries": []
+    },
+    {
+      "id": "family_i130",
+      "title": "Family petition / Form I-130",
+      "coverage_status": "covered",
+      "primary_regulation": ["8 CFR § 204.1", "8 CFR § 204.2"],
+      "primary_statute": ["8 U.S.C. § 1154"],
+      "primary_policy": ["USCIS Policy Manual Vol 6", "Vol 10 Part A"],
+      "official_urls": [
+        {"url": "https://www.uscis.gov/i-130", "kind": "uscis_form", "ingest": true},
+        {"url": "https://www.uscis.gov/i-130/instructions", "kind": "form_instructions", "ingest": true}
+      ],
+      "validation_queries": ["What is Form I-130?"]
+    },
+    {
+      "id": "affidavit_i864",
+      "title": "Affidavit of support / Form I-864",
+      "coverage_status": "covered",
+      "primary_regulation": ["8 CFR § 213a"],
+      "primary_statute": ["8 U.S.C. § 1183a"],
+      "primary_policy": ["USCIS Policy Manual Vol 8 Part G"],
+      "official_urls": [
+        {"url": "https://www.uscis.gov/i-864", "kind": "uscis_form", "ingest": true},
+        {"url": "https://www.uscis.gov/i-864/instructions", "kind": "form_instructions", "ingest": true}
+      ],
+      "validation_queries": ["What is Form I-864?"]
+    },
+    {
+      "id": "tps_daca_ead",
+      "title": "TPS/DACA work authorization",
+      "coverage_status": "partial",
+      "primary_regulation": ["8 CFR § 244.13", "8 CFR § 274a.12"],
+      "primary_statute": ["8 U.S.C. § 1254a", "8 U.S.C. § 1324a"],
+      "primary_policy": ["USCIS Policy Manual Vol 6 Part L"],
+      "official_urls": [
+        {"url": "https://www.uscis.gov/humanitarian/temporary-protected-status", "kind": "uscis_guidance", "ingest": true},
+        {"url": "https://www.uscis.gov/DACA", "kind": "uscis_guidance", "ingest": true},
+        {"url": "https://www.ecfr.gov/current/title-8/part-244", "kind": "ecfr", "ingest": false}
+      ],
+      "validation_queries": ["Can TPS holders get work authorization?"],
+      "notes": "DACA policy subject to litigation; cite as general USCIS guidance only."
+    },
+    {
+      "id": "case_admin",
+      "title": "RFE, biometrics, case status, change of address",
+      "coverage_status": "partial",
+      "primary_regulation": ["8 CFR § 103.2"],
+      "primary_statute": [],
+      "primary_policy": ["USCIS Policy Manual Vol 1 Part A", "Vol 1 Part E", "Vol 2 Part L"],
+      "official_urls": [
+        {"url": "https://www.uscis.gov/forms/filing-guidance/how-to-respond-to-a-request-for-evidence-rfe", "kind": "uscis_guidance", "ingest": true},
+        {"url": "https://www.uscis.gov/forms/filing-guidance/preparing-for-your-biometrics-services-appointment", "kind": "uscis_guidance", "ingest": true},
+        {"url": "https://www.uscis.gov/tools/uscis-tools-and-resources/check-your-case-status-online", "kind": "uscis_guidance", "ingest": true},
+        {"url": "https://www.uscis.gov/addresschange", "kind": "uscis_guidance", "ingest": true}
+      ],
+      "validation_queries": ["What is an RFE?", "How do I change my address with USCIS?"]
+    }
+  ],
+  "post_mvp": [
+    {
+      "source_name": "DOJ EOIR BIA Decisions",
+      "reason": "Official URLs return 404; no reliable bulk access without FOIA",
+      "api_key_required": false
+    },
+    {
+      "source_name": "Federal Register Immigration",
+      "reason": "Optional rule updates; GovInfo API may need local credentials",
+      "api_key_required": "optional_local"
+    }
+  ]
+}
