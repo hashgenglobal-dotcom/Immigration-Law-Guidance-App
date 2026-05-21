@@ -30,24 +30,24 @@ export default function AuthChoiceScreen() {
       <Text style={styles.eyebrow}>Welcome to {brand.name}</Text>
       <Text style={styles.title}>Choose How To Continue</Text>
       <Text style={styles.sub}>
-        Pick how you want to use SourcePath. Guest mode saves only your preview question count on
-        this device—no email or password is stored.
+        Pick how you want to use SourcePath. Guest mode only remembers how many questions you have
+        asked on this device—no email or password is stored.
       </Text>
 
       <View style={styles.sectionCard}>
         <AccessBadge variant="full" />
-        <Text style={styles.sectionTitle}>Preview full access</Text>
+        <Text style={styles.sectionTitle}>Account</Text>
         <Text style={styles.sectionHint}>
-          Try unlimited Ask for this app session only. Real sign-in is not live yet—nothing you
-          enter is saved on your device.
+          Sign up or sign in with email. Your questions and answers are not stored on the server—a
+          secure sign-in token is kept on this device only.
         </Text>
         <PrimaryButton
-          label="Try preview sign-up"
+          label="Create account"
           onPress={() => router.push('/signup')}
           variant="onDark"
         />
         <PrimaryButton
-          label="Try preview sign-in"
+          label="Sign in"
           onPress={() => router.push('/login')}
           variant="secondary"
         />
@@ -55,9 +55,10 @@ export default function AuthChoiceScreen() {
 
       <View style={styles.sectionCard}>
         <AccessBadge variant="limited" />
-        <Text style={styles.sectionTitle}>Guest Mode</Text>
+        <Text style={styles.sectionTitle}>Guest mode</Text>
         <Text style={styles.sectionHint}>
-          Limited access — explore the app without signing in. Some features stay restricted.
+          Limited access—try Ask without an account. A small number of questions per device; no sign-in
+          required.
         </Text>
         <GuestModeButton onPress={handleGuest} />
       </View>
