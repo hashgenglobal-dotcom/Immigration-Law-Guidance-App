@@ -80,46 +80,36 @@ def check_extraction_needed() -> bool:
     progress = get_download_progress()
     
     if "error" in progress:
-        logger.error(progress["error"])
         return False
     
-    # Check if already extracted
-    extraction_marker = config.DATA_PROCESSED / ".extraction_complete"
-    if extraction_marker.exists():
-        logger.info("Extraction already complete (marker file exists)")
-        return False
+    percentage = progress['percentage']
     
     # 100% complete - definitely run extraction
-    if progress["percentage"] >= 99.9:
-        logger.info(f"✓ Download 100% complete ({progress['downloaded']}/{progress['total']})")
+    if percentage >= 100:
+        logger.info(f"Download 100% complete ({progress['downloaded']}/{progress['total']})")
         return True
     
     # 95%+ complete - check if download process is still running
-    if progress["percentage"] >= 95:
+    if percentage >= 95:
         import subprocess
         try:
             result = subprocess.run(
-                ["pgrep", "-f", "03_download_pdfs.py"],
+                ['pgrep', '-f', '03_download_pdfs.py'],
                 capture_output=True,
                 text=True
             )
-            if result.stdout.strip():
-                logger.info(f"Download at {progress['percentage']:.1f}%, process still running - waiting")
-                return False
-            else:
-                logger.warning(f"Download at {progress['percentage']:.1f}%, no active process - triggering extraction")
+            if result.returncode != 0:  # No process found
+                logger.info(f"Download {percentage:.1f}% complete, no active download process")
                 return True
         except Exception as e:
-            logger.warning(f"Could not check process status: {e}")
-            return False
+            logger.warning(f"Could not check for download process: {e}")
     
-    logger.info(f"Download at {progress['percentage']:.1f}% - waiting for completion")
     return False
 
 
 def run_extraction():
-    """Trigger text extraction."""
-    logger.info("🚀 Triggering text extraction pipeline...")
+    """Trigger the full pipeline (download → extraction → chunking → ingestion)."""
+    logger.info("🚀 Triggering full BIA pipeline...")
     
     import subprocess
     script_path = Path(__file__).parent / "pipeline_orchestrator.py"
@@ -129,25 +119,25 @@ def run_extraction():
             [sys.executable, str(script_path)],
             capture_output=True,
             text=True,
-            timeout=3600  # 1 hour timeout
+            timeout=7200  # 2 hour timeout for full pipeline
         )
         
         if result.returncode == 0:
-            logger.info("✓ Extraction completed successfully")
+            logger.info("✓ Full pipeline completed successfully")
             # Create marker file
-            marker = config.DATA_PROCESSED / ".extraction_complete"
-            marker.write_text(f"Extraction completed: {datetime.now().isoformat()}\n")
+            marker = config.DATA_PROCESSED / ".pipeline_complete"
+            marker.write_text(f"Pipeline completed: {datetime.now().isoformat()}\n")
             return True, result.stdout
         else:
-            logger.error(f"✗ Extraction failed with code {result.returncode}")
+            logger.error(f"✗ Pipeline failed with code {result.returncode}")
             logger.error(result.stderr)
             return False, result.stderr
             
     except subprocess.TimeoutExpired:
-        logger.error("✗ Extraction timed out after 1 hour")
+        logger.error("✗ Pipeline timed out after 2 hours")
         return False, "Timeout expired"
     except Exception as e:
-        logger.error(f"✗ Extraction failed: {e}")
+        logger.error(f"✗ Pipeline failed: {e}")
         return False, str(e)
 
 

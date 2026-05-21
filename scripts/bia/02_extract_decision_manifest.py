@@ -99,29 +99,35 @@ def parse_decision_block(block_element, volume_number: int, source_url: str) -> 
     """
     Parse a single decision block from the volume page.
     
-    Expected structure (from DOJ Volume 29 page):
-    - Table with two cells: case citation and PDF link
-    - Followed by paragraph(s) with headnotes
-    - Then a separator
-    
-    Example:
-    <table>
-      <tr>
-        <td><strong>I-B-M-S-</strong>, 29 I&N Dec. 628 (BIA 2026)</td>
-        <td><a href="...">ID 4193</a> (PDF)</td>
-      </tr>
-    </table>
-    <paragraph>(1) The closer in time...</paragraph>
-    <paragraph>(2) Off-the-record...</paragraph>
-    <separator/>
+    Supports TWO formats:
+    1. NEW (Vol 15-29): Link text = "ID 4193"
+    2. OLD (Vol 8-14): Link text = "2117" (just the decision ID number)
     """
-    # Find the PDF link (ID ####)
+    # Find the PDF link - try NEW format first (ID ####)
     pdf_link = block_element.find('a', href=True, string=re.compile(r'ID\s+\d+', re.IGNORECASE))
+    
+    # If not found, try OLD format (just a number in the second cell)
+    if not pdf_link:
+        # Look for links in table cells that contain numbers + "(PDF)"
+        cells = block_element.find_all('td')
+        for cell in cells:
+            text = cell.get_text(strip=True)
+            if '(PDF)' in text:
+                pdf_link = cell.find('a', href=True)
+                if pdf_link:
+                    break
+    
     if not pdf_link:
         return None
     
     # Extract decision ID from link text
-    id_match = re.search(r'ID\s+(\d+)', pdf_link.get_text(strip=True), re.IGNORECASE)
+    link_text = pdf_link.get_text(strip=True)
+    id_match = re.search(r'ID\s+(\d+)', link_text, re.IGNORECASE)
+    
+    # Old format: just the number itself
+    if not id_match:
+        id_match = re.match(r'^(\d+)$', link_text)
+    
     if not id_match:
         return None
     
@@ -201,13 +207,47 @@ def fetch_volume_page(url: str, session: requests.Session) -> Optional[Beautiful
 
 
 def extract_decisions_from_volume(soup: BeautifulSoup, volume_number: int, source_url: str) -> List[DecisionInfo]:
-    """Extract all decisions from a volume page."""
+    """Extract all decisions from a volume page.
+    
+    Handles TWO formats:
+    1. NEW (Vol 15-29): Multiple tables, one per decision
+    2. OLD (Vol 8-14): Single table with many rows, each row = one decision
+    """
     decisions = []
     
-    # Find all tables that contain ID links
-    for table in soup.find_all('table'):
-        # Check if this table has an ID link
+    # Detect format: Check if there's a single large table with many rows
+    all_tables = soup.find_all('table')
+    
+    # OLD FORMAT: Single table with many rows containing "(PDF)"
+    if len(all_tables) == 1:
+        main_table = all_tables[0]
+        rows = main_table.find_all('tr')
+        pdf_rows = [r for r in rows if '(PDF)' in r.get_text(strip=True)]
+        
+        if len(pdf_rows) > 10:  # Old format has many rows
+            logger.info(f"Volume {volume_number}: Detected OLD format ({len(pdf_rows)} rows)")
+            for row in pdf_rows:
+                decision = parse_decision_block(row, volume_number, source_url)
+                if decision:
+                    decisions.append(decision)
+            logger.info(f"Extracted {len(decisions)} decisions from Volume {volume_number}")
+            return decisions
+    
+    # NEW FORMAT: Multiple tables, one per decision
+    logger.info(f"Volume {volume_number}: Detected NEW format")
+    for table in all_tables:
+        # Check if this table has an ID link (NEW format: "ID 4193")
         id_link = table.find('a', href=True, string=re.compile(r'ID\s+\d+', re.IGNORECASE))
+        
+        # OLD format fallback: Check for "(PDF)" text in cells
+        if not id_link:
+            cells = table.find_all('td')
+            for cell in cells:
+                if '(PDF)' in cell.get_text(strip=True):
+                    id_link = table.find('a', href=True)
+                    if id_link:
+                        break
+        
         if not id_link:
             continue
         

@@ -106,6 +106,63 @@ def run_extraction():
     return True
 
 
+def run_chunking():
+    """Run RAG chunking script."""
+    logger.info("Starting RAG chunking (05_create_rag_chunks.py)...")
+    script_path = Path(__file__).parent / "05_create_rag_chunks.py"
+    
+    result = subprocess.run(
+        [sys.executable, str(script_path)],
+        capture_output=False,
+        text=True
+    )
+    
+    if result.returncode != 0:
+        logger.error(f"Chunking failed with exit code {result.returncode}")
+        return False
+    
+    logger.info("RAG chunking completed successfully")
+    return True
+
+
+def run_ingestion():
+    """Run database ingestion script."""
+    logger.info("Starting database ingestion (ingest_bia_decisions.py)...")
+    script_path = Path(__file__).parent / "ingest_bia_decisions.py"
+    
+    result = subprocess.run(
+        [sys.executable, str(script_path)],
+        capture_output=False,
+        text=True
+    )
+    
+    if result.returncode != 0:
+        logger.error(f"Ingestion failed with exit code {result.returncode}")
+        return False
+    
+    logger.info("Database ingestion completed successfully")
+    return True
+
+
+def run_validation():
+    """Run dataset validation."""
+    logger.info("Running validation (06_validate_bia_dataset.py)...")
+    script_path = Path(__file__).parent / "06_validate_bia_dataset.py"
+    
+    result = subprocess.run(
+        [sys.executable, str(script_path)],
+        capture_output=False,
+        text=True
+    )
+    
+    if result.returncode != 0:
+        logger.warning(f"Validation completed with warnings (exit code {result.returncode})")
+        return False
+    
+    logger.info("Validation completed successfully")
+    return True
+
+
 def validate_outputs() -> dict:
     """Validate extraction outputs."""
     results = {
@@ -143,7 +200,7 @@ def run_pipeline(force_extract: bool = False):
     logger.info("=" * 60)
     
     # Step 1: Check download status
-    logger.info("\n[STEP 1/3] Checking PDF download status...")
+    logger.info("\n[STEP 1/4] Checking PDF download status...")
     is_complete, total, downloaded, missing_ids = check_download_complete()
     
     logger.info(f"  Total decisions: {total}")
@@ -167,24 +224,35 @@ def run_pipeline(force_extract: bool = False):
         return 1
     
     # Step 2: Run text extraction
-    logger.info("\n[STEP 2/3] Extracting text from PDFs...")
+    logger.info("\n[STEP 2/4] Extracting text from PDFs...")
     if not run_extraction():
         logger.error("Pipeline failed at extraction stage")
         return 1
     
-    # Step 3: Validate outputs
-    logger.info("\n[STEP 3/3] Validating outputs...")
-    validation = validate_outputs()
+    # Step 3: Create RAG chunks
+    logger.info("\n[STEP 3/4] Creating RAG chunks...")
+    if not run_chunking():
+        logger.error("Pipeline failed at chunking stage")
+        return 1
     
-    logger.info(f"  Text files: {validation['text_files']} ({validation['total_text_size_mb']:.2f} MB)")
-    logger.info(f"  JSON files: {validation['json_files']} ({validation['total_json_size_mb']:.2f} MB)")
+    # Step 4: Ingest into database
+    logger.info("\n[STEP 4/4] Ingesting into database...")
+    if not run_ingestion():
+        logger.error("Pipeline failed at ingestion stage")
+        return 1
+    
+    # Final validation
+    logger.info("\n[VALIDATION] Running dataset validation...")
+    if not run_validation():
+        logger.warning("Validation completed with warnings")
     
     # Summary
     logger.info("\n" + "=" * 60)
     logger.info("PIPELINE COMPLETE")
     logger.info("=" * 60)
-    logger.info(f"  Decisions processed: {validation['text_files']}")
+    logger.info(f"  Decisions processed: {downloaded}")
     logger.info(f"  Output location: {config.DATA_PROCESSED}")
+    logger.info(f"  Database: immigration_law_dev (legal_chunks table)")
     logger.info(f"  Finished: {datetime.now().isoformat()}")
     logger.info("=" * 60)
     
