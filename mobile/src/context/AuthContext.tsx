@@ -9,6 +9,12 @@ import {
 } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { GUEST_CHAT_LIMIT, STORAGE_KEYS } from '@/constants/auth'
+import {
+  clearAuthToken,
+  loginUser,
+  registerUser,
+  saveAuthToken,
+} from '@/lib/authApi'
 import type { AppSession, GuestSession, UserSession } from '@/types/auth'
 
 type AuthContextValue = {
@@ -119,27 +125,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     const trimmed = email.trim().toLowerCase()
-    if (!trimmed || password.length < 6) {
-      throw new Error('Enter a valid email and password (6+ characters).')
+    if (!trimmed || password.length < 8) {
+      throw new Error('Enter a valid email and password (8+ characters).')
     }
-    const user: UserSession = { mode: 'user' }
-    setSession(user)
+    const result = await loginUser(trimmed, password)
+    await saveAuthToken(result.access_token)
+    await persistGuestSession(null)
+    setSession({ mode: 'user' })
   }, [])
 
   const signUp = useCallback(async (displayName: string, email: string, password: string) => {
     const name = displayName.trim()
     const trimmed = email.trim().toLowerCase()
-    if (!name || !trimmed || password.length < 6) {
-      throw new Error('Fill in all fields. Password must be at least 6 characters.')
+    if (!name || !trimmed || password.length < 8) {
+      throw new Error('Fill in all fields. Password must be at least 8 characters.')
     }
-    const user: UserSession = { mode: 'user' }
-    setSession(user)
+    const result = await registerUser(name, trimmed, password)
+    await saveAuthToken(result.access_token)
+    await persistGuestSession(null)
+    setSession({ mode: 'user' })
   }, [])
 
   const signOut = useCallback(async () => {
     if (session?.mode === 'guest') {
       await persistGuestSession(null)
     }
+    await clearAuthToken()
     setSession(null)
   }, [session])
 

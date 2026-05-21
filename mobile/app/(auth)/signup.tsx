@@ -7,7 +7,6 @@ import { AuthShell } from '@/components/auth/AuthShell'
 import { PrimaryButton } from '@/components'
 import { FadeIn } from '@/components/digital'
 import { useAuth } from '@/context/AuthContext'
-import { AUTH_PREVIEW_NOTICE } from '@/lib/legalCopy'
 import { colors, fontFamily, spacing } from '@/theme'
 
 export default function SignupScreen() {
@@ -37,12 +36,11 @@ export default function SignupScreen() {
       <AuthBackButton />
 
       <FadeIn>
-        <Text style={styles.title}>Preview sign-up</Text>
+        <Text style={styles.title}>Create account</Text>
         <Text style={styles.sub}>
-          Unlocks full access for this app session only. Not a real account—nothing you enter is
-          stored on this device.
+          Register for SourcePath. Only your sign-in token is stored on this device—not your chat
+          history.
         </Text>
-        <Text style={styles.notice}>{AUTH_PREVIEW_NOTICE}</Text>
       </FadeIn>
 
       <FadeIn delay={100}>

@@ -1,4 +1,5 @@
 import { CHAT_REQUEST_TIMEOUT_MS, getApiBaseUrl } from '@/constants/api'
+import { getAuthToken } from '@/lib/authApi'
 import type { ChatAssistantContent, ChatClarificationContent, ChatResponse } from '@/types/chat'
 
 export type ChatApiErrorCode = 'offline' | 'timeout' | 'http' | 'empty' | 'parse'
@@ -22,7 +23,12 @@ const GENERIC_HTTP_MESSAGE =
   'The guidance service could not complete your request. Please try again later.'
 
 function isOkStatus(status: string | undefined): boolean {
-  return status === 'ok' || status === 'success' || status === 'needs_clarification'
+  return (
+    status === 'ok' ||
+    status === 'success' ||
+    status === 'needs_clarification' ||
+    status === 'refused'
+  )
 }
 
 function parseErrorDetail(body: unknown): string | null {
@@ -48,14 +54,20 @@ export async function sendChatMessage(
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), CHAT_REQUEST_TIMEOUT_MS)
 
+  const token = await getAuthToken()
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  }
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
   let response: Response
   try {
     response = await fetch(`${baseUrl}/api/chat`, {
       method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         message,
         top_k: topK,
@@ -92,7 +104,7 @@ export async function sendChatMessage(
     throw new ChatApiError('http', GENERIC_HTTP_MESSAGE)
   }
 
-  if (data.status !== 'needs_clarification' && !data.answer?.trim()) {
+  if (data.status !== 'needs_clarification' && data.status !== 'refused' && !data.answer?.trim()) {
     throw new ChatApiError('empty', EMPTY_ANSWER_MESSAGE)
   }
 

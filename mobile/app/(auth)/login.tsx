@@ -7,7 +7,6 @@ import { AuthShell } from '@/components/auth/AuthShell'
 import { PrimaryButton } from '@/components'
 import { FadeIn } from '@/components/digital'
 import { useAuth } from '@/context/AuthContext'
-import { AUTH_PREVIEW_NOTICE } from '@/lib/legalCopy'
 import { colors, fontFamily, spacing } from '@/theme'
 
 export default function LoginScreen() {
@@ -36,12 +35,11 @@ export default function LoginScreen() {
       <AuthBackButton />
 
       <FadeIn>
-        <Text style={styles.title}>Preview sign-in</Text>
+        <Text style={styles.title}>Sign in</Text>
         <Text style={styles.sub}>
-          Unlocks full access for this app session only. Not a real account—credentials are not
-          saved.
+          Use your SourcePath account. Your password is sent securely to the backend; chat messages
+          are not stored on the server.
         </Text>
-        <Text style={styles.notice}>{AUTH_PREVIEW_NOTICE}</Text>
       </FadeIn>
 
       <FadeIn delay={100}>
