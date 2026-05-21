@@ -20,6 +20,11 @@ export type ChatUsedChunk = {
   snippet: string
 }
 
+export type ClarificationOption = {
+  label: string
+  value: string
+}
+
 export type ChatResponse = {
   status: string
   privacy_mode: string
@@ -28,7 +33,17 @@ export type ChatResponse = {
   citations: ChatCitation[]
   disclaimer: string
   active_dataset?: string | null
+  clarifying_question?: string | null
+  options?: ClarificationOption[] | null
   used_chunks: ChatUsedChunk[]
+}
+
+export type ChatClarificationContent = {
+  answer: string
+  clarifyingQuestion: string
+  options: ClarificationOption[]
+  disclaimer: string
+  privacyMode: string
 }
 
 /** In-memory assistant payload shown in the Ask thread (never persisted). */

@@ -1,5 +1,5 @@
 import { CHAT_REQUEST_TIMEOUT_MS, getApiBaseUrl } from '@/constants/api'
-import type { ChatAssistantContent, ChatResponse } from '@/types/chat'
+import type { ChatAssistantContent, ChatClarificationContent, ChatResponse } from '@/types/chat'
 
 export type ChatApiErrorCode = 'offline' | 'timeout' | 'http' | 'empty' | 'parse'
 
@@ -22,7 +22,7 @@ const GENERIC_HTTP_MESSAGE =
   'The guidance service could not complete your request. Please try again later.'
 
 function isOkStatus(status: string | undefined): boolean {
-  return status === 'ok' || status === 'success'
+  return status === 'ok' || status === 'success' || status === 'needs_clarification'
 }
 
 function parseErrorDetail(body: unknown): string | null {
@@ -39,7 +39,11 @@ function parseErrorDetail(body: unknown): string | null {
 /**
  * Send a single question to POST /api/chat. Message is not logged or persisted.
  */
-export async function sendChatMessage(message: string, topK = 5): Promise<ChatResponse> {
+export async function sendChatMessage(
+  message: string,
+  topK = 5,
+  selectedCategory?: string | null,
+): Promise<ChatResponse> {
   const baseUrl = getApiBaseUrl()
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), CHAT_REQUEST_TIMEOUT_MS)
@@ -52,7 +56,11 @@ export async function sendChatMessage(message: string, topK = 5): Promise<ChatRe
         Accept: 'application/json',
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ message, top_k: topK }),
+      body: JSON.stringify({
+        message,
+        top_k: topK,
+        ...(selectedCategory ? { selected_category: selectedCategory } : {}),
+      }),
       signal: controller.signal,
     })
   } catch (err) {
@@ -84,11 +92,22 @@ export async function sendChatMessage(message: string, topK = 5): Promise<ChatRe
     throw new ChatApiError('http', GENERIC_HTTP_MESSAGE)
   }
 
-  if (!data.answer?.trim()) {
+  if (data.status !== 'needs_clarification' && !data.answer?.trim()) {
     throw new ChatApiError('empty', EMPTY_ANSWER_MESSAGE)
   }
 
   return data
+}
+
+export function toClarificationContent(data: ChatResponse): ChatClarificationContent {
+  const options = Array.isArray(data.options) ? data.options : []
+  return {
+    answer: data.answer?.trim() || '',
+    clarifyingQuestion: data.clarifying_question?.trim() || 'Which category best matches you?',
+    options,
+    disclaimer: data.disclaimer?.trim() || '',
+    privacyMode: data.privacy_mode || 'local-first',
+  }
 }
 
 export function toAssistantContent(data: ChatResponse): ChatAssistantContent {

@@ -17,17 +17,28 @@ import {
   ChatMessage,
   ChatUserText,
 } from '@/components'
-import { WelcomeCard } from '@/components/chat'
+import { ClarificationOptions, WelcomeCard } from '@/components/chat'
 import { DigitalBackdrop } from '@/components/digital'
-import { ChatApiError, sendChatMessage, toAssistantContent } from '@/lib/chatApi'
-import type { ChatAssistantContent } from '@/types/chat'
+import {
+  ChatApiError,
+  sendChatMessage,
+  toAssistantContent,
+  toClarificationContent,
+} from '@/lib/chatApi'
+import type { ChatAssistantContent, ChatClarificationContent, ClarificationOption } from '@/types/chat'
 import { colors, fontFamily, spacing, typography } from '@/theme'
 
 type Turn =
   | { id: string; role: 'user'; text: string }
   | { id: string; role: 'assistant'; content: ChatAssistantContent }
+  | { id: string; role: 'assistant'; clarification: ChatClarificationContent }
   | { id: string; role: 'assistant'; pending: true }
   | { id: string; role: 'assistant'; error: string }
+
+/** In-memory only — never written to AsyncStorage or the backend. */
+type PendingClarification = {
+  originalMessage: string
+}
 
 let turnId = 0
 function nextId() {
@@ -41,61 +52,100 @@ export default function AskScreen() {
   const [turns, setTurns] = useState<Turn[]>([])
   const [loading, setLoading] = useState(false)
   const [limitModal, setLimitModal] = useState(false)
+  const [pendingClarification, setPendingClarification] = useState<PendingClarification | null>(
+    null,
+  )
   const scrollRef = useRef<ScrollView>(null)
 
   const scrollToEnd = useCallback(() => {
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }))
   }, [])
 
+  const completeGuestChatIfNeeded = useCallback(async () => {
+    if (!isGuest) return
+    const allowed = await recordGuestChat()
+    if (!allowed) setLimitModal(true)
+  }, [isGuest, recordGuestChat])
+
+  const submitChat = useCallback(
+    async (message: string, selectedCategory?: string | null, displayUserText?: string) => {
+      const text = message.trim()
+      if (!text || loading) return
+
+      if (isGuest && !canSendGuestChat) {
+        setLimitModal(true)
+        return
+      }
+
+      const userLabel = displayUserText?.trim() || text
+      const userTurn: Turn = { id: nextId(), role: 'user', text: userLabel }
+      const pendingId = nextId()
+      setLoading(true)
+      setTurns((prev) => [...prev, userTurn, { id: pendingId, role: 'assistant', pending: true }])
+      scrollToEnd()
+
+      try {
+        const response = await sendChatMessage(text, 5, selectedCategory ?? null)
+
+        if (response.status === 'needs_clarification') {
+          setPendingClarification({ originalMessage: text })
+          const clarification = toClarificationContent(response)
+          setTurns((prev) =>
+            prev.map((t) =>
+              t.id === pendingId && t.role === 'assistant' && 'pending' in t
+                ? { id: pendingId, role: 'assistant', clarification }
+                : t,
+            ),
+          )
+          return
+        }
+
+        setPendingClarification(null)
+        const content = toAssistantContent(response)
+        setTurns((prev) =>
+          prev.map((t) =>
+            t.id === pendingId && t.role === 'assistant' && 'pending' in t
+              ? { id: pendingId, role: 'assistant', content }
+              : t,
+          ),
+        )
+        await completeGuestChatIfNeeded()
+      } catch (err) {
+        const errMessage =
+          err instanceof ChatApiError
+            ? err.message
+            : 'Could not connect to the guidance service. Please check the backend and try again.'
+        setTurns((prev) =>
+          prev.map((t) =>
+            t.id === pendingId && t.role === 'assistant' && 'pending' in t
+              ? { id: pendingId, role: 'assistant', error: errMessage }
+              : t,
+          ),
+        )
+      } finally {
+        setLoading(false)
+        scrollToEnd()
+      }
+    },
+    [loading, scrollToEnd, isGuest, canSendGuestChat, completeGuestChatIfNeeded],
+  )
+
   const handleSend = useCallback(async () => {
     const text = draft.trim()
-    if (!text || loading) return
-
-    if (isGuest && !canSendGuestChat) {
-      setLimitModal(true)
-      return
-    }
-
-    const userTurn: Turn = { id: nextId(), role: 'user', text }
-    const pendingId = nextId()
+    if (!text) return
     setDraft('')
-    setLoading(true)
-    setTurns((prev) => [...prev, userTurn, { id: pendingId, role: 'assistant', pending: true }])
-    scrollToEnd()
+    await submitChat(text)
+  }, [draft, submitChat])
 
-    try {
-      const response = await sendChatMessage(text, 5)
-      const content = toAssistantContent(response)
-
-      setTurns((prev) =>
-        prev.map((t) =>
-          t.id === pendingId && t.role === 'assistant' && 'pending' in t
-            ? { id: pendingId, role: 'assistant', content }
-            : t,
-        ),
-      )
-
-      if (isGuest) {
-        const allowed = await recordGuestChat()
-        if (!allowed) setLimitModal(true)
-      }
-    } catch (err) {
-      const message =
-        err instanceof ChatApiError
-          ? err.message
-          : 'Could not connect to the guidance service. Please check the backend and try again.'
-      setTurns((prev) =>
-        prev.map((t) =>
-          t.id === pendingId && t.role === 'assistant' && 'pending' in t
-            ? { id: pendingId, role: 'assistant', error: message }
-            : t,
-        ),
-      )
-    } finally {
-      setLoading(false)
-      scrollToEnd()
-    }
-  }, [draft, loading, scrollToEnd, isGuest, canSendGuestChat, recordGuestChat])
+  const handleClarificationSelect = useCallback(
+    async (option: ClarificationOption) => {
+      if (!pendingClarification || loading) return
+      const { originalMessage } = pendingClarification
+      setPendingClarification(null)
+      await submitChat(originalMessage, option.value, option.label)
+    },
+    [pendingClarification, loading, submitChat],
+  )
 
   const isEmpty = turns.length === 0
 
@@ -143,6 +193,20 @@ export default function AskScreen() {
                   <View style={styles.errorBox}>
                     <Text style={styles.errorText}>{turn.error}</Text>
                   </View>
+                </ChatMessage>
+              )
+            }
+            if ('clarification' in turn) {
+              return (
+                <ChatMessage key={turn.id} role="assistant">
+                  <ClarificationOptions
+                    intro={turn.clarification.answer}
+                    question={turn.clarification.clarifyingQuestion}
+                    options={turn.clarification.options}
+                    disclaimer={turn.clarification.disclaimer}
+                    onSelect={handleClarificationSelect}
+                    disabled={loading || !pendingClarification}
+                  />
                 </ChatMessage>
               )
             }

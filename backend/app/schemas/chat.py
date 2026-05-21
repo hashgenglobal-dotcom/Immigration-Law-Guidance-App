@@ -36,6 +36,14 @@ class ChatRequest(BaseModel):
         le=10,
         description="Number of hybrid-ranked chunks to retrieve and use for answer generation (1–10).",
     )
+    selected_category: str | None = Field(
+        default=None,
+        max_length=64,
+        description=(
+            "In-memory guided intake selection from a prior clarification turn. "
+            "Never persisted server-side. Used to focus retrieval on the chosen path."
+        ),
+    )
 
     @field_validator("message", mode="before")
     @classmethod
@@ -46,6 +54,11 @@ class ChatRequest(BaseModel):
         if not stripped:
             raise ValueError("message must not be empty or whitespace-only")
         return stripped
+
+
+class ClarificationOption(BaseModel):
+    label: str = Field(..., description="Display label for a clarification chip/button.")
+    value: str = Field(..., description="Machine-readable category value for the next request.")
 
 
 class ChatCitation(BaseModel):
@@ -77,7 +90,10 @@ class ChatUsedChunk(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    status: str = Field(default="ok")
+    status: str = Field(
+        default="ok",
+        description="ok | needs_clarification",
+    )
     # Static field present in every response — signals that no data was sent
     # to any public AI API and all processing ran on the local machine.
     privacy_mode: str = Field(default="local-first")
@@ -106,7 +122,15 @@ class ChatResponse(BaseModel):
         default_factory=list,
         description="Deduplicated MVP source families (eCFR, INA, USCIS PM).",
     )
-    used_chunks: list[ChatUsedChunk]
+    clarifying_question: str | None = Field(
+        None,
+        description="Follow-up question when status is needs_clarification.",
+    )
+    options: list[ClarificationOption] | None = Field(
+        None,
+        description="Selectable categories when status is needs_clarification.",
+    )
+    used_chunks: list[ChatUsedChunk] = Field(default_factory=list)
 
 
 class ChatErrorResponse(BaseModel):
