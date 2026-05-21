@@ -1,12 +1,14 @@
 """MVP legal source scope helpers for retrieval and chat reporting.
 
-The MVP corpus is three co-active dataset versions (no combined dataset row):
-  - ecfr-title8-full-*  → eCFR Title 8 (regulations)
-  - ina-*               → INA / U.S. Code Title 8 (statutes)
-  - uscis-pm-*          → USCIS Policy Manual (policy)
+The MVP corpus is four co-active dataset versions (no combined dataset row):
+  Canonical name                Supabase alias      Source family
+  ecfr-title8-full-*            eCFR-v* / ecfr-v*   eCFR Title 8 (regulations)
+  ina-*                         ina-v*               INA / U.S. Code Title 8 (statutes)
+  uscis-pm-*                    uscis-pm-v*          USCIS Policy Manual (policy)
+  uscis-official-pages-*                             USCIS Official Pages (guidance)
 
-BIA decisions are post-MVP and not ingested. Sample eCFR preview datasets
-(ecfr-title8-sample-*) use status ``ready`` and must not be searched.
+BIA decisions are post-MVP and must remain inactive. Sample eCFR preview
+datasets (ecfr-title8-sample-*) must have is_active=FALSE.
 """
 
 from __future__ import annotations
@@ -15,21 +17,45 @@ from __future__ import annotations
 _MVP_ECFR_PREFIX = "ecfr-title8-full"
 _MVP_INA_PREFIX = "ina-"
 _MVP_USCIS_PREFIX = "uscis-pm-"
+_MVP_USCIS_PAGES_PREFIX = "uscis-official-pages"
 
 
 def source_family_from_version(version_name: str | None) -> str | None:
-    """Map a dataset ``version_name`` to a human-readable MVP source family."""
+    """Map a dataset ``version_name`` to a human-readable source family.
+
+    Handles both canonical local names and Supabase alias names.
+    BIA is labelled (not excluded from display) but is never MVP-active.
+    """
     if not version_name:
         return None
-    # Keep sample datasets explicitly outside the MVP source family.
-    if version_name.startswith("ecfr-title8-sample"):
+    n = version_name.lower()
+
+    # eCFR sample — explicitly non-MVP; checked before the full-corpus prefix.
+    if n.startswith("ecfr-title8-sample"):
         return "eCFR Title 8 (sample — non-MVP)"
-    if version_name.startswith(_MVP_ECFR_PREFIX):
+
+    # eCFR Title 8 — canonical and Supabase alias (eCFR-v / ecfr-v).
+    if n.startswith(_MVP_ECFR_PREFIX) or n.startswith("ecfr-v"):
         return "eCFR Title 8"
-    if version_name.startswith(_MVP_INA_PREFIX):
+
+    # INA — canonical (ina-2026-*) and Supabase alias (ina-v2026-*) both
+    # match because both start with "ina-".
+    if n.startswith(_MVP_INA_PREFIX):
         return "INA / U.S. Code Title 8"
-    if version_name.startswith(_MVP_USCIS_PREFIX):
+
+    # USCIS Policy Manual — canonical (uscis-pm-2026-*) and Supabase alias
+    # (uscis-pm-v2026-*) both start with "uscis-pm-".
+    if n.startswith(_MVP_USCIS_PREFIX):
         return "USCIS Policy Manual"
+
+    # USCIS Official Pages (supplemental guidance).
+    if n.startswith(_MVP_USCIS_PAGES_PREFIX):
+        return "USCIS Official Pages"
+
+    # BIA — post-MVP; labelled correctly if present, never treated as active MVP source.
+    if n.startswith("bia-") or n.startswith("bia_"):
+        return "BIA Precedent Decisions (post-MVP)"
+
     return "other"
 
 
