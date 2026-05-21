@@ -1,0 +1,490 @@
+{
+  "_meta": {
+    "description": "Official MVP legal source inventory for Immigration Law Guidance App.",
+    "authority": "All URLs are official U.S. government or DHS sources only.",
+    "bia_note": "BIA (Board of Immigration Appeals) decisions are post-MVP. No BIA entries appear here.",
+    "last_updated": "2026-05-21"
+  },
+  "corpus_sources": {
+    "ecfr_title8": {
+      "label": "eCFR Title 8 — Aliens and Nationality",
+      "source_type": "regulation",
+      "publisher": "U.S. Government Publishing Office / eCFR",
+      "base_url": "https://www.ecfr.gov/current/title-8",
+      "api_full_xml": "https://www.ecfr.gov/api/versioner/v1/full/{date}/title-8.xml",
+      "api_titles_meta": "https://www.ecfr.gov/api/versioner/v1/titles",
+      "mvp_status": "active",
+      "dataset_version_prefix": "ecfr-title8-full-"
+    },
+    "ina_usc_title8": {
+      "label": "INA / U.S. Code Title 8 — Aliens and Nationality",
+      "source_type": "statute",
+      "publisher": "U.S. House Office of Law Revision Counsel",
+      "base_url": "https://uscode.house.gov/browse/prelim@title8&edition=prelim",
+      "download_url": "https://uscode.house.gov/download/download.shtml",
+      "mvp_status": "active",
+      "dataset_version_prefix": "ina-"
+    },
+    "uscis_policy_manual": {
+      "label": "USCIS Policy Manual",
+      "source_type": "policy",
+      "publisher": "U.S. Citizenship and Immigration Services",
+      "base_url": "https://www.uscis.gov/policy-manual",
+      "mvp_status": "active",
+      "dataset_version_prefix": "uscis-pm-"
+    }
+  },
+  "topic_inventory": {
+    "ead_form_i765": {
+      "label": "Employment Authorization Document (EAD) / Form I-765",
+      "description": "Application for employment authorization for eligible noncitizens.",
+      "sources": [
+        {
+          "label": "USCIS Form I-765 page",
+          "url": "https://www.uscis.gov/i-765",
+          "source_type": "form",
+          "corpus": "uscis_forms"
+        },
+        {
+          "label": "8 CFR § 274a.12 — Classes of aliens authorized to accept employment",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-274a/section-274a.12",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "8 CFR § 274a.13 — Application for employment authorization",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-274a/section-274a.13",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "INA § 274A (8 U.S.C. § 1324a) — Unlawful employment of aliens",
+          "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title8-section1324a",
+          "source_type": "statute",
+          "corpus": "ina_usc_title8"
+        },
+        {
+          "label": "USCIS Policy Manual Vol 10 — Employment Authorization",
+          "url": "https://www.uscis.gov/policy-manual/volume-10",
+          "source_type": "policy",
+          "corpus": "uscis_policy_manual"
+        }
+      ]
+    },
+    "opt_stem_opt": {
+      "label": "OPT / STEM OPT — F-1 Optional Practical Training",
+      "description": "Post-completion and STEM extension practical training for F-1 students.",
+      "sources": [
+        {
+          "label": "8 CFR § 214.2(f) — Students in colleges, universities, seminaries, conservatories",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-214/section-214.2#p-214.2(f)",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "Study in the States — Understanding OPT",
+          "url": "https://studyinthestates.dhs.gov/students/understanding-opt",
+          "source_type": "guidance",
+          "corpus": "dhs_study_in_states"
+        },
+        {
+          "label": "Study in the States — Understanding STEM OPT",
+          "url": "https://studyinthestates.dhs.gov/students/understanding-stem-opt",
+          "source_type": "guidance",
+          "corpus": "dhs_study_in_states"
+        },
+        {
+          "label": "USCIS OPT overview",
+          "url": "https://www.uscis.gov/working-in-the-united-states/students-and-exchange-visitors/optional-practical-training-opt-for-f-1-students",
+          "source_type": "guidance",
+          "corpus": "uscis_policy_manual"
+        },
+        {
+          "label": "USCIS STEM OPT overview",
+          "url": "https://www.uscis.gov/working-in-the-united-states/students-and-exchange-visitors/optional-practical-training-extension-for-stem-students-stem-opt",
+          "source_type": "guidance",
+          "corpus": "uscis_policy_manual"
+        },
+        {
+          "label": "USCIS Policy Manual Vol 2 Part F — Students",
+          "url": "https://www.uscis.gov/policy-manual/volume-2-part-f",
+          "source_type": "policy",
+          "corpus": "uscis_policy_manual"
+        }
+      ]
+    },
+    "asylum_asylum_ead": {
+      "label": "Asylum and Asylum-Based EAD",
+      "description": "Asylum application process and related employment authorization.",
+      "sources": [
+        {
+          "label": "8 CFR Part 208 — Procedures for asylum and withholding of removal",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-208",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "8 CFR § 208.7 — Employment authorization",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-208/section-208.7",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "8 CFR § 208.4 — Filing the application",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-208/section-208.4",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "INA § 208 (8 U.S.C. § 1158) — Asylum",
+          "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title8-section1158",
+          "source_type": "statute",
+          "corpus": "ina_usc_title8"
+        },
+        {
+          "label": "USCIS Form I-589 — Application for Asylum",
+          "url": "https://www.uscis.gov/i-589",
+          "source_type": "form",
+          "corpus": "uscis_forms"
+        },
+        {
+          "label": "USCIS Policy Manual Vol 1 Part E — Humanitarian Protection",
+          "url": "https://www.uscis.gov/policy-manual/volume-1-part-e",
+          "source_type": "policy",
+          "corpus": "uscis_policy_manual"
+        }
+      ]
+    },
+    "adjustment_of_status_i485": {
+      "label": "Adjustment of Status / Form I-485",
+      "description": "Application to register permanent residence or adjust status.",
+      "sources": [
+        {
+          "label": "USCIS Form I-485 page",
+          "url": "https://www.uscis.gov/i-485",
+          "source_type": "form",
+          "corpus": "uscis_forms"
+        },
+        {
+          "label": "8 CFR Part 245 — Adjustment of status to that of person admitted for permanent residence",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-245",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "8 CFR § 245.1 — Eligibility",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-245/section-245.1",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "INA § 245 (8 U.S.C. § 1255) — Adjustment of status of nonimmigrant to that of person admitted for permanent residence",
+          "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title8-section1255",
+          "source_type": "statute",
+          "corpus": "ina_usc_title8"
+        },
+        {
+          "label": "USCIS Policy Manual Vol 7 — Adjustment of Status",
+          "url": "https://www.uscis.gov/policy-manual/volume-7",
+          "source_type": "policy",
+          "corpus": "uscis_policy_manual"
+        }
+      ]
+    },
+    "advance_parole_i131": {
+      "label": "Advance Parole / Form I-131",
+      "description": "Application for travel document for those with pending AOS or TPS.",
+      "sources": [
+        {
+          "label": "USCIS Form I-131 page",
+          "url": "https://www.uscis.gov/i-131",
+          "source_type": "form",
+          "corpus": "uscis_forms"
+        },
+        {
+          "label": "8 CFR § 223.2 — Issuance of reentry permits",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-223/section-223.2",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "8 CFR § 212.5 — Parole of aliens into the United States",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-212/section-212.5",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "INA § 212(d)(5) (8 U.S.C. § 1182(d)(5)) — Parole authority",
+          "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title8-section1182",
+          "source_type": "statute",
+          "corpus": "ina_usc_title8"
+        },
+        {
+          "label": "USCIS Policy Manual Vol 3 Part F — Travel Documents",
+          "url": "https://www.uscis.gov/policy-manual/volume-3-part-f",
+          "source_type": "policy",
+          "corpus": "uscis_policy_manual"
+        }
+      ]
+    },
+    "naturalization_n400": {
+      "label": "Naturalization / Form N-400",
+      "description": "Application for U.S. citizenship through naturalization.",
+      "sources": [
+        {
+          "label": "USCIS Form N-400 page",
+          "url": "https://www.uscis.gov/n-400",
+          "source_type": "form",
+          "corpus": "uscis_forms"
+        },
+        {
+          "label": "8 CFR Part 316 — General requirements for naturalization",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-C/part-316",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "8 CFR § 316.10 — Good moral character",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-C/part-316/section-316.10",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "INA § 316 (8 U.S.C. § 1427) — Requirements of naturalization; residence",
+          "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title8-section1427",
+          "source_type": "statute",
+          "corpus": "ina_usc_title8"
+        },
+        {
+          "label": "INA § 319 (8 U.S.C. § 1430) — Married persons and employees of certain nonprofit organizations",
+          "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title8-section1430",
+          "source_type": "statute",
+          "corpus": "ina_usc_title8"
+        },
+        {
+          "label": "USCIS Policy Manual Vol 12 — Citizenship and Naturalization",
+          "url": "https://www.uscis.gov/policy-manual/volume-12",
+          "source_type": "policy",
+          "corpus": "uscis_policy_manual"
+        }
+      ]
+    },
+    "notice_to_appear_removal": {
+      "label": "Notice to Appear (NTA) / Removal Proceedings",
+      "description": "Charging document initiating removal proceedings; immigration court process.",
+      "sources": [
+        {
+          "label": "8 CFR Part 239 — Initiation of removal proceedings",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-239",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "8 CFR § 239.1 — Notice to appear",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-239/section-239.1",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "8 CFR Part 1240 — Proceedings to determine removability (EOIR)",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-V/subchapter-B/part-1240",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "INA § 239 (8 U.S.C. § 1229) — Initiation of removal proceedings",
+          "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title8-section1229",
+          "source_type": "statute",
+          "corpus": "ina_usc_title8"
+        },
+        {
+          "label": "INA § 240 (8 U.S.C. § 1229a) — Removal proceedings",
+          "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title8-section1229a",
+          "source_type": "statute",
+          "corpus": "ina_usc_title8"
+        }
+      ]
+    },
+    "change_extension_of_status_i539": {
+      "label": "Change or Extension of Status / Form I-539",
+      "description": "Application to extend or change nonimmigrant status.",
+      "sources": [
+        {
+          "label": "USCIS Form I-539 page",
+          "url": "https://www.uscis.gov/i-539",
+          "source_type": "form",
+          "corpus": "uscis_forms"
+        },
+        {
+          "label": "8 CFR § 214.1 — Requirements for admission, extension, and maintenance of status",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-214/section-214.1",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "8 CFR § 248.1 — Eligibility for change of nonimmigrant classification",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-248/section-248.1",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "INA § 248 (8 U.S.C. § 1258) — Change of nonimmigrant classification",
+          "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title8-section1258",
+          "source_type": "statute",
+          "corpus": "ina_usc_title8"
+        },
+        {
+          "label": "USCIS Policy Manual Vol 2 Part F — Nonimmigrant Students (status extension guidance)",
+          "url": "https://www.uscis.gov/policy-manual/volume-2-part-f",
+          "source_type": "policy",
+          "corpus": "uscis_policy_manual"
+        }
+      ]
+    },
+    "family_petition_i130": {
+      "label": "Family-Based Petition / Form I-130",
+      "description": "Petition to establish a qualifying relationship for a family-based immigrant visa.",
+      "sources": [
+        {
+          "label": "USCIS Form I-130 page",
+          "url": "https://www.uscis.gov/i-130",
+          "source_type": "form",
+          "corpus": "uscis_forms"
+        },
+        {
+          "label": "8 CFR Part 204 — Immigrant petitions",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-204",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "INA § 201 (8 U.S.C. § 1151) — Worldwide level of immigration",
+          "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title8-section1151",
+          "source_type": "statute",
+          "corpus": "ina_usc_title8"
+        },
+        {
+          "label": "INA § 203 (8 U.S.C. § 1153) — Allocation of immigrant visas",
+          "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title8-section1153",
+          "source_type": "statute",
+          "corpus": "ina_usc_title8"
+        },
+        {
+          "label": "USCIS Policy Manual Vol 6 Part B — Family-Based Immigration",
+          "url": "https://www.uscis.gov/policy-manual/volume-6-part-b",
+          "source_type": "policy",
+          "corpus": "uscis_policy_manual"
+        }
+      ]
+    },
+    "affidavit_of_support_i864": {
+      "label": "Affidavit of Support / Form I-864",
+      "description": "Sponsor's binding financial obligation for family-based immigrants.",
+      "sources": [
+        {
+          "label": "USCIS Form I-864 page",
+          "url": "https://www.uscis.gov/i-864",
+          "source_type": "form",
+          "corpus": "uscis_forms"
+        },
+        {
+          "label": "8 CFR Part 213a — Affidavits of support on behalf of immigrants",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-213a",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "INA § 213A (8 U.S.C. § 1183a) — Requirements for sponsor's affidavit of support",
+          "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title8-section1183a",
+          "source_type": "statute",
+          "corpus": "ina_usc_title8"
+        }
+      ]
+    },
+    "tps_daca_work_authorization": {
+      "label": "TPS / DACA Work Authorization",
+      "description": "Temporary Protected Status and Deferred Action for Childhood Arrivals employment authorization.",
+      "sources": [
+        {
+          "label": "USCIS TPS overview page",
+          "url": "https://www.uscis.gov/humanitarian/temporary-protected-status",
+          "source_type": "guidance",
+          "corpus": "uscis_policy_manual"
+        },
+        {
+          "label": "USCIS DACA overview page",
+          "url": "https://www.uscis.gov/DACA",
+          "source_type": "guidance",
+          "corpus": "uscis_policy_manual"
+        },
+        {
+          "label": "8 CFR Part 244 — Temporary protected status",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-244",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "INA § 244 (8 U.S.C. § 1254a) — Temporary protected status",
+          "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title8-section1254a",
+          "source_type": "statute",
+          "corpus": "ina_usc_title8"
+        },
+        {
+          "label": "8 CFR § 274a.12(c)(14) — Deferred Action EAD category",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-274a/section-274a.12#p-274a.12(c)(14)",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        }
+      ]
+    },
+    "rfe_biometrics_case_status_coa": {
+      "label": "RFE / Biometrics / Case Status / Change of Address",
+      "description": "Administrative proceedings: Requests for Evidence, biometric services, case status checks, and change of address requirements.",
+      "sources": [
+        {
+          "label": "USCIS case status check",
+          "url": "https://egov.uscis.gov/casestatus/landing.do",
+          "source_type": "tool",
+          "corpus": "uscis_public"
+        },
+        {
+          "label": "USCIS change of address (AR-11)",
+          "url": "https://www.uscis.gov/ar-11",
+          "source_type": "form",
+          "corpus": "uscis_forms"
+        },
+        {
+          "label": "8 CFR § 103.2 — Submission and adjudication of benefit requests",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-A/part-103/section-103.2",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8",
+          "note": "Covers RFE issuance and response procedures"
+        },
+        {
+          "label": "8 CFR § 103.16 — Collection, use, and storage of biometric information",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-A/part-103/section-103.16",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "8 CFR § 265.1 — Requirement of notification of change of address",
+          "url": "https://www.ecfr.gov/current/title-8/chapter-I/subchapter-B/part-265/section-265.1",
+          "source_type": "regulation",
+          "corpus": "ecfr_title8"
+        },
+        {
+          "label": "INA § 265 (8 U.S.C. § 1305) — Notices of change of address",
+          "url": "https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title8-section1305",
+          "source_type": "statute",
+          "corpus": "ina_usc_title8"
+        },
+        {
+          "label": "USCIS Policy Manual Vol 1 Part A Ch 6 — Evidence and the Adjudication Process (RFE)",
+          "url": "https://www.uscis.gov/policy-manual/volume-1-part-a-chapter-6",
+          "source_type": "policy",
+          "corpus": "uscis_policy_manual"
+        }
+      ]
+    }
+  }
+}
