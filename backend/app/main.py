@@ -21,8 +21,13 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from app.api.routes import chat, health, retrieval
+import logging
+
+from app.api.routes import admin, auth, chat, health, retrieval
 from app.core.config import get_settings
+from app.middleware.request_context import RequestContextMiddleware
+
+logging.basicConfig(level=logging.INFO)
 
 
 def create_app() -> FastAPI:
@@ -41,9 +46,13 @@ def create_app() -> FastAPI:
         ),
     )
 
+    app.add_middleware(RequestContextMiddleware)
+
     app.include_router(health.router)
     app.include_router(retrieval.router)
     app.include_router(chat.router)
+    app.include_router(auth.router)
+    app.include_router(admin.router)
 
     return app
 
