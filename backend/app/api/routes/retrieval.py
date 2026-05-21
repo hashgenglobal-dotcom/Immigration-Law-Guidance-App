@@ -20,6 +20,7 @@ import hashlib
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import status as http_status
 
+from app.api.deps.rate_limit import enforce_retrieve_rate_limit
 from app.core.config import Settings, get_settings
 from app.schemas.retrieval import RetrievalRequest, RetrievalResponse
 from app.services.ollama_embedding_client import EmbeddingClientError
@@ -43,6 +44,7 @@ router = APIRouter(tags=["retrieval"])
 async def retrieve_hybrid(
     body: RetrievalRequest,
     settings: Settings = Depends(get_settings),
+    _rate_limit: None = Depends(enforce_retrieve_rate_limit),
 ) -> RetrievalResponse:
     """Run hybrid retrieval and return ranked legal chunk citations.
 

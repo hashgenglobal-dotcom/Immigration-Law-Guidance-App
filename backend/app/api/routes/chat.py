@@ -20,9 +20,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import status as http_status
 
+from app.api.deps.rate_limit import enforce_chat_rate_limit
 from app.core.config import Settings, get_settings
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.chat_service import ChatService
+from app.services.legal_guardrails import REFUSAL_DISCLAIMER, evaluate_message
 from app.services.ollama_chat_client import OllamaChatClientError
 from app.services.ollama_embedding_client import EmbeddingClientError
 
@@ -45,6 +47,7 @@ router = APIRouter(tags=["chat"])
 async def chat(
     body: ChatRequest,
     settings: Settings = Depends(get_settings),
+    _rate_limit: None = Depends(enforce_chat_rate_limit),
 ) -> ChatResponse:
     """Generate a grounded chat response from retrieved legal chunks.
 
@@ -52,6 +55,18 @@ async def chat(
     Error messages never echo the user's message, the database DSN,
     credentials, or internal stack traces.
     """
+    refusal = evaluate_message(body.message)
+    if refusal is not None:
+        return ChatResponse(
+            status="refused",
+            query_hash=refusal.query_hash,
+            answer=refusal.message,
+            citations=[],
+            disclaimer=REFUSAL_DISCLAIMER,
+            active_dataset=None,
+            used_chunks=[],
+        )
+
     service = ChatService(settings)
 
     try:

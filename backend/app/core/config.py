@@ -95,6 +95,34 @@ class Settings(BaseSettings):
         validation_alias="STORE_USER_QUESTIONS",
     )
 
+    # ---- Rate limiting (POST-03) --------------------------------------------
+    rate_limit_enabled: bool = Field(
+        default=True,
+        validation_alias="RATE_LIMIT_ENABLED",
+    )
+    rate_limit_chat_per_minute: int = Field(
+        default=10,
+        validation_alias="RATE_LIMIT_CHAT_PER_MINUTE",
+    )
+    rate_limit_retrieve_per_minute: int = Field(
+        default=30,
+        validation_alias="RATE_LIMIT_RETRIEVE_PER_MINUTE",
+    )
+
+    # ---- Auth (POST-04) -----------------------------------------------------
+    jwt_secret: str | None = Field(
+        default=None,
+        validation_alias="JWT_SECRET",
+    )
+    jwt_expire_minutes: int = Field(
+        default=60 * 24 * 7,
+        validation_alias="JWT_EXPIRE_MINUTES",
+    )
+    auth_enabled: bool = Field(
+        default=True,
+        validation_alias="AUTH_ENABLED",
+    )
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
