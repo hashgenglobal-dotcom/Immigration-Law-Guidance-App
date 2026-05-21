@@ -31,15 +31,25 @@ from app.services.ollama_embedding_client import (
     embed_query,
     format_pgvector_literal,
 )
+from app.services.retrieval_scoring import (
+    compute_relevance_boost,
+    dedupe_by_citation,
+    extract_supplemental_phrases,
+    is_bia_chunk,
+    query_mentions_bia,
+)
 
 # Must stay in sync with scripts/validate_hybrid_retrieval_results.py.
 _RRF_K = 60
 
+# Keyword signal is down-weighted vs vector — reduces BIA/noisy FTS dominance on
+# short definitional queries ("what is a notice to appear").
+_VECTOR_RRF_WEIGHT = 1.0
+_KEYWORD_RRF_WEIGHT = 0.72
+
 # Candidate pool sizes fed into RRF before final top_k truncation.
-# top_k is capped at 10 by RetrievalRequest, so 10 candidates per
-# signal guarantees the full pool is available for fusion.
-_VECTOR_CANDIDATES = 10
-_KEYWORD_CANDIDATES = 10
+_VECTOR_CANDIDATES = 15
+_KEYWORD_CANDIDATES = 15
 
 _SNIPPET_LEN = 500  # characters of chunk_text returned as snippet
 
@@ -113,8 +123,17 @@ class RetrievalService:
                 active_datasets = await self._fetch_active_datasets(cur)
                 vector_rows = await self._vector_search(cur, vec_literal)
                 keyword_rows = await self._keyword_search(cur, stripped)
+                keyword_rows = self._filter_keyword_candidates(keyword_rows, stripped)
+                for phrase in extract_supplemental_phrases(stripped):
+                    extra = await self._phrase_keyword_search(cur, phrase)
+                    keyword_rows = self._merge_keyword_rows(keyword_rows, extra)
 
-        fused = self._fuse_rrf(vector_rows, keyword_rows, top_k)
+        fused = self._fuse_rrf(
+            vector_rows,
+            keyword_rows,
+            top_k,
+            query=stripped,
+        )
 
         results = [
             RetrievalResult(
@@ -237,6 +256,48 @@ class RetrievalService:
             """,
             (query, _SNIPPET_LEN, query, query, _KEYWORD_CANDIDATES),
         )
+        return RetrievalService._rows_from_keyword_fetch(await cur.fetchall())
+
+    @staticmethod
+    async def _phrase_keyword_search(
+        cur: Any,
+        phrase: str,
+    ) -> list[dict[str, Any]]:
+        """Supplemental phrase match for definitional queries (e.g. notice to appear)."""
+        await cur.execute(
+            """
+            SELECT
+                lc.id                                                       AS chunk_id,
+                lc.citation,
+                lc.topic,
+                lc.subtopic,
+                lc.risk_level,
+                lc.official_url,
+                dv.version_name                                             AS dataset_version,
+                ts_rank_cd(lc.search_vector, phraseto_tsquery('english', %s)) AS kw_score,
+                LEFT(lc.chunk_text, %s)                                     AS snippet
+            FROM legal_chunks lc
+            INNER JOIN dataset_versions dv ON dv.id = lc.dataset_version_id
+            WHERE lc.is_active = TRUE
+              AND dv.status = 'active'
+              AND lc.search_vector IS NOT NULL
+              AND lc.search_vector @@ phraseto_tsquery('english', %s)
+              AND lc.citation NOT LIKE %s
+              AND lc.citation NOT LIKE %s
+            ORDER BY ts_rank_cd(lc.search_vector, phraseto_tsquery('english', %s)) DESC
+            LIMIT %s
+            """,
+            (phrase, _SNIPPET_LEN, phrase, "%BIA%", "%I&N Dec.%", phrase, 12),
+        )
+        rows = RetrievalService._rows_from_keyword_fetch(await cur.fetchall())
+        return [
+            r
+            for r in rows
+            if not is_bia_chunk(r.get("citation", ""), r.get("topic"))
+        ]
+
+    @staticmethod
+    def _rows_from_keyword_fetch(rows: list[Any]) -> list[dict[str, Any]]:
         return [
             {
                 "chunk_id": r[0],
@@ -249,14 +310,46 @@ class RetrievalService:
                 "kw_score": float(r[7]) if r[7] is not None else None,
                 "snippet": r[8] or "",
             }
-            for r in await cur.fetchall()
+            for r in rows
         ]
+
+    @staticmethod
+    def _filter_keyword_candidates(
+        rows: list[dict[str, Any]],
+        query: str,
+    ) -> list[dict[str, Any]]:
+        """Drop BIA precedent chunks from keyword pool unless the query asks for them."""
+        if query_mentions_bia(query):
+            return rows
+        return [
+            r
+            for r in rows
+            if not is_bia_chunk(r.get("citation", ""), r.get("topic"))
+        ]
+
+    @staticmethod
+    def _merge_keyword_rows(
+        primary: list[dict[str, Any]],
+        extra: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Merge supplemental phrase hits; keep best kw_score per chunk_id."""
+        by_id: dict[int, dict[str, Any]] = {r["chunk_id"]: r for r in primary}
+        for row in extra:
+            cid = row["chunk_id"]
+            prev = by_id.get(cid)
+            if prev is None or (row.get("kw_score") or 0) > (prev.get("kw_score") or 0):
+                by_id[cid] = row
+        merged = list(by_id.values())
+        merged.sort(key=lambda r: r.get("kw_score") or 0, reverse=True)
+        return merged[:_KEYWORD_CANDIDATES]
 
     @staticmethod
     def _fuse_rrf(
         vector_rows: list[dict[str, Any]],
         keyword_rows: list[dict[str, Any]],
         top_k: int,
+        *,
+        query: str = "",
     ) -> list[dict[str, Any]]:
         """Merge vector and keyword candidates with Reciprocal Rank Fusion.
 
@@ -270,7 +363,7 @@ class RetrievalService:
 
         for rank, row in enumerate(vector_rows, start=1):
             cid = row["chunk_id"]
-            rrf_v = 1.0 / (_RRF_K + rank)
+            rrf_v = _VECTOR_RRF_WEIGHT / (_RRF_K + rank)
             combined[cid] = {
                 "chunk_id": cid,
                 "citation": row["citation"],
@@ -291,7 +384,7 @@ class RetrievalService:
 
         for rank, row in enumerate(keyword_rows, start=1):
             cid = row["chunk_id"]
-            rrf_k = 1.0 / (_RRF_K + rank)
+            rrf_k = _KEYWORD_RRF_WEIGHT / (_RRF_K + rank)
             if cid in combined:
                 combined[cid]["keyword_rank"] = rank
                 combined[cid]["kw_score"] = row["kw_score"]
@@ -316,7 +409,16 @@ class RetrievalService:
                     "hybrid_score": rrf_k,
                 }
 
-        ranked = sorted(
-            combined.values(), key=lambda x: x["hybrid_score"], reverse=True
-        )
+        for row in combined.values():
+            row["hybrid_score"] += compute_relevance_boost(
+                query,
+                citation=row["citation"],
+                topic=row.get("topic"),
+                subtopic=row.get("subtopic"),
+                snippet=row.get("snippet") or "",
+                official_url=row.get("official_url"),
+            )
+
+        ranked = sorted(combined.values(), key=lambda x: x["hybrid_score"], reverse=True)
+        ranked = dedupe_by_citation(ranked)
         return ranked[:top_k]
