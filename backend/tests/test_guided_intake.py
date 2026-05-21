@@ -71,7 +71,7 @@ class ChatServiceClarificationTests(unittest.IsolatedAsyncioTestCase):
         class _FakeRetrieval:
             async def retrieve_hybrid(self, query: str, top_k: int = 5):
                 captured["query"] = query
-                return [], "test-dataset"
+                return [], ["test-dataset"], "test-dataset"
 
         class _FakeChat:
             async def generate_chat_response(self, **kwargs):
