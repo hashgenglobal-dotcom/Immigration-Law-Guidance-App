@@ -25,6 +25,7 @@ from app.services.conversation_context import (
     format_conversation_block,
     sanitize_conversation,
 )
+from app.services.follow_up_suggestions import suggest_follow_ups
 from app.services.guided_intake import (
     build_clarification,
     detect_broad_topic,
@@ -240,6 +241,7 @@ class ChatService:
             ollama_api_key=self._settings.ollama_api_key,
         )
         answer = ensure_structured_answer(raw_answer, high_risk=high_risk)
+        followups = suggest_follow_ups(message=message, answer=answer, results=results)
 
         return ChatResponse(
             query_hash=query_hash,
@@ -250,6 +252,7 @@ class ChatService:
             active_datasets=active_datasets,
             mvp_sources=mvp_sources,
             used_chunks=self._to_used_chunks(results),
+            suggested_followups=followups,
         )
 
     # ------------------------------------------------------------------

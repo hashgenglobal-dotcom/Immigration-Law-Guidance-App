@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { GuestLimitModal } from '@/components/auth/GuestLimitModal'
 import {
@@ -18,7 +18,7 @@ import {
   ChatMessage,
   ChatUserText,
 } from '@/components'
-import { ClarificationOptions, WelcomeCard } from '@/components/chat'
+import { ClarificationOptions, SuggestedFollowUps, WelcomeCard } from '@/components/chat'
 import { DigitalBackdrop } from '@/components/digital'
 import { buildConversationPayload } from '@/lib/conversationContext'
 import { resolveCategoryFromTypedReply } from '@/lib/guidedIntakeClient'
@@ -177,6 +177,14 @@ export default function AskScreen() {
 
   const isEmpty = turns.length === 0
 
+  const latestAssistantContentId = useMemo(() => {
+    for (let i = turns.length - 1; i >= 0; i--) {
+      const t = turns[i]
+      if (t.role === 'assistant' && 'content' in t) return t.id
+    }
+    return null
+  }, [turns])
+
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <DigitalBackdrop variant="ask" />
@@ -259,6 +267,14 @@ export default function AskScreen() {
             return (
               <ChatMessage key={turn.id} role="assistant">
                 <AssistantChatContent content={turn.content} />
+                {turn.id === latestAssistantContentId &&
+                turn.content.suggestedFollowups.length > 0 ? (
+                  <SuggestedFollowUps
+                    suggestions={turn.content.suggestedFollowups}
+                    onSelect={(text) => submitChat(text, undefined, undefined, turns)}
+                    disabled={loading}
+                  />
+                ) : null}
               </ChatMessage>
             )
           })}

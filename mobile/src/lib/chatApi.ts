@@ -115,6 +115,10 @@ export function toClarificationContent(data: ChatResponse): ChatClarificationCon
 
 export function toAssistantContent(data: ChatResponse): ChatAssistantContent {
   const citations = Array.isArray(data.citations) ? data.citations : []
+  const followups = Array.isArray(data.suggested_followups)
+    ? data.suggested_followups.filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+    : []
+
   return {
     answer: data.answer.trim(),
     citations,
@@ -122,5 +126,6 @@ export function toAssistantContent(data: ChatResponse): ChatAssistantContent {
     privacyMode: data.privacy_mode || 'local-first',
     activeDataset: data.active_dataset ?? null,
     citationsMissing: citations.length === 0,
+    suggestedFollowups: followups.slice(0, 3),
   }
 }

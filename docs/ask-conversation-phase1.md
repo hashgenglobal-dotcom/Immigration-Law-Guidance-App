@@ -27,6 +27,11 @@
 
 Unchanged: no full Q&A persistence; context is request-scoped + mobile memory only.
 
-## Next (Phase 2+)
+## Phase 2 (same branch)
 
-Grounded follow-up chips, streaming, UI bubble polish.
+- **`suggested_followups`** on `ChatResponse` (max 3), derived from retrieved chunk metadata only.
+- Mobile **Continue the conversation** chips under the latest answer; tap sends the next message with thread context.
+
+## Next (Phase 3–4)
+
+Streaming, collapse technical metadata in UI, optional warmer bubble layout.

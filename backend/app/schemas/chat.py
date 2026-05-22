@@ -171,6 +171,14 @@ class ChatResponse(BaseModel):
         description="Selectable categories when status is needs_clarification.",
     )
     used_chunks: list[ChatUsedChunk] = Field(default_factory=list)
+    suggested_followups: list[str] = Field(
+        default_factory=list,
+        max_length=3,
+        description=(
+            "Optional grounded follow-up questions (max 3) derived from retrieved "
+            "chunks only. Shown as tappable chips on mobile."
+        ),
+    )
 
 
 class ChatErrorResponse(BaseModel):
