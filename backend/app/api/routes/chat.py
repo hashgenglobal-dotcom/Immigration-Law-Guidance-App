@@ -59,6 +59,7 @@ async def chat(
             message=body.message,
             top_k=body.top_k,
             selected_category=body.selected_category,
+            conversation=[t.model_dump() for t in body.conversation],
         )
     except OllamaChatClientError:
         # Local Ollama chat model is unreachable or returned an invalid

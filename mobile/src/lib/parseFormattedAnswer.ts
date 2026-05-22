@@ -55,3 +55,10 @@ export function hasStructuredSections(answer: string): boolean {
     SECTION_ORDER.includes(s.title as (typeof SECTION_ORDER)[number]),
   )
 }
+
+/** Compact assistant text for multi-turn API context. */
+export function extractShortAnswer(answer: string): string {
+  const sections = parseFormattedAnswer(answer)
+  const short = sections.find((s) => s.title === 'Short answer')
+  return short?.body.trim() ?? ''
+}

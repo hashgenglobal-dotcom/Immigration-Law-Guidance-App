@@ -328,7 +328,18 @@ def detect_broad_topic(message: str) -> str | None:
 
 
 def build_clarification(topic: str) -> ClarificationPayload | None:
-    return _CLARIFICATIONS.get(topic)
+    payload = _CLARIFICATIONS.get(topic)
+    if not payload:
+        return None
+    return ClarificationPayload(
+        topic=payload.topic,
+        answer=payload.answer,
+        clarifying_question=(
+            "To point you at the right rules, which situation is closest to yours? "
+            "You can tap an option below or type your situation (for example, F-1 OPT)."
+        ),
+        options=payload.options,
+    )
 
 
 def resolve_retrieval_query(message: str, selected_category: str | None) -> str:
@@ -342,3 +353,67 @@ def resolve_retrieval_query(message: str, selected_category: str | None) -> str:
 
 def is_valid_category_value(value: str) -> bool:
     return value in _CATEGORY_RETRIEVAL_QUERIES
+
+
+def _all_clarification_options() -> tuple[ClarificationOption, ...]:
+    seen: set[str] = set()
+    options: list[ClarificationOption] = []
+    for payload in _CLARIFICATIONS.values():
+        for opt in payload.options:
+            if opt.value not in seen:
+                seen.add(opt.value)
+                options.append(opt)
+    return tuple(options)
+
+
+# Typed replies → category (so users need not tap chips only).
+_CATEGORY_PHRASE_RULES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"\bf-?1\b.*\b(opt|stem)\b|\b(stem\s+)?opt\b.*\bf-?1\b", re.I), "f1_opt_stem_opt"),
+    (re.compile(r"\bpending asylum\b|\basylum\b.*\bpending\b", re.I), "asylum_pending"),
+    (re.compile(r"\bi-?485\b.*\bpending\b|\badjustment of status\b.*\bpending\b", re.I), "adjustment_pending"),
+    (re.compile(r"\btps\b|\btemporary protected status\b", re.I), "tps"),
+    (re.compile(r"\bdaca\b|\bdeferred action\b", re.I), "daca"),
+    (re.compile(r"\baffirmative asylum\b|\bnot in removal\b", re.I), "asylum_eligibility"),
+    (re.compile(r"\bremoval proceedings\b|\bimmigration court\b|\bdefensive asylum\b", re.I), "asylum_defensive"),
+    (re.compile(r"\bfamily[- ]based\b|\bi-?130\b.*\bfamily\b|\bspouse\b.*\bpetition\b", re.I), "aos_family"),
+    (re.compile(r"\bemployment[- ]based\b|\beb[- ]?\d\b|\bperm\b", re.I), "aos_employment"),
+    (re.compile(r"\bn-?400\b|\bnaturalization\b|\bbecome a citizen\b", re.I), "naturalization_residence"),
+    (re.compile(r"\bmarriage\b.*\bcitizen\b|\b3[- ]year\b.*\bnaturalization\b", re.I), "naturalization_marriage"),
+    (re.compile(r"\bmilitary\b.*\bnaturalization\b|\bina\s+328\b", re.I), "naturalization_military"),
+    (re.compile(r"\bnotice to appear\b|\bwhat\b.*\bnta\b", re.I), "nta_court"),
+    (re.compile(r"\bcourt hearing\b|\bdeadline\b.*\bcourt\b", re.I), "nta_attorney"),
+    (re.compile(r"\bextend\b.*\bstatus\b|\bextension of status\b", re.I), "status_extend"),
+    (re.compile(r"\bchange\b.*\bstatus\b|\bchange of status\b", re.I), "status_change"),
+    (re.compile(r"\bi-?485\b.*\bpending\b.*\btravel\b|\btravel\b.*\bi-?485\b", re.I), "travel_aos"),
+    (re.compile(r"\badvance parole\b", re.I), "travel_aos"),
+    (re.compile(r"\bimmediate relative\b|\bspouse\b.*\bi-?130\b", re.I), "family_immediate"),
+    (re.compile(r"\bfamily preference\b|\bf[1-4]\b.*\bvisa\b", re.I), "family_preference"),
+)
+
+
+def resolve_category_from_message(message: str) -> str | None:
+    """Map a typed clarification (or short reply) to a category value."""
+    text = message.strip()
+    if not text:
+        return None
+    lowered = text.lower()
+    if lowered in _CATEGORY_RETRIEVAL_QUERIES:
+        return lowered
+    for pattern, value in _CATEGORY_PHRASE_RULES:
+        if pattern.search(text):
+            return value
+    for opt in _all_clarification_options():
+        label_lower = opt.label.lower()
+        if label_lower in lowered or lowered in label_lower:
+            return opt.value
+    return None
+
+
+def effective_category(
+    message: str,
+    selected_category: str | None,
+) -> str | None:
+    """Category from explicit selection or typed natural-language match."""
+    if selected_category and is_valid_category_value(selected_category):
+        return selected_category
+    return resolve_category_from_message(message)
