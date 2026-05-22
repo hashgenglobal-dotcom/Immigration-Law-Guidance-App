@@ -29,8 +29,8 @@ export function GuestLimitModal({
           </View>
           <Text style={styles.title}>Guest mode limit</Text>
           <Text style={styles.body}>
-            Try preview full access for this session—or continue in guest mode. Real accounts are
-            not available yet; nothing you enter is saved on your device.
+            Sign up or sign in for full access this session—or stay in guest mode. Live accounts are
+            not connected yet; nothing you enter is saved on your device.
           </Text>
           <Pressable
             style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
@@ -39,7 +39,7 @@ export function GuestLimitModal({
               router.push('/signup')
             }}
           >
-            <Text style={styles.primaryLabel}>Try preview sign-up</Text>
+            <Text style={styles.primaryLabel}>Sign up</Text>
           </Pressable>
           <Pressable
             style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
@@ -48,7 +48,7 @@ export function GuestLimitModal({
               router.push('/login')
             }}
           >
-            <Text style={styles.secondaryLabel}>Try preview sign-in</Text>
+            <Text style={styles.secondaryLabel}>Sign in</Text>
           </Pressable>
           <Pressable onPress={goToAuthChoice} style={styles.ghostBtn}>
             <Ionicons name="arrow-back" size={16} color={colors.brandBronze} />

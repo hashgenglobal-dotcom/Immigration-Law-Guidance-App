@@ -37,10 +37,10 @@ export default function SignupScreen() {
       <AuthBackButton />
 
       <FadeIn>
-        <Text style={styles.title}>Preview sign-up</Text>
+        <Text style={styles.title}>Sign up</Text>
         <Text style={styles.sub}>
-          Unlocks full access for this app session only. Not a real account—nothing you enter is
-          stored on this device.
+          Unlocks full access for this app session. Live accounts are not connected yet—nothing you
+          enter is stored on this device.
         </Text>
         <Text style={styles.notice}>{AUTH_PREVIEW_NOTICE}</Text>
       </FadeIn>
@@ -69,13 +69,13 @@ export default function SignupScreen() {
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <PrimaryButton
-          label={busy ? 'Starting preview…' : 'Continue (preview)'}
+          label={busy ? 'Creating account…' : 'Sign up'}
           onPress={handleSignup}
           variant="onDark"
           disabled={busy}
         />
         <Pressable onPress={() => router.replace('/login')} style={styles.linkWrap}>
-          <Text style={styles.link}>Try preview sign-in instead</Text>
+          <Text style={styles.link}>Sign in instead</Text>
         </Pressable>
       </FadeIn>
     </AuthShell>

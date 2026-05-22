@@ -36,10 +36,10 @@ export default function LoginScreen() {
       <AuthBackButton />
 
       <FadeIn>
-        <Text style={styles.title}>Preview sign-in</Text>
+        <Text style={styles.title}>Sign in</Text>
         <Text style={styles.sub}>
-          Unlocks full access for this app session only. Not a real account—credentials are not
-          saved.
+          Unlocks full access for this app session. Live accounts are not connected yet—credentials
+          are not saved on your device.
         </Text>
         <Text style={styles.notice}>{AUTH_PREVIEW_NOTICE}</Text>
       </FadeIn>
@@ -61,13 +61,13 @@ export default function LoginScreen() {
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <PrimaryButton
-          label={busy ? 'Starting preview…' : 'Continue (preview)'}
+          label={busy ? 'Signing in…' : 'Sign in'}
           onPress={handleLogin}
           variant="onDark"
           disabled={busy}
         />
         <Pressable onPress={() => router.replace('/signup')} style={styles.linkWrap}>
-          <Text style={styles.link}>Try preview sign-up instead</Text>
+          <Text style={styles.link}>Sign up instead</Text>
         </Pressable>
       </FadeIn>
     </AuthShell>

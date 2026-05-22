@@ -22,13 +22,13 @@ export function SessionBanner() {
         style={({ pressed }) => [styles.guestMain, pressed && styles.pressed]}
         onPress={() => router.push('/signup')}
         accessibilityRole="button"
-        accessibilityLabel="Guest mode, limited access. Tap for preview full access"
+        accessibilityLabel="Guest mode, limited access. Tap for full access sign up"
       >
         <View style={styles.guestBadge}>
           <Text style={styles.guestBadgeText}>GUEST MODE</Text>
         </View>
         <Text style={styles.guestSub} numberOfLines={2}>
-          Limited access · Tap for preview full access
+          Limited access · Tap to sign up for full access
         </Text>
         <Ionicons name="chevron-forward" size={18} color={colors.brandBronzeLight} />
       </Pressable>
