@@ -20,12 +20,20 @@ const ACTIONS = [
     variant: 'secondary' as const,
     route: '/scenarios' as const,
   },
+  {
+    id: 'updates',
+    title: 'Official updates',
+    subtitle: 'Plain-language summaries of USCIS, DHS, and Federal Register releases.',
+    icon: 'newspaper-outline' as const,
+    variant: 'secondary' as const,
+    route: '/updates' as const,
+  },
 ] as const
 
 export function HomeExploreSection({
   onNavigate,
 }: {
-  onNavigate: (route: '/ask' | '/scenarios') => void
+  onNavigate: (route: '/ask' | '/scenarios' | '/updates') => void
 }) {
   return (
     <View style={styles.wrap} nativeID="home-explore-section">
@@ -51,12 +59,7 @@ export function HomeExploreSection({
         ))}
       </View>
 
-      {/*
-        <section id="future-updates-dashboard" className="flex flex-col gap-4">
-          News + login tiles above replace this slot in preview; expand when live.
-        </section>
-      */}
-      <View nativeID="future-updates-dashboard" style={styles.futureAnchor} />
+      <View nativeID="official-updates-entry" style={styles.futureAnchor} />
     </View>
   )
 }

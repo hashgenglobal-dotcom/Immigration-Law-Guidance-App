@@ -45,6 +45,11 @@ export default function MainLayout() {
       />
       <Stack.Screen name="ask" options={{ title: 'Ask a question' }} />
       <Stack.Screen name="scenarios" options={{ title: 'Scenario Guides' }} />
+      <Stack.Screen name="updates" options={{ title: 'Official Updates' }} />
+      <Stack.Screen
+        name="updates/[id]"
+        options={{ title: 'Update detail', presentation: 'card' }}
+      />
       <Stack.Screen name="about" options={{ title: 'About' }} />
     </Stack>
   )

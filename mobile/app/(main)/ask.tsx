@@ -1,4 +1,5 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLocalSearchParams } from 'expo-router'
 import { useAuth } from '@/context/AuthContext'
 import { GuestLimitModal } from '@/components/auth/GuestLimitModal'
 import {
@@ -47,6 +48,7 @@ function nextId() {
 }
 
 export default function AskScreen() {
+  const { prefill } = useLocalSearchParams<{ prefill?: string }>()
   const { isGuest, canSendGuestChat, recordGuestChat } = useAuth()
   const [draft, setDraft] = useState('')
   const [turns, setTurns] = useState<Turn[]>([])
@@ -56,6 +58,14 @@ export default function AskScreen() {
     null,
   )
   const scrollRef = useRef<ScrollView>(null)
+  const appliedPrefill = useRef<string | null>(null)
+
+  useEffect(() => {
+    const text = typeof prefill === 'string' ? prefill.trim() : ''
+    if (!text || appliedPrefill.current === text) return
+    appliedPrefill.current = text
+    setDraft(text)
+  }, [prefill])
 
   const scrollToEnd = useCallback(() => {
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }))
