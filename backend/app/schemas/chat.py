@@ -20,6 +20,33 @@ from __future__ import annotations
 from pydantic import BaseModel, Field, field_validator
 
 
+class ConversationTurn(BaseModel):
+    """Visible Ask turn sent for one request only (never stored server-side)."""
+
+    role: str = Field(..., description="user or assistant")
+    content: str = Field(..., min_length=1, max_length=400)
+
+    @field_validator("role", mode="before")
+    @classmethod
+    def normalize_role(cls, v: object) -> str:
+        if not isinstance(v, str):
+            raise ValueError("role must be a string")
+        role = v.strip().lower()
+        if role not in ("user", "assistant"):
+            raise ValueError("role must be user or assistant")
+        return role
+
+    @field_validator("content", mode="before")
+    @classmethod
+    def strip_content(cls, v: object) -> str:
+        if not isinstance(v, str):
+            raise ValueError("content must be a string")
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("content must not be empty")
+        return stripped
+
+
 class ChatRequest(BaseModel):
     message: str = Field(
         ...,
@@ -40,8 +67,16 @@ class ChatRequest(BaseModel):
         default=None,
         max_length=64,
         description=(
-            "In-memory guided intake selection from a prior clarification turn. "
-            "Never persisted server-side. Used to focus retrieval on the chosen path."
+            "Optional legacy category hint. Not required for normal Ask. "
+            "Never persisted server-side."
+        ),
+    )
+    conversation: list[ConversationTurn] = Field(
+        default_factory=list,
+        max_length=4,
+        description=(
+            "Optional prior visible turns from the current session only. "
+            "Processed in memory for follow-up disambiguation; never stored."
         ),
     )
 

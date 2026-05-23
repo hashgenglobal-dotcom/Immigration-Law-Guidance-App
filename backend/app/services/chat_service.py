@@ -19,13 +19,13 @@ import hashlib
 from app.core.config import Settings, get_settings
 from app.schemas.chat import ChatCitation, ChatResponse, ChatUsedChunk
 from app.schemas.retrieval import RetrievalResult
-from app.schemas.chat import ClarificationOption
-from app.services.guided_intake import (
-    build_clarification,
-    detect_broad_topic,
-    is_valid_category_value,
-    resolve_retrieval_query,
+from app.services.ask_memory_context import (
+    build_retrieval_query as build_memory_retrieval_query,
+    format_conversation_for_prompt,
+    sanitize_conversation,
+    should_use_conversation_context,
 )
+from app.services.guided_intake import is_valid_category_value, resolve_retrieval_query
 from app.services.answer_formatting import (
     build_format_system_addon,
     ensure_structured_answer,
@@ -67,6 +67,14 @@ _SYSTEM_PROMPT = (
     "Do not provide guidance on how to commit fraud, misrepresent facts on applications, "
     "evade immigration law, avoid court appearances, or circumvent legal responsibilities. "
     "Decline such requests clearly."
+)
+
+_MEMORY_STYLE = (
+    "CONVERSATION (when brief prior turns are included):\n"
+    "- Answer ONLY the user's current question. Do not add unrelated immigration topics.\n"
+    "- Use prior turns only to interpret short follow-ups (for example, documents or next steps).\n"
+    "- If the current question is a new topic, ignore earlier topics and answer the new question.\n"
+    "- Stay specific: do not give a general survey when a narrow answer is enough.\n"
 )
 
 _NO_RESULTS_ANSWER = (
@@ -121,6 +129,7 @@ class ChatService:
         message: str,
         top_k: int = 5,
         selected_category: str | None = None,
+        conversation: list[dict[str, str]] | None = None,
     ) -> ChatResponse:
         """Generate a grounded plain-language legal information response.
 
@@ -155,29 +164,18 @@ class ChatService:
         if selected_category and not is_valid_category_value(selected_category):
             selected_category = None
 
-        if not selected_category:
-            topic = detect_broad_topic(message)
-            if topic:
-                payload = build_clarification(topic)
-                if payload:
-                    return ChatResponse(
-                        status="needs_clarification",
-                        query_hash=query_hash,
-                        answer=payload.answer,
-                        clarifying_question=payload.clarifying_question,
-                        options=[
-                            ClarificationOption(label=o.label, value=o.value)
-                            for o in payload.options
-                        ],
-                        citations=[],
-                        disclaimer=_DISCLAIMER,
-                        active_dataset=None,
-                        active_datasets=[],
-                        mvp_sources=[],
-                        used_chunks=[],
-                    )
-
-        retrieval_query = resolve_retrieval_query(message, selected_category)
+        thread = sanitize_conversation(conversation)
+        category_query = (
+            resolve_retrieval_query(message, selected_category)
+            if selected_category
+            else None
+        )
+        retrieval_query = build_memory_retrieval_query(
+            message,
+            thread,
+            category_query=category_query,
+        )
+        use_memory = should_use_conversation_context(message, thread)
 
         results, active_datasets, active_dataset = (
             await self._retrieval_service.retrieve_hybrid(
@@ -206,6 +204,7 @@ class ChatService:
             message,
             results,
             selected_category,
+            conversation=thread if use_memory else None,
             high_risk=high_risk,
             weak_sources=weak_sources,
         )
@@ -239,6 +238,7 @@ class ChatService:
         results: list[RetrievalResult],
         selected_category: str | None = None,
         *,
+        conversation: list | None = None,
         high_risk: bool = False,
         weak_sources: bool = False,
     ) -> list[dict[str, str]]:
@@ -255,8 +255,18 @@ class ChatService:
                 "Focus your answer on that category only. Do not discuss unrelated pathways "
                 "unless the sources require a brief cross-reference.\n"
             )
+        conv_block = ""
+        if conversation:
+            conv_text = format_conversation_for_prompt(conversation)
+            conv_block = (
+                "Recent visible conversation (for follow-up context only — "
+                "legal facts must still come from sources below):\n"
+                f"{conv_text}\n\n"
+            )
+
         user_content = (
-            f"Question: {message}\n"
+            f"{conv_block}"
+            f"Current question (answer this only): {message}\n"
             f"{category_note}\n"
             f"Retrieved legal sources:\n{context}\n\n"
             "Answer only from the retrieved sources above. "
@@ -267,8 +277,12 @@ class ChatService:
             weak_sources=weak_sources,
             selected_category=selected_category,
         )
+        memory_addon = f"\n\n{_MEMORY_STYLE}" if conversation else ""
         return [
-            {"role": "system", "content": f"{_SYSTEM_PROMPT}\n\n{format_addon}"},
+            {
+                "role": "system",
+                "content": f"{_SYSTEM_PROMPT}{memory_addon}\n\n{format_addon}",
+            },
             {"role": "user", "content": user_content},
         ]
 

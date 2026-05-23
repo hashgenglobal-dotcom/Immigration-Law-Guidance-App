@@ -51,21 +51,8 @@ class GuidedIntakeDetectionTests(unittest.TestCase):
         self.assertIn("208.7", q)
 
 
-class ChatServiceClarificationTests(unittest.IsolatedAsyncioTestCase):
-    async def test_broad_ead_returns_needs_clarification(self) -> None:
-        class _FakeRetrieval:
-            async def retrieve_hybrid(self, query: str, top_k: int = 5):
-                raise AssertionError("retrieval should not run for clarification")
-
-        service = ChatService(retrieval_service=_FakeRetrieval())
-        response = await service.generate_chat_response("How do I apply for EAD?")
-        self.assertEqual(response.status, "needs_clarification")
-        self.assertTrue(response.options)
-        values = {o.value for o in response.options or []}
-        self.assertIn("f1_opt_stem_opt", values)
-        self.assertIn("asylum_pending", values)
-
-    async def test_selected_category_skips_clarification(self) -> None:
+class ChatServiceCategoryHintTests(unittest.IsolatedAsyncioTestCase):
+    async def test_selected_category_uses_focused_retrieval_query(self) -> None:
         captured: dict[str, str] = {}
 
         class _FakeRetrieval:
