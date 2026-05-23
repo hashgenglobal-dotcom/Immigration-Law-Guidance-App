@@ -13,6 +13,14 @@ const ACTIONS = [
     route: '/ask' as const,
   },
   {
+    id: 'updates',
+    title: 'Official Updates',
+    subtitle: 'USCIS, DHS, and Federal Register announcements in plain language.',
+    icon: 'newspaper-outline' as const,
+    variant: 'secondary' as const,
+    route: '/updates' as const,
+  },
+  {
     id: 'scenarios',
     title: 'Browse scenarios',
     subtitle: 'Step-by-step guides for common immigration situations.',
@@ -25,7 +33,7 @@ const ACTIONS = [
 export function HomeExploreSection({
   onNavigate,
 }: {
-  onNavigate: (route: '/ask' | '/scenarios') => void
+  onNavigate: (route: '/ask' | '/updates' | '/scenarios') => void
 }) {
   return (
     <View style={styles.wrap} nativeID="home-explore-section">

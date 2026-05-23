@@ -2,12 +2,12 @@ import { StyleSheet, View } from 'react-native'
 import { DotGrid } from './DotGrid'
 import { colors } from '@/theme'
 
-type BackdropVariant = 'home' | 'ask' | 'scenarios' | 'about'
+type BackdropVariant = 'home' | 'ask' | 'scenarios' | 'about' | 'updates'
 
 /** Soft orbs + dot grid — adds depth without native gradients */
 export function DigitalBackdrop({ variant = 'home' }: { variant?: BackdropVariant }) {
-  const bronzeTint = variant === 'ask' ? 0.09 : 0.07
-  const navyTint = variant === 'scenarios' ? 0.08 : 0.06
+  const bronzeTint = variant === 'ask' || variant === 'updates' ? 0.09 : 0.07
+  const navyTint = variant === 'scenarios' || variant === 'updates' ? 0.08 : 0.06
 
   return (
     <View style={styles.root} pointerEvents="none">
