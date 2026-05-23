@@ -36,7 +36,6 @@ export type ChatResponse = {
   clarifying_question?: string | null
   options?: ClarificationOption[] | null
   used_chunks: ChatUsedChunk[]
-  suggested_followups?: string[]
 }
 
 export type ChatClarificationContent = {
@@ -55,7 +54,6 @@ export type ChatAssistantContent = {
   privacyMode: string
   activeDataset?: string | null
   citationsMissing: boolean
-  suggestedFollowups: string[]
 }
 
 export type ChatApiErrorCode = 'offline' | 'timeout' | 'http' | 'empty' | 'parse'

@@ -20,16 +20,9 @@ from app.core.config import Settings, get_settings
 from app.schemas.chat import ChatCitation, ChatResponse, ChatUsedChunk
 from app.schemas.retrieval import RetrievalResult
 from app.schemas.chat import ClarificationOption
-from app.services.conversation_context import (
-    build_retrieval_query,
-    format_conversation_block,
-    sanitize_conversation,
-)
-from app.services.follow_up_suggestions import suggest_follow_ups
 from app.services.guided_intake import (
     build_clarification,
     detect_broad_topic,
-    effective_category,
     is_valid_category_value,
     resolve_retrieval_query,
 )
@@ -74,13 +67,6 @@ _SYSTEM_PROMPT = (
     "Do not provide guidance on how to commit fraud, misrepresent facts on applications, "
     "evade immigration law, avoid court appearances, or circumvent legal responsibilities. "
     "Decline such requests clearly."
-)
-
-_CONVERSATION_STYLE = (
-    "CONVERSATION (tone only — never add legal facts from memory):\n"
-    "- When conversation context is provided, you may briefly reference the user's "
-    "earlier topic in the Short answer (one short bridging sentence).\n"
-    "- Use a warm, plain-language tone. Still cite only retrieved sources for legal facts.\n"
 )
 
 _NO_RESULTS_ANSWER = (
@@ -135,7 +121,6 @@ class ChatService:
         message: str,
         top_k: int = 5,
         selected_category: str | None = None,
-        conversation: list[dict[str, str]] | None = None,
     ) -> ChatResponse:
         """Generate a grounded plain-language legal information response.
 
@@ -170,10 +155,7 @@ class ChatService:
         if selected_category and not is_valid_category_value(selected_category):
             selected_category = None
 
-        thread = sanitize_conversation(conversation)
-        category = effective_category(message, selected_category)
-
-        if not category:
+        if not selected_category:
             topic = detect_broad_topic(message)
             if topic:
                 payload = build_clarification(topic)
@@ -195,12 +177,7 @@ class ChatService:
                         used_chunks=[],
                     )
 
-        retrieval_query = build_retrieval_query(
-            message,
-            thread,
-            selected_category=category,
-            category_resolver=resolve_retrieval_query,
-        )
+        retrieval_query = resolve_retrieval_query(message, selected_category)
 
         results, active_datasets, active_dataset = (
             await self._retrieval_service.retrieve_hybrid(
@@ -228,8 +205,7 @@ class ChatService:
         messages = self._build_messages(
             message,
             results,
-            category,
-            conversation=thread,
+            selected_category,
             high_risk=high_risk,
             weak_sources=weak_sources,
         )
@@ -241,7 +217,6 @@ class ChatService:
             ollama_api_key=self._settings.ollama_api_key,
         )
         answer = ensure_structured_answer(raw_answer, high_risk=high_risk)
-        followups = suggest_follow_ups(message=message, answer=answer, results=results)
 
         return ChatResponse(
             query_hash=query_hash,
@@ -252,7 +227,6 @@ class ChatService:
             active_datasets=active_datasets,
             mvp_sources=mvp_sources,
             used_chunks=self._to_used_chunks(results),
-            suggested_followups=followups,
         )
 
     # ------------------------------------------------------------------
@@ -265,7 +239,6 @@ class ChatService:
         results: list[RetrievalResult],
         selected_category: str | None = None,
         *,
-        conversation: list | None = None,
         high_risk: bool = False,
         weak_sources: bool = False,
     ) -> list[dict[str, str]]:
@@ -282,14 +255,8 @@ class ChatService:
                 "Focus your answer on that category only. Do not discuss unrelated pathways "
                 "unless the sources require a brief cross-reference.\n"
             )
-        conv_block = format_conversation_block(conversation or [])
-        conv_section = ""
-        if conv_block:
-            conv_section = f"Conversation so far (for continuity only — facts must come from sources below):\n{conv_block}\n\n"
-
         user_content = (
-            f"{conv_section}"
-            f"Current question: {message}\n"
+            f"Question: {message}\n"
             f"{category_note}\n"
             f"Retrieved legal sources:\n{context}\n\n"
             "Answer only from the retrieved sources above. "
@@ -301,10 +268,7 @@ class ChatService:
             selected_category=selected_category,
         )
         return [
-            {
-                "role": "system",
-                "content": f"{_SYSTEM_PROMPT}\n\n{_CONVERSATION_STYLE}\n\n{format_addon}",
-            },
+            {"role": "system", "content": f"{_SYSTEM_PROMPT}\n\n{format_addon}"},
             {"role": "user", "content": user_content},
         ]
 
