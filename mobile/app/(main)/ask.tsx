@@ -1,10 +1,11 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { GuestLimitModal } from '@/components/auth/GuestLimitModal'
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,8 +18,10 @@ import {
   ChatMessage,
   ChatUserText,
 } from '@/components'
-import { ClarificationOptions, WelcomeCard } from '@/components/chat'
+import { ClarificationOptions, SuggestedFollowUps, WelcomeCard } from '@/components/chat'
 import { DigitalBackdrop } from '@/components/digital'
+import { buildConversationPayload } from '@/lib/conversationContext'
+import { resolveCategoryFromTypedReply } from '@/lib/guidedIntakeClient'
 import {
   ChatApiError,
   sendChatMessage,
@@ -68,7 +71,12 @@ export default function AskScreen() {
   }, [isGuest, recordGuestChat])
 
   const submitChat = useCallback(
-    async (message: string, selectedCategory?: string | null, displayUserText?: string) => {
+    async (
+      message: string,
+      selectedCategory?: string | null,
+      displayUserText?: string,
+      priorTurns?: Turn[],
+    ) => {
       const text = message.trim()
       if (!text || loading) return
 
@@ -80,12 +88,13 @@ export default function AskScreen() {
       const userLabel = displayUserText?.trim() || text
       const userTurn: Turn = { id: nextId(), role: 'user', text: userLabel }
       const pendingId = nextId()
+      const conversation = buildConversationPayload(priorTurns ?? turns)
       setLoading(true)
       setTurns((prev) => [...prev, userTurn, { id: pendingId, role: 'assistant', pending: true }])
       scrollToEnd()
 
       try {
-        const response = await sendChatMessage(text, 5, selectedCategory ?? null)
+        const response = await sendChatMessage(text, 5, selectedCategory ?? null, conversation)
 
         if (response.status === 'needs_clarification') {
           setPendingClarification({ originalMessage: text })
@@ -127,27 +136,54 @@ export default function AskScreen() {
         scrollToEnd()
       }
     },
-    [loading, scrollToEnd, isGuest, canSendGuestChat, completeGuestChatIfNeeded],
+    [loading, scrollToEnd, isGuest, canSendGuestChat, completeGuestChatIfNeeded, turns],
   )
 
   const handleSend = useCallback(async () => {
     const text = draft.trim()
     if (!text) return
     setDraft('')
-    await submitChat(text)
-  }, [draft, submitChat])
+
+    if (pendingClarification) {
+      const { originalMessage } = pendingClarification
+      const typedCategory = resolveCategoryFromTypedReply(text)
+      setPendingClarification(null)
+      if (typedCategory) {
+        await submitChat(originalMessage, typedCategory, text, turns)
+      } else {
+        await submitChat(text, undefined, text, turns)
+      }
+      return
+    }
+
+    await submitChat(text, undefined, undefined, turns)
+  }, [draft, submitChat, pendingClarification, turns])
+
+  const startNewConversation = useCallback(() => {
+    setTurns([])
+    setPendingClarification(null)
+    setDraft('')
+  }, [])
 
   const handleClarificationSelect = useCallback(
     async (option: ClarificationOption) => {
       if (!pendingClarification || loading) return
       const { originalMessage } = pendingClarification
       setPendingClarification(null)
-      await submitChat(originalMessage, option.value, option.label)
+      await submitChat(originalMessage, option.value, option.label, turns)
     },
-    [pendingClarification, loading, submitChat],
+    [pendingClarification, loading, submitChat, turns],
   )
 
   const isEmpty = turns.length === 0
+
+  const latestAssistantContentId = useMemo(() => {
+    for (let i = turns.length - 1; i >= 0; i--) {
+      const t = turns[i]
+      if (t.role === 'assistant' && 'content' in t) return t.id
+    }
+    return null
+  }, [turns])
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -157,6 +193,19 @@ export default function AskScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
       >
+        {!isEmpty ? (
+          <View style={styles.threadBar}>
+            <Pressable
+              onPress={startNewConversation}
+              style={({ pressed }) => [styles.newChatBtn, pressed && styles.newChatPressed]}
+              accessibilityRole="button"
+              accessibilityLabel="Start a new conversation"
+            >
+              <Text style={styles.newChatText}>New conversation</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         <ScrollView
           ref={scrollRef}
           style={styles.messages}
@@ -207,12 +256,25 @@ export default function AskScreen() {
                     onSelect={handleClarificationSelect}
                     disabled={loading || !pendingClarification}
                   />
+                  {pendingClarification ? (
+                    <Text style={styles.clarifyHint}>
+                      Or type your situation below (for example, F-1 OPT) and send.
+                    </Text>
+                  ) : null}
                 </ChatMessage>
               )
             }
             return (
               <ChatMessage key={turn.id} role="assistant">
                 <AssistantChatContent content={turn.content} />
+                {turn.id === latestAssistantContentId &&
+                turn.content.suggestedFollowups.length > 0 ? (
+                  <SuggestedFollowUps
+                    suggestions={turn.content.suggestedFollowups}
+                    onSelect={(text) => submitChat(text, undefined, undefined, turns)}
+                    disabled={loading}
+                  />
+                ) : null}
               </ChatMessage>
             )
           })}
@@ -240,6 +302,35 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
     zIndex: 1,
+  },
+  threadBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xs,
+    zIndex: 1,
+  },
+  newChatBtn: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  newChatPressed: {
+    opacity: 0.7,
+  },
+  newChatText: {
+    fontFamily: fontFamily.body,
+    fontSize: typography.caption,
+    fontWeight: '600',
+    color: colors.brandBronze,
+  },
+  clarifyHint: {
+    fontFamily: fontFamily.body,
+    fontSize: typography.caption,
+    lineHeight: 18,
+    color: colors.brandNavy,
+    opacity: 0.65,
+    marginTop: spacing.sm,
+    fontStyle: 'italic',
   },
   messages: {
     flex: 1,

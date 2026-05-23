@@ -20,6 +20,38 @@ from __future__ import annotations
 from pydantic import BaseModel, Field, field_validator
 
 
+class ConversationTurn(BaseModel):
+    """One turn of in-session Ask history (client-held; not stored server-side)."""
+
+    role: str = Field(..., description="user or assistant")
+    content: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="User message text or compact assistant summary for context.",
+    )
+
+    @field_validator("role", mode="before")
+    @classmethod
+    def normalize_role(cls, v: object) -> str:
+        if not isinstance(v, str):
+            raise ValueError("role must be a string")
+        role = v.strip().lower()
+        if role not in ("user", "assistant"):
+            raise ValueError("role must be user or assistant")
+        return role
+
+    @field_validator("content", mode="before")
+    @classmethod
+    def strip_content(cls, v: object) -> str:
+        if not isinstance(v, str):
+            raise ValueError("content must be a string")
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("content must not be empty")
+        return stripped
+
+
 class ChatRequest(BaseModel):
     message: str = Field(
         ...,
@@ -42,6 +74,14 @@ class ChatRequest(BaseModel):
         description=(
             "In-memory guided intake selection from a prior clarification turn. "
             "Never persisted server-side. Used to focus retrieval on the chosen path."
+        ),
+    )
+    conversation: list[ConversationTurn] = Field(
+        default_factory=list,
+        max_length=6,
+        description=(
+            "Optional prior turns for this session only. Processed in memory; "
+            "never stored. Used to rewrite retrieval and add conversational context."
         ),
     )
 
@@ -131,6 +171,14 @@ class ChatResponse(BaseModel):
         description="Selectable categories when status is needs_clarification.",
     )
     used_chunks: list[ChatUsedChunk] = Field(default_factory=list)
+    suggested_followups: list[str] = Field(
+        default_factory=list,
+        max_length=3,
+        description=(
+            "Optional grounded follow-up questions (max 3) derived from retrieved "
+            "chunks only. Shown as tappable chips on mobile."
+        ),
+    )
 
 
 class ChatErrorResponse(BaseModel):

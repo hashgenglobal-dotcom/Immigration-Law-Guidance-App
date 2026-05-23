@@ -1,4 +1,5 @@
 import { CHAT_REQUEST_TIMEOUT_MS, getApiBaseUrl } from '@/constants/api'
+import type { ConversationTurnPayload } from '@/lib/conversationContext'
 import type { ChatAssistantContent, ChatClarificationContent, ChatResponse } from '@/types/chat'
 
 export type ChatApiErrorCode = 'offline' | 'timeout' | 'http' | 'empty' | 'parse'
@@ -43,6 +44,7 @@ export async function sendChatMessage(
   message: string,
   topK = 5,
   selectedCategory?: string | null,
+  conversation: ConversationTurnPayload[] = [],
 ): Promise<ChatResponse> {
   const baseUrl = getApiBaseUrl()
   const controller = new AbortController()
@@ -60,6 +62,7 @@ export async function sendChatMessage(
         message,
         top_k: topK,
         ...(selectedCategory ? { selected_category: selectedCategory } : {}),
+        ...(conversation.length > 0 ? { conversation } : {}),
       }),
       signal: controller.signal,
     })
@@ -112,6 +115,10 @@ export function toClarificationContent(data: ChatResponse): ChatClarificationCon
 
 export function toAssistantContent(data: ChatResponse): ChatAssistantContent {
   const citations = Array.isArray(data.citations) ? data.citations : []
+  const followups = Array.isArray(data.suggested_followups)
+    ? data.suggested_followups.filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+    : []
+
   return {
     answer: data.answer.trim(),
     citations,
@@ -119,5 +126,6 @@ export function toAssistantContent(data: ChatResponse): ChatAssistantContent {
     privacyMode: data.privacy_mode || 'local-first',
     activeDataset: data.active_dataset ?? null,
     citationsMissing: citations.length === 0,
+    suggestedFollowups: followups.slice(0, 3),
   }
 }
