@@ -20,6 +20,7 @@ PRIVACY RULES (must remain true as more code is added):
 from __future__ import annotations
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import chat, health, retrieval
 from app.core.config import get_settings
@@ -39,6 +40,19 @@ def create_app() -> FastAPI:
             "legal sources. Full user questions and full generated answers "
             "are not stored by default."
         ),
+    )
+
+    # Dev-safe CORS — allows the local Vite dev server to reach the API.
+    # Origins are restricted to localhost only; no wildcard.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ],
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Content-Type"],
     )
 
     app.include_router(health.router)

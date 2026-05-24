@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { sendChatMessage } from '../lib/api'
-import type { ChatMessage, ClarificationOption, ChatResponse } from '../lib/api'
+import type { ChatCitation, ChatUsedChunk, ClarificationOption, ChatResponse } from '../lib/api'
 import styles from './ChatPage.module.css'
 
 type Turn =
@@ -56,53 +56,118 @@ const SAMPLE_SOURCE_GROUPS = [
   },
 ]
 
-function SourcesPanel({ citations }: { citations: string[] }) {
+type SourcesPanelProps = {
+  citations: ChatCitation[]
+  chunks: ChatUsedChunk[]
+  loading: boolean
+  hasResponse: boolean
+}
+
+function SourcesPanel({ citations, chunks, loading, hasResponse }: SourcesPanelProps) {
   const hasCitations = citations.length > 0
 
   return (
     <div className={styles.sourcesPanel}>
       <div className={styles.sourcesHeader}>
-        Source Preview
-        {hasCitations && (
+        Latest answer sources
+        {!loading && hasCitations && (
           <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: 12, marginLeft: 8 }}>
             {citations.length} cited
           </span>
         )}
       </div>
 
-      {!hasCitations && (
-        <p className={styles.sourcesExplainer}>
-          Cited regulations, forms, policy sections, and decisions appear here when answers are generated.
+      {/* Loading state */}
+      {loading && (
+        <p className={styles.sourcesExplainer} style={{ fontStyle: 'normal' }}>
+          Retrieving sources…
         </p>
       )}
 
-      <div className={styles.sourcesScroll}>
-        {hasCitations ? (
-          citations.map((c, i) => (
+      {/* Initial state: no response yet */}
+      {!loading && !hasResponse && (
+        <>
+          <p className={styles.sourcesExplainer}>
+            Cited regulations, forms, policy sections, and decisions appear here when answers are generated.
+          </p>
+          <div className={styles.sourcesScroll}>
+            {SAMPLE_SOURCE_GROUPS.map((group) => (
+              <div key={group.type} className={styles.sourceGroup}>
+                <div
+                  className={styles.sourceGroupLabel}
+                  style={{ color: group.color, background: group.colorTint }}
+                >
+                  {group.type}
+                </div>
+                {group.items.map((item) => (
+                  <div key={item.name} className={styles.sourceCard}>
+                    <div className={styles.sourceName}>{item.name}</div>
+                    <div className={styles.sourceDesc}>{item.desc}</div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Empty state: response returned with no citations */}
+      {!loading && hasResponse && !hasCitations && (
+        <p className={styles.sourcesExplainer} style={{ fontStyle: 'normal', color: 'var(--text-secondary)' }}>
+          No citations returned for this response.
+        </p>
+      )}
+
+      {/* Real citations from latest answer */}
+      {!loading && hasResponse && hasCitations && (
+        <div className={styles.sourcesScroll}>
+          <div
+            className={styles.sourceGroupLabel}
+            style={{ color: 'var(--blue)', background: 'var(--blue-tint)' }}
+          >
+            Citations
+          </div>
+          {citations.map((c, i) => (
             <div key={i} className={styles.sourceCard}>
-              <div className={styles.sourceType}>Citation</div>
-              <div className={styles.sourceName}>{c}</div>
+              <div className={styles.sourceName}>{c.citation}</div>
+              {(c.topic || c.subtopic) && (
+                <div className={styles.sourceDesc}>
+                  {[c.topic, c.subtopic].filter(Boolean).join(' › ')}
+                </div>
+              )}
+              {c.official_url && (
+                <a
+                  href={c.official_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.citationUrl}
+                >
+                  View source ↗
+                </a>
+              )}
             </div>
-          ))
-        ) : (
-          SAMPLE_SOURCE_GROUPS.map((group) => (
-            <div key={group.type} className={styles.sourceGroup}>
+          ))}
+          {chunks.length > 0 && (
+            <>
               <div
                 className={styles.sourceGroupLabel}
-                style={{ color: group.color, background: group.colorTint }}
+                style={{ color: '#a07830', background: '#faf4e8', marginTop: 8 }}
               >
-                {group.type}
+                Retrieved passages
               </div>
-              {group.items.map((item) => (
-                <div key={item.name} className={styles.sourceCard}>
-                  <div className={styles.sourceName}>{item.name}</div>
-                  <div className={styles.sourceDesc}>{item.desc}</div>
+              {chunks.map((ch) => (
+                <div key={ch.chunk_id} className={styles.sourceCard}>
+                  <div className={styles.sourceName}>{ch.citation}</div>
+                  <div className={styles.chunkSnippet}>{ch.snippet}</div>
+                  {ch.source_family && (
+                    <div className={styles.sourceDesc}>{ch.source_family}</div>
+                  )}
                 </div>
               ))}
-            </div>
-          ))
-        )}
-      </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -111,34 +176,34 @@ export default function ChatPage() {
   const [turns, setTurns] = useState<Turn[]>([])
   const [draft, setDraft] = useState('')
   const [loading, setLoading] = useState(false)
-  const [latestCitations, setLatestCitations] = useState<string[]>([])
+  const [latestCitations, setLatestCitations] = useState<ChatCitation[]>([])
+  const [latestChunks, setLatestChunks] = useState<ChatUsedChunk[]>([])
+  const [sourcesLoading, setSourcesLoading] = useState(false)
+  const [hasLatestResponse, setHasLatestResponse] = useState(false)
   const [pendingCategory, setPendingCategory] = useState<{ original: string } | null>(null)
   const messagesRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = useCallback(() => {
+    // Double rAF ensures React has flushed and the DOM is painted before scrolling.
     requestAnimationFrame(() => {
-      if (messagesRef.current) {
-        messagesRef.current.scrollTop = messagesRef.current.scrollHeight
-      }
+      requestAnimationFrame(() => {
+        if (messagesRef.current) {
+          messagesRef.current.scrollTop = messagesRef.current.scrollHeight
+        }
+      })
     })
   }, [])
-
-  const buildConversation = useCallback((): ChatMessage[] => {
-    const messages: ChatMessage[] = []
-    for (const t of turns) {
-      if (t.role === 'user') {
-        messages.push({ role: 'user', content: t.text })
-      } else if ('response' in t && t.response.status === 'ok') {
-        messages.push({ role: 'assistant', content: t.response.answer })
-      }
-    }
-    return messages
-  }, [turns])
 
   const submit = useCallback(
     async (message: string, category?: string | null, displayText?: string) => {
       const text = message.trim()
       if (!text || loading) return
+
+      // Clear stale sources immediately so the panel never shows data from a
+      // previous answer while a new request is in flight.
+      setLatestCitations([])
+      setLatestChunks([])
+      setSourcesLoading(true)
 
       const userLabel = displayText?.trim() || text
       const userTurn: Turn = { id: nextId(), role: 'user', text: userLabel }
@@ -153,15 +218,14 @@ export default function ChatPage() {
       scrollToBottom()
 
       try {
-        const conversation = buildConversation()
         const response = await sendChatMessage({
           message: text,
           top_k: 5,
           selected_category: category ?? null,
-          conversation,
         })
 
         if (response.status === 'needs_clarification') {
+          // Clarification responses have no usable citations — leave panel empty.
           setPendingCategory({ original: text })
           setTurns((prev) =>
             prev.map((t) =>
@@ -170,28 +234,32 @@ export default function ChatPage() {
           )
         } else {
           setPendingCategory(null)
+          setHasLatestResponse(true)
           setLatestCitations(response.citations)
+          setLatestChunks(response.used_chunks)
           setTurns((prev) =>
             prev.map((t) =>
               t.id === pendingId ? { id: pendingId, role: 'assistant', response } : t,
             ),
           )
         }
-      } catch {
+      } catch (err) {
         setPendingCategory(null)
+        const msg = err instanceof Error ? err.message : 'An unexpected error occurred.'
         setTurns((prev) =>
           prev.map((t) =>
             t.id === pendingId
-              ? { id: pendingId, role: 'assistant', error: 'Could not reach the backend. Make sure it is running on port 8000.' }
+              ? { id: pendingId, role: 'assistant', error: msg }
               : t,
           ),
         )
       } finally {
         setLoading(false)
+        setSourcesLoading(false)
         scrollToBottom()
       }
     },
-    [loading, scrollToBottom, buildConversation],
+    [loading, scrollToBottom],
   )
 
   const handleSend = useCallback(() => {
@@ -225,11 +293,23 @@ export default function ChatPage() {
     setTurns([])
     setDraft('')
     setLatestCitations([])
+    setLatestChunks([])
+    setSourcesLoading(false)
+    setHasLatestResponse(false)
     setPendingCategory(null)
   }, [])
 
   return (
-    <DashboardLayout rightPanel={<SourcesPanel citations={latestCitations} />}>
+    <DashboardLayout
+      rightPanel={
+        <SourcesPanel
+          citations={latestCitations}
+          chunks={latestChunks}
+          loading={sourcesLoading}
+          hasResponse={hasLatestResponse}
+        />
+      }
+    >
       <div className={styles.chatPanel}>
         <div className={styles.chatHeader}>
           <div>
@@ -309,7 +389,10 @@ export default function ChatPage() {
             if (response.status === 'needs_clarification') {
               return (
                 <div key={turn.id} className={`${styles.messageBubble} ${styles.assistant}`}>
-                  <div className={styles.roleLabel}>Assistant</div>
+                  <div className={styles.roleLabel}>
+                    Assistant
+                    <span className={styles.privacyBadge}>{response.privacy_mode}</span>
+                  </div>
                   <div className={styles.bubble}>
                     <p style={{ marginBottom: 10 }}>{response.answer}</p>
                     <p style={{ marginBottom: 12, color: 'var(--text-secondary)', fontSize: 13 }}>
@@ -343,16 +426,27 @@ export default function ChatPage() {
             }
             return (
               <div key={turn.id} className={`${styles.messageBubble} ${styles.assistant}`}>
-                <div className={styles.roleLabel}>Assistant</div>
+                <div className={styles.roleLabel}>
+                  Assistant
+                  <span className={styles.privacyBadge}>{response.privacy_mode}</span>
+                </div>
                 <div className={styles.bubble}>
                   <p style={{ whiteSpace: 'pre-wrap' }}>{response.answer}</p>
+                  {response.mvp_sources.length > 0 && (
+                    <div className={styles.answerMeta}>
+                      Searched: {response.mvp_sources.join(' · ')}
+                    </div>
+                  )}
                   {response.citations.length > 0 && (
                     <div className={styles.citationRow}>
-                      {response.citations.map((c) => (
-                        <span key={c} className={styles.citationChip}>{c}</span>
+                      {response.citations.map((c, i) => (
+                        <span key={`${i}-${c.citation}`} className={styles.citationChip}>
+                          {c.citation}
+                        </span>
                       ))}
                     </div>
                   )}
+                  <div className={styles.answerDisclaimer}>{response.disclaimer}</div>
                 </div>
               </div>
             )
