@@ -50,6 +50,65 @@ class GuidedIntakeDetectionTests(unittest.TestCase):
         self.assertIn("asylum", q.lower())
         self.assertIn("208.7", q)
 
+    # --- Asylum EAD specific detection ---
+
+    def test_ead_as_asylum_applicant_is_specific(self) -> None:
+        self.assertTrue(is_specific_question("How do I apply for an EAD as an asylum applicant?"))
+        self.assertIsNone(detect_broad_topic("How do I apply for an EAD as an asylum applicant?"))
+
+    def test_work_permit_as_asylum_applicant_is_specific(self) -> None:
+        self.assertTrue(is_specific_question("How do I apply for a work permit as an asylum applicant?"))
+        self.assertIsNone(detect_broad_topic("How do I apply for a work permit as an asylum applicant?"))
+
+    def test_pending_asylum_applicants_ead_is_specific(self) -> None:
+        self.assertTrue(is_specific_question("Can pending asylum applicants apply for EAD?"))
+        self.assertIsNone(detect_broad_topic("Can pending asylum applicants apply for EAD?"))
+
+    def test_filed_asylum_employment_auth_is_specific(self) -> None:
+        self.assertTrue(
+            is_specific_question("I filed asylum, can I apply for employment authorization?")
+        )
+
+    def test_i765_after_filing_asylum_is_specific(self) -> None:
+        self.assertTrue(is_specific_question("How do I apply for Form I-765 after filing asylum?"))
+
+    # --- I-485 travel specific detection ---
+
+    def test_i485_travel_with_my_is_specific(self) -> None:
+        self.assertTrue(is_specific_question("Can I travel while my I-485 is pending?"))
+        self.assertIsNone(detect_broad_topic("Can I travel while my I-485 is pending?"))
+
+    # --- Broad EAD still triggers clarification ---
+
+    def test_broad_ead_no_asylum_context_triggers_clarification(self) -> None:
+        self.assertEqual(detect_broad_topic("How do I apply for EAD?"), "ead")
+        self.assertEqual(detect_broad_topic("Can I work in the United States?"), "ead")
+
+    # --- Query rewriting without selected_category ---
+
+    def test_asylum_ead_direct_resolves_to_asylum_pending_query(self) -> None:
+        q = resolve_retrieval_query("How do I apply for an EAD as an asylum applicant?", None)
+        self.assertIn("asylum", q.lower())
+        self.assertIn("208.7", q)
+
+    def test_i485_travel_resolves_to_travel_aos_query(self) -> None:
+        q = resolve_retrieval_query("Can I travel while my I-485 is pending?", None)
+        self.assertIn("advance parole", q.lower())
+        self.assertIn("I-131", q)
+
+    def test_f1_opt_ead_resolves_to_opt_query(self) -> None:
+        q = resolve_retrieval_query("How do I get EAD as an F-1 student on OPT?", None)
+        self.assertIn("STEM OPT", q)
+        self.assertIn("214.2", q)
+
+    def test_stem_opt_resolves_to_opt_query(self) -> None:
+        q = resolve_retrieval_query("How do I extend my STEM OPT work authorization?", None)
+        self.assertIn("STEM OPT", q)
+
+    def test_broad_ead_no_rewrite_without_category(self) -> None:
+        q = resolve_retrieval_query("How do I apply for EAD?", None)
+        self.assertEqual(q, "How do I apply for EAD?")
+
 
 class ChatServiceClarificationTests(unittest.IsolatedAsyncioTestCase):
     async def test_broad_ead_returns_needs_clarification(self) -> None:

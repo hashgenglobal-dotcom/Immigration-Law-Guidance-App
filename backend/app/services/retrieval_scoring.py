@@ -33,6 +33,20 @@ _PHRASE_SIGNALS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("overstay", ("244.", "unlawful presence", "245.")),
 )
 
+# I-485 travel context: matches rewritten travel_aos query and direct travel+I-485 questions.
+_I485_TRAVEL_CONTEXT_RE = re.compile(
+    r"(\badvance parole\b.{0,100}\b(?:i[- ]?131|adjustment)\b"
+    r"|\bi[- ]?485\b.{0,80}\btravel\b|\btravel\b.{0,80}\bi[- ]?485\b"
+    r"|\badjustment of status\b.{0,80}\btravel\b|\btravel\b.{0,80}\badjustment of status\b)",
+    re.I,
+)
+
+# Signals in chunk blob that indicate advance-parole relevance.
+_TRAVEL_AOS_BOOST_SIGNALS = ("advance parole", "i-131", "travel document", "abandonment", "1245.13")
+
+# Signals in chunk blob indicating Syria/Public Law 106-378 specificity (tangential for generic I-485 travel).
+_SYRIA_CHUNK_SIGNALS = ("syrian", "public law 106-378", "public law 106378", "§ 1245.20", "§ 1245.19", "1245.20", "1245.19")
+
 _TOPIC_AFFINITY: tuple[tuple[re.Pattern[str], tuple[str, ...]], ...] = (
     (re.compile(r"\basylum\b", re.I), ("208.", "1158", "asylum")),
     (re.compile(r"\btps\b|temporary protected", re.I), ("244.", "tps", "274a.12")),
@@ -143,6 +157,15 @@ def compute_relevance_boost(
     for pattern, needles in _TOPIC_AFFINITY:
         if pattern.search(query) and any(n in blob for n in needles):
             boost += 0.008
+
+    # I-485 travel: boost advance-parole/I-131 chunks; penalize Syria-specific chunks unless
+    # the query explicitly asks about Syria or Public Law 106-378.
+    if _I485_TRAVEL_CONTEXT_RE.search(query):
+        if any(s in blob for s in _TRAVEL_AOS_BOOST_SIGNALS):
+            boost += 0.012
+        if "syr" not in q and "public law 106" not in q:
+            if any(s in blob for s in _SYRIA_CHUNK_SIGNALS):
+                boost -= 0.024
 
     if "adjustment of status" in q and "eligible" in q and "§ 245.1" in cite:
         boost += 0.014
