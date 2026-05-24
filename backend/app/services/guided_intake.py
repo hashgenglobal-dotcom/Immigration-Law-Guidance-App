@@ -225,6 +225,10 @@ _SPECIFIC_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
     for p in (
         r"\basylum applicants?\b.*\b(work authorization|ead|employ)",
         r"\bcan asylum applicants?\b",
+        # EAD/work auth keyword appearing before "asylum" (e.g., "EAD as an asylum applicant")
+        r"\b(?:ead|i[- ]?765|work permit|employment authorization)\b.{0,100}\basylu",
+        # "I filed asylum" followed by EAD/work auth question
+        r"\bfiled (?:for )?asylum\b.{0,120}\b(?:ead|employment authorization|work authorization|work permit|i[- ]?765)\b",
         r"\bwhat is a notice to appear\b",
         r"\bwhat is an? rfe\b",
         r"\bwhat is (?:a )?form i-\d+",
@@ -238,6 +242,10 @@ _SPECIFIC_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
         r"\bgood moral character\b.*\bnaturalization\b",
         r"\bcan i travel while i-485 is pending\b",
         r"\bcan i travel while .*adjustment of status\b",
+        # I-485 travel: flexible phrasing handles "my", "the", "a" before form number
+        r"\bcan i travel while (?:my |the |a )?i[- ]?485\b",
+        # travel + I-485 + pending in any order
+        r"\btravel\b.{0,60}\bi[- ]?485\b.{0,60}\bpending\b",
     )
 )
 
@@ -331,13 +339,45 @@ def build_clarification(topic: str) -> ClarificationPayload | None:
     return _CLARIFICATIONS.get(topic)
 
 
+# Auto-detection patterns for query rewriting when no category is selected.
+# Match when message contains both asylum-related content AND EAD/work auth content.
+_ASYLUM_EAD_RE = re.compile(
+    r"(\basylu\w*\b.{0,100}\b(?:ead|i[- ]?765|work permit|employment authorization|work authorization)\b"
+    r"|\b(?:ead|i[- ]?765|work permit|employment authorization|work authorization)\b.{0,100}\basylu\w*\b"
+    r"|\bfiled (?:for )?asylum\b.{0,120}\b(?:ead|employment authorization|work authorization|work permit|i[- ]?765)\b)",
+    re.I,
+)
+
+# Match when message mentions I-485/adjustment of status + travel.
+_I485_TRAVEL_RE = re.compile(
+    r"(\bi[- ]?485\b.{0,80}\btravel\b|\btravel\b.{0,80}\bi[- ]?485\b"
+    r"|\badjustment of status\b.{0,80}\btravel\b|\btravel\b.{0,80}\badjustment of status\b)",
+    re.I,
+)
+
+# Match F-1/OPT/STEM OPT questions asking about EAD/work auth.
+_OPT_EAD_RE = re.compile(
+    r"(\bf[- ]?1\b.{0,100}\b(?:ead|work authorization|employment authorization|i[- ]?765)\b"
+    r"|\b(?:ead|work authorization|employment authorization|i[- ]?765)\b.{0,100}\bf[- ]?1\b"
+    r"|\bstem opt\b|\boptional practical training\b)",
+    re.I,
+)
+
+
 def resolve_retrieval_query(message: str, selected_category: str | None) -> str:
     """Build the retrieval query from the user message and optional category selection."""
     if selected_category:
         template = _CATEGORY_RETRIEVAL_QUERIES.get(selected_category)
         if template:
             return template
-    return message.strip()
+    m = message.strip()
+    if _ASYLUM_EAD_RE.search(m):
+        return _CATEGORY_RETRIEVAL_QUERIES["asylum_pending"]
+    if _I485_TRAVEL_RE.search(m):
+        return _CATEGORY_RETRIEVAL_QUERIES["travel_aos"]
+    if _OPT_EAD_RE.search(m):
+        return _CATEGORY_RETRIEVAL_QUERIES["f1_opt_stem_opt"]
+    return m
 
 
 def is_valid_category_value(value: str) -> bool:
