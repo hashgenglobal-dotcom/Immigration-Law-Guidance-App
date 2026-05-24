@@ -42,14 +42,16 @@ def create_app() -> FastAPI:
         ),
     )
 
-    # Dev-safe CORS — allows the local Vite dev server to reach the API.
-    # Origins are restricted to localhost only; no wildcard.
+    # CORS — origins loaded from settings so the deployed frontend can be
+    # added via ALLOWED_ORIGINS env var without code changes. No wildcard.
+    origins = [
+        o.strip()
+        for o in settings.allowed_origins.split(",")
+        if o.strip()
+    ]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:5173",
-            "http://127.0.0.1:5173",
-        ],
+        allow_origins=origins,
         allow_credentials=False,
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["Content-Type"],
