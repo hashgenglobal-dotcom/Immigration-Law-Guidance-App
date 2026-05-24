@@ -95,6 +95,15 @@ class Settings(BaseSettings):
         validation_alias="STORE_USER_QUESTIONS",
     )
 
+    # Comma-separated list of allowed CORS origins. Defaults to local Vite dev
+    # server only. Set ALLOWED_ORIGINS in the deployment environment to include
+    # the production frontend URL (e.g. https://immigrationlawguidanceapp.vercel.app).
+    # Wildcard "*" is never used — always enumerate explicit origins.
+    allowed_origins: str = Field(
+        default="http://localhost:5173,http://127.0.0.1:5173",
+        validation_alias="ALLOWED_ORIGINS",
+    )
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
