@@ -1,12 +1,15 @@
 """
-Local-only Ollama embedding client for retrieval use.
+Ollama embedding client for retrieval use (local daemon or Ollama Cloud).
 
 PRIVACY / SECURITY RULES (must not be loosened without team review):
-    * This client only contacts the LOCAL Ollama daemon. It must never be
-      pointed at OpenAI, Anthropic, or any public AI API endpoint.
+    * This client contacts the Ollama endpoint configured via OLLAMA_BASE_URL.
+      It must never be pointed at OpenAI, Anthropic, or any other public AI
+      API endpoint.
     * Query text is used only to construct the HTTP payload for a single
       request. It is never logged, printed, persisted, or included in
       error messages.
+    * The API key (when present) is sent only in the Authorization header.
+      It is never logged, printed, or included in error messages.
     * This client is RETRIEVAL-ONLY. It embeds queries so that pgvector
       cosine-distance search can be run against pre-embedded public legal
       chunks. It does not generate answers and has no connection to the
@@ -34,11 +37,12 @@ class EmbeddingClientError(Exception):
 async def embed_query(
     query: str,
     *,
-    model: str = DEFAULT_EMBEDDING_MODEL,
+    model: str | None = None,
     ollama_base_url: str | None = None,
+    ollama_api_key: str | None = None,
     timeout_seconds: float = 30.0,
 ) -> list[float]:
-    """Embed a single query string using the local Ollama daemon.
+    """Embed a single query string using Ollama (local daemon or Ollama Cloud).
 
     Parameters
     ----------
@@ -46,10 +50,17 @@ async def embed_query(
         The text to embed. Whitespace is stripped before the request is
         sent. The raw text is never logged or persisted.
     model:
-        Ollama model name. Defaults to ``nomic-embed-text`` (768 dims).
+        Ollama model name. Defaults to ``settings.ollama_embed_model``
+        (``nomic-embed-text``, 768 dims). Pass an explicit value to
+        override the settings default.
     ollama_base_url:
-        Base URL of the local Ollama daemon. Defaults to
-        ``settings.ollama_base_url`` (``http://localhost:11434``).
+        Ollama endpoint. Defaults to ``settings.ollama_base_url``.
+        Set ``OLLAMA_BASE_URL=https://ollama.com`` for Ollama Cloud.
+    ollama_api_key:
+        Optional bearer credential for Ollama Cloud or private
+        authenticated endpoints. When provided, sent as
+        ``Authorization: Bearer <key>``. Never logged or included in
+        error messages.
     timeout_seconds:
         Total request timeout in seconds.
 
@@ -68,25 +79,31 @@ async def embed_query(
     if not stripped:
         raise EmbeddingClientError("query must not be empty")
 
-    base_url = ollama_base_url or get_settings().ollama_base_url
+    settings = get_settings()
+    base_url = ollama_base_url or settings.ollama_base_url
+    resolved_model = model or settings.ollama_embed_model
     endpoint = f"{base_url.rstrip('/')}/api/embed"
-    payload = {"model": model, "input": stripped}
+    payload = {"model": resolved_model, "input": stripped}
+
+    headers: dict[str, str] = {}
+    if ollama_api_key:
+        headers["Authorization"] = f"Bearer {ollama_api_key}"
 
     try:
         async with httpx.AsyncClient(timeout=timeout_seconds) as client:
-            response = await client.post(endpoint, json=payload)
+            response = await client.post(endpoint, json=payload, headers=headers)
             response.raise_for_status()
     except httpx.TimeoutException:
         raise EmbeddingClientError(
-            f"Ollama embedding request timed out after {timeout_seconds}s"
+            f"Embedding request timed out after {timeout_seconds}s"
         )
     except httpx.HTTPStatusError as exc:
         raise EmbeddingClientError(
-            f"Ollama returned HTTP {exc.response.status_code}"
+            f"Embedding service returned HTTP {exc.response.status_code}"
         )
     except httpx.RequestError:
         raise EmbeddingClientError(
-            "Ollama is not reachable — ensure the local Ollama daemon is running"
+            "Embedding service is not reachable — check OLLAMA_BASE_URL and network connectivity"
         )
 
     try:

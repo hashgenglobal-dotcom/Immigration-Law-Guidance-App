@@ -76,7 +76,7 @@ async def chat(
             },
         )
     except EmbeddingClientError:
-        # Local Ollama embedding service is unreachable during retrieval.
+        # Ollama embedding service unreachable during retrieval (local or cloud).
         # Raw message is not echoed.
         raise HTTPException(
             status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -84,8 +84,8 @@ async def chat(
                 "status": "error",
                 "error_code": "CHAT_RETRIEVAL_UNAVAILABLE",
                 "message": (
-                    "Local embedding service is not available. "
-                    "Ensure Ollama is running: ollama serve"
+                    "Embedding service is not available. "
+                    "Check OLLAMA_BASE_URL, OLLAMA_API_KEY, and OLLAMA_EMBED_MODEL."
                 ),
                 "privacy_mode": "local-first",
             },
