@@ -47,6 +47,24 @@ _TRAVEL_AOS_BOOST_SIGNALS = ("advance parole", "i-131", "travel document", "aban
 # Signals in chunk blob indicating Syria/Public Law 106-378 specificity (tangential for generic I-485 travel).
 _SYRIA_CHUNK_SIGNALS = ("syrian", "public law 106-378", "public law 106378", "§ 1245.20", "§ 1245.19", "1245.20", "1245.19")
 
+# T nonimmigrant signals — irrelevant for generic I-485/AOS travel queries.
+_T_NONIMMIGRANT_SIGNALS = ("t nonimmigrant", "214.11", "t visa holder", "tvpa", "trafficking victim")
+
+# Asylum EAD context — matches rewritten asylum_pending retrieval queries and direct phrases.
+_ASYLUM_EAD_QUERY_RE = re.compile(
+    r"(\basylu\w*\b.{0,120}\b(?:ead|i[- ]?765|work authorization|employment authorization)\b"
+    r"|\b(?:ead|i[- ]?765|work authorization|employment authorization)\b.{0,120}\basylu\w*\b"
+    r"|\bpending asylum\b)",
+    re.I,
+)
+
+# Naturalization requirements context — matches the naturalization_residence rewritten query.
+_NATURALIZATION_CONTEXT_RE = re.compile(
+    r"(\bnaturalization\b.{0,100}\b(?:n-?400|continuous residence|physical presence|good moral character|english|civics)\b"
+    r"|\b(?:n-?400|continuous residence|physical presence)\b.{0,100}\bnaturalization\b)",
+    re.I,
+)
+
 _TOPIC_AFFINITY: tuple[tuple[re.Pattern[str], tuple[str, ...]], ...] = (
     (re.compile(r"\basylum\b", re.I), ("208.", "1158", "asylum")),
     (re.compile(r"\btps\b|temporary protected", re.I), ("244.", "tps", "274a.12")),
@@ -158,14 +176,44 @@ def compute_relevance_boost(
         if pattern.search(query) and any(n in blob for n in needles):
             boost += 0.008
 
-    # I-485 travel: boost advance-parole/I-131 chunks; penalize Syria-specific chunks unless
-    # the query explicitly asks about Syria or Public Law 106-378.
+    # I-485 travel: boost advance-parole/I-131 chunks; penalize tangential chunks unless
+    # the query explicitly asks about those specific topics.
     if _I485_TRAVEL_CONTEXT_RE.search(query):
         if any(s in blob for s in _TRAVEL_AOS_BOOST_SIGNALS):
             boost += 0.012
         if "syr" not in q and "public law 106" not in q:
             if any(s in blob for s in _SYRIA_CHUNK_SIGNALS):
                 boost -= 0.024
+        # Penalize T nonimmigrant/trafficking-specific chunks for generic I-485 travel queries.
+        if not any(tok in q for tok in ("t nonimmig", "t visa", "trafficking", "tvpa")):
+            if any(s in blob for s in _T_NONIMMIGRANT_SIGNALS):
+                boost -= 0.022
+
+    # Asylum EAD: boost 8 CFR 208.7 and 274a.12(c)(8) chunks specifically.
+    if _ASYLUM_EAD_QUERY_RE.search(query):
+        if "208.7" in blob:
+            boost += 0.016
+        if "274a.12" in blob:
+            boost += 0.010
+        if "i-765" in blob:
+            boost += 0.008
+
+    # Naturalization requirements: boost N-400, 8 CFR 316, USCIS Policy Manual Vol 12.
+    if _NATURALIZATION_CONTEXT_RE.search(query):
+        if "n-400" in blob or "n400" in blob:
+            boost += 0.016
+        if "316." in blob:
+            boost += 0.012
+        if "vol 12" in blob:
+            boost += 0.010
+        if "continuous residence" in blob or "physical presence" in blob:
+            boost += 0.008
+
+    # N-400 form number in query → boost matching USCIS N-400 chunks
+    # (not covered by _FORM_RE which is scoped to I-xxx forms).
+    if "n-400" in q or "n400" in q:
+        if "n-400" in blob or "n400" in blob:
+            boost += 0.014
 
     if "adjustment of status" in q and "eligible" in q and "§ 245.1" in cite:
         boost += 0.014

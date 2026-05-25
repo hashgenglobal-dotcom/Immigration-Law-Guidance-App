@@ -134,6 +134,145 @@ class RetrievalScoringTests(unittest.TestCase):
         )
         self.assertGreater(ap_boost, syria_boost)
 
+    # --- T nonimmigrant penalty for I-485 travel queries ---
+
+    def test_i485_travel_penalizes_t_nonimmigrant_chunk(self) -> None:
+        # A T nonimmigrant status chunk with no advance-parole signals should be penalized.
+        query = "Advance parole travel while adjustment of status I-485 pending Form I-131"
+        boost = compute_relevance_boost(
+            query,
+            citation="8 CFR § 214.11",
+            topic="T nonimmigrant status",
+            subtopic=None,
+            snippet="T nonimmigrant status is granted to victims of trafficking under 8 CFR 214.11.",
+        )
+        self.assertLess(boost, 0)
+
+    def test_t_nonimmigrant_query_no_penalty_for_t_chunk(self) -> None:
+        # When the user explicitly asks about T visa/T nonimmigrant, the penalty must not apply.
+        query = "Can a T nonimmigrant travel outside the U.S. while their case is pending?"
+        boost = compute_relevance_boost(
+            query,
+            citation="8 CFR § 214.11",
+            topic="T nonimmigrant status",
+            subtopic=None,
+            snippet="T nonimmigrant status is granted to victims of trafficking under 8 CFR 214.11.",
+        )
+        self.assertGreaterEqual(boost, 0)
+
+    def test_i485_travel_advance_parole_outranks_t_nonimmigrant_chunk(self) -> None:
+        query = "Advance parole travel while adjustment of status I-485 pending Form I-131"
+        ap_boost = compute_relevance_boost(
+            query,
+            citation="USCIS Form I-131",
+            topic="advance parole",
+            subtopic=None,
+            snippet="File Form I-131 to request advance parole before traveling with a pending I-485.",
+        )
+        t_boost = compute_relevance_boost(
+            query,
+            citation="8 CFR § 214.11",
+            topic="T nonimmigrant status",
+            subtopic=None,
+            snippet="T nonimmigrant status is granted to victims of trafficking under 8 CFR 214.11.",
+        )
+        self.assertGreater(ap_boost, t_boost)
+
+    # --- Asylum EAD specific boosts ---
+
+    def test_asylum_ead_boosts_208_7_chunk(self) -> None:
+        query = "Can asylum applicants get work authorization and apply for Form I-765 EAD 8 CFR 208.7 pending asylum"
+        boost = compute_relevance_boost(
+            query,
+            citation="8 CFR § 208.7",
+            topic="employment authorization for asylum applicants",
+            subtopic=None,
+            snippet="An asylum applicant may apply for employment authorization after 150 days from filing.",
+        )
+        self.assertGreater(boost, 0.015)
+
+    def test_asylum_ead_boosts_274a_12_chunk(self) -> None:
+        query = "Can asylum applicants get work authorization and apply for Form I-765 EAD 8 CFR 208.7 pending asylum"
+        boost = compute_relevance_boost(
+            query,
+            citation="8 CFR § 274a.12(c)(8)",
+            topic="employment authorization categories",
+            subtopic=None,
+            snippet="Category (c)(8) covers asylum applicants who have filed and whose case is pending.",
+        )
+        self.assertGreater(boost, 0.01)
+
+    def test_asylum_ead_208_7_outranks_general_asylum_procedure(self) -> None:
+        query = "Can asylum applicants get work authorization and apply for Form I-765 EAD 8 CFR 208.7 pending asylum"
+        ead_boost = compute_relevance_boost(
+            query,
+            citation="8 CFR § 208.7",
+            topic="asylum employment authorization",
+            subtopic=None,
+            snippet="An asylum applicant may apply for EAD 150 days after filing.",
+        )
+        procedure_boost = compute_relevance_boost(
+            query,
+            citation="8 CFR § 208.3",
+            topic="asylum application procedure",
+            subtopic=None,
+            snippet="Applications for asylum must be filed on Form I-589.",
+        )
+        self.assertGreater(ead_boost, procedure_boost)
+
+    # --- Naturalization requirements boosts ---
+
+    def test_naturalization_requirements_boosts_n400_chunk(self) -> None:
+        query = "Naturalization Form N-400 continuous residence physical presence good moral character"
+        boost = compute_relevance_boost(
+            query,
+            citation="USCIS Form N-400",
+            topic="naturalization",
+            subtopic=None,
+            snippet="Application for Naturalization. Eligibility requires 5 years as LPR, continuous residence, and good moral character.",
+        )
+        self.assertGreater(boost, 0.015)
+
+    def test_naturalization_requirements_boosts_cfr_316_chunk(self) -> None:
+        query = "Naturalization Form N-400 continuous residence physical presence good moral character"
+        boost = compute_relevance_boost(
+            query,
+            citation="8 CFR § 316.2",
+            topic="naturalization",
+            subtopic=None,
+            snippet="Requirements for naturalization: continuous residence of 5 years, physical presence, good moral character.",
+        )
+        self.assertGreater(boost, 0.015)
+
+    def test_naturalization_requirements_boosts_vol12_chunk(self) -> None:
+        query = "Naturalization Form N-400 continuous residence physical presence good moral character"
+        boost = compute_relevance_boost(
+            query,
+            citation="Vol 12 USCIS Policy Manual — Citizenship",
+            topic="naturalization",
+            subtopic=None,
+            snippet="Vol 12 covers naturalization eligibility including residence, presence, and good moral character requirements.",
+        )
+        self.assertGreater(boost, 0.01)
+
+    def test_naturalization_n400_outranks_unrelated_cfr(self) -> None:
+        query = "Naturalization Form N-400 continuous residence physical presence good moral character"
+        n400_boost = compute_relevance_boost(
+            query,
+            citation="USCIS Form N-400",
+            topic="naturalization",
+            subtopic=None,
+            snippet="N-400 application for naturalization. Continuous residence and physical presence required.",
+        )
+        unrelated_boost = compute_relevance_boost(
+            query,
+            citation="8 CFR § 208.3",
+            topic="asylum application",
+            subtopic=None,
+            snippet="Applications for asylum must be filed on Form I-589.",
+        )
+        self.assertGreater(n400_boost, unrelated_boost)
+
 
 if __name__ == "__main__":
     unittest.main()
