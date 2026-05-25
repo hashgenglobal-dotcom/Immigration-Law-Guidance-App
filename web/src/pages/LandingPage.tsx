@@ -124,20 +124,18 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Legal disclaimer */}
-      <section className={styles.disclaimerSection}>
-        <div className={styles.disclaimerInner}>
-          <strong>Legal disclaimer:</strong> This app provides legal information and guidance, not legal
-          advice. For personal legal decisions — including asylum applications, removal proceedings, visa
-          petitions, or naturalization — consult a qualified immigration attorney.
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
-          <span>Immigration Law Guidance · Web MVP</span>
-          <span>Informational tool — not legal advice</span>
+          <p className={styles.footerDisclaimer}>
+            <strong>Legal disclaimer:</strong> This app provides legal information and guidance, not legal
+            advice. For personal legal decisions — including asylum applications, removal proceedings, visa
+            petitions, or naturalization — consult a qualified immigration attorney.
+          </p>
+          <div className={styles.footerMeta}>
+            <span>Immigration Law Guidance · Web MVP</span>
+            <span>Informational tool — not legal advice</span>
+          </div>
         </div>
       </footer>
     </div>

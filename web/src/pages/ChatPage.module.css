@@ -165,12 +165,12 @@
 /* Disclaimer bar */
 .disclaimerBar {
   flex-shrink: 0;
-  padding: 8px 20px;
-  background: var(--bronze-tint);
-  border-top: 1px solid rgba(160, 120, 48, 0.15);
+  padding: 10px 20px;
+  background: var(--navy);
+  border-top: 1px solid rgba(156, 123, 92, 0.35);
   font-size: 11px;
-  color: var(--bronze);
-  line-height: 1.4;
+  color: var(--on-navy);
+  line-height: 1.45;
   text-align: center;
 }
 
