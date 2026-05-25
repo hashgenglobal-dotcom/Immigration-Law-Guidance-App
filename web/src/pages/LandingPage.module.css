@@ -1,7 +1,7 @@
 /* ── Page shell ── */
 .page {
   min-height: 100vh;
-  background: #ffffff;
+  background: var(--bg);
   display: flex;
   flex-direction: column;
 }
@@ -11,7 +11,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(255, 255, 255, 0.96);
+  background: rgb(244 241 234 / 0.96);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
 }
@@ -87,7 +87,7 @@
 /* ── Hero ── */
 .hero {
   padding: 72px 32px 64px;
-  background: linear-gradient(175deg, #f7f9fc 0%, #ffffff 60%);
+  background: linear-gradient(175deg, var(--parchment) 0%, var(--surface) 60%);
 }
 
 .heroInner {
@@ -162,7 +162,7 @@
 
 .ctaSecondary {
   display: inline-block;
-  background: #ffffff;
+  background: var(--bg);
   color: var(--text);
   font-size: 15px;
   font-weight: 500;
@@ -174,7 +174,7 @@
 }
 
 .ctaSecondary:hover {
-  border-color: #b0bec8;
+  border-color: var(--border);
   background: var(--bg);
   text-decoration: none;
   color: var(--text);
@@ -231,18 +231,18 @@
 
 .mockLive {
   font-size: 11px;
-  color: #6ee7b7;
+  color: var(--bronze-light);
   font-weight: 500;
 }
 
 .mockUser {
   padding: 16px 18px;
-  background: #f8fafc;
+  background: var(--bronze-tint);
 }
 
 .mockAssistant {
   padding: 16px 18px;
-  background: #ffffff;
+  background: var(--bg);
   border-top: 1px solid var(--border-light);
 }
 

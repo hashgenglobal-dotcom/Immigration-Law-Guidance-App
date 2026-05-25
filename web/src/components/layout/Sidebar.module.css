@@ -88,7 +88,7 @@
 .navLink.active {
   background: rgba(255, 255, 255, 0.10);
   color: #ffffff;
-  border-left-color: #6fa8dc;
+  border-left-color: var(--bronze-light);
 }
 
 .navIcon {

@@ -34,8 +34,8 @@ const SOURCE_CATEGORIES = [
   {
     name: 'USCIS Policy Manual',
     abbr: 'Policy Manual',
-    color: '#a07830',
-    colorTint: '#faf4e8',
+    color: 'var(--bronze)',
+    colorTint: 'var(--bronze-tint)',
     desc: 'Official USCIS guidance for adjudicators. Covers employment authorization, naturalization, public charge, and more across 12+ volumes.',
     example: 'Vol. 10, Part E — Employment Authorization Document procedures',
     status: 'Planned',

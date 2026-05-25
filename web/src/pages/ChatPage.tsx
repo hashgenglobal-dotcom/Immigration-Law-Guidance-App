@@ -32,8 +32,8 @@ const SAMPLE_SOURCE_GROUPS = [
   },
   {
     type: 'USCIS Policy',
-    color: '#a07830',
-    colorTint: '#faf4e8',
+    color: 'var(--bronze)',
+    colorTint: 'var(--bronze-tint)',
     items: [
       { name: 'Policy Manual Vol. 10', desc: 'Employment authorization procedures' },
     ],
@@ -151,7 +151,7 @@ function SourcesPanel({ citations, chunks, loading, hasResponse }: SourcesPanelP
             <>
               <div
                 className={styles.sourceGroupLabel}
-                style={{ color: '#a07830', background: '#faf4e8', marginTop: 8 }}
+                style={{ color: 'var(--bronze)', background: 'var(--bronze-tint)', marginTop: 8 }}
               >
                 Retrieved passages
               </div>

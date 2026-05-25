@@ -67,7 +67,7 @@ const COVERAGE_SOURCES = [
   { label: 'USCIS Forms & Instructions', status: 'Milestone 2', color: 'var(--blue)' },
   { label: 'Federal Register Notices', status: 'Milestone 2', color: '#0f7ba7' },
   { label: 'BIA Precedent Decisions', status: 'Milestone 2', color: '#5b4db5' },
-  { label: 'EOIR Policy Memos', status: 'Planned', color: '#a07830' },
+  { label: 'EOIR Policy Memos', status: 'Planned', color: 'var(--bronze)' },
 ]
 
 export default function OfficialUpdatesPage() {
