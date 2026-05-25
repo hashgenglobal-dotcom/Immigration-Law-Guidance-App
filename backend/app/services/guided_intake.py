@@ -246,6 +246,12 @@ _SPECIFIC_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
         r"\bcan i travel while (?:my |the |a )?i[- ]?485\b",
         # travel + I-485 + pending in any order
         r"\btravel\b.{0,60}\bi[- ]?485\b.{0,60}\bpending\b",
+        # Naturalization requirements — answer directly with the standard criteria
+        r"\brequirements? for naturalization\b",
+        r"\bnaturalization requirements?\b",
+        r"\bwhat (?:are|do i need).*\bnaturalization\b",
+        r"\bhow (?:do i qualify|can i qualify) for naturalization\b",
+        r"\beligib\w+ for naturalization\b",
     )
 )
 
@@ -363,6 +369,15 @@ _OPT_EAD_RE = re.compile(
     re.I,
 )
 
+# Match naturalization requirements questions — rewrite to the rich naturalization_residence template.
+_NATURALIZATION_REQUIREMENTS_RE = re.compile(
+    r"(\brequirements? for naturalization\b|\bnaturalization requirements?\b"
+    r"|\bwhat (?:are|do i need).*\bnaturalization\b"
+    r"|\bhow (?:do i qualify|can i qualify) for naturalization\b"
+    r"|\beligib\w+ for naturalization\b)",
+    re.I,
+)
+
 
 def resolve_retrieval_query(message: str, selected_category: str | None) -> str:
     """Build the retrieval query from the user message and optional category selection."""
@@ -377,6 +392,8 @@ def resolve_retrieval_query(message: str, selected_category: str | None) -> str:
         return _CATEGORY_RETRIEVAL_QUERIES["travel_aos"]
     if _OPT_EAD_RE.search(m):
         return _CATEGORY_RETRIEVAL_QUERIES["f1_opt_stem_opt"]
+    if _NATURALIZATION_REQUIREMENTS_RE.search(m):
+        return _CATEGORY_RETRIEVAL_QUERIES["naturalization_residence"]
     return m
 
 

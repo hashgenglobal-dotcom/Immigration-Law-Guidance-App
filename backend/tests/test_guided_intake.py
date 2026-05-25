@@ -109,6 +109,28 @@ class GuidedIntakeDetectionTests(unittest.TestCase):
         q = resolve_retrieval_query("How do I apply for EAD?", None)
         self.assertEqual(q, "How do I apply for EAD?")
 
+    # --- Naturalization requirements direct routing ---
+
+    def test_naturalization_requirements_is_specific(self) -> None:
+        self.assertTrue(is_specific_question("What are the requirements for naturalization?"))
+        self.assertIsNone(detect_broad_topic("What are the requirements for naturalization?"))
+
+    def test_naturalization_requirements_rewrites_to_rich_query(self) -> None:
+        q = resolve_retrieval_query("What are the requirements for naturalization?", None)
+        self.assertIn("N-400", q)
+        self.assertIn("continuous residence", q)
+        self.assertIn("physical presence", q)
+        self.assertIn("good moral character", q)
+
+    def test_naturalization_eligibility_phrasing_rewrites(self) -> None:
+        q = resolve_retrieval_query("How do I qualify for naturalization?", None)
+        self.assertIn("N-400", q)
+        self.assertIn("continuous residence", q)
+
+    def test_naturalization_requirements_does_not_trigger_clarification(self) -> None:
+        self.assertIsNone(detect_broad_topic("What are the requirements for naturalization?"))
+        self.assertIsNone(detect_broad_topic("Am I eligible for naturalization?"))
+
 
 class ChatServiceClarificationTests(unittest.IsolatedAsyncioTestCase):
     async def test_broad_ead_returns_needs_clarification(self) -> None:
