@@ -2,7 +2,7 @@
 Hybrid retrieval service over active public legal_chunks.
 
 PRIVACY / SECURITY RULES (must not be loosened without team review):
-    * Query text is embedded locally via Ollama and held in memory only for
+    * Query text is embedded via Ollama and held in memory only for
       the duration of a single request. It is never written to any table.
     * Only active public legal-source chunks are searched. No user data
       flows into these queries.
@@ -10,6 +10,16 @@ PRIVACY / SECURITY RULES (must not be loosened without team review):
     * privacy_safe_answer_logs is never read or written by this module.
     * SQL queries are all parameterized — no string interpolation of
       query text or vectors.
+
+Fallback behavior:
+    When embed_query raises EmbeddingClientError (e.g. Ollama Cloud /api/embed
+    returns 401 or is unreachable), retrieve_hybrid automatically falls back to
+    keyword-only retrieval using PostgreSQL plainto_tsquery full-text search.
+    The /api/chat endpoint will NOT return 503 in this case — it will return a
+    keyword-grounded response instead of a hybrid-grounded one. The fallback
+    silently omits vector_rank and vector_distance from each RetrievalResult
+    (both are None), which is consistent with how _fuse_rrf already represents
+    chunks that appeared only in the keyword list.
 
 RRF constant:
     _RRF_K = 60 must stay in sync with scripts/validate_hybrid_retrieval_results.py.
@@ -69,14 +79,20 @@ class RetrievalService:
         query: str,
         top_k: int = 5,
     ) -> tuple[list[RetrievalResult], list[str], str | None]:
-        """Run hybrid retrieval for a single query.
+        """Run hybrid retrieval for a single query, with keyword-only fallback.
 
-        Embeds the query locally with Ollama nomic-embed-text, runs
-        pgvector cosine-distance search and PostgreSQL plainto_tsquery
-        full-text search over active MVP chunks (``dataset_versions.status =
-        'active'`` and ``legal_chunks.is_active = TRUE``), fuses both ranked
-        lists with Reciprocal Rank Fusion (RRF_K=60), and returns ranked
-        RetrievalResult objects.
+        Attempts to embed the query via Ollama and run pgvector cosine-distance
+        search combined with PostgreSQL plainto_tsquery full-text search over
+        active MVP chunks (``dataset_versions.status = 'active'`` and
+        ``legal_chunks.is_active = TRUE``), then fuses both ranked lists with
+        Reciprocal Rank Fusion (RRF_K=60).
+
+        If embedding fails (``EmbeddingClientError`` — e.g. Ollama Cloud returns
+        401 for the configured model), the method silently falls back to
+        keyword-only retrieval. The caller does not receive a 503; it receives a
+        keyword-grounded response. ``vector_rank`` and ``vector_distance`` are
+        ``None`` on every result in that case, consistent with the existing
+        representation of keyword-only hits in ``_fuse_rrf``.
 
         Parameters
         ----------
@@ -98,7 +114,9 @@ class RetrievalService:
         Raises
         ------
         EmbeddingClientError
-            Ollama is unreachable or returned an unexpected response.
+            Only raised when ``query`` is empty after stripping.
+            Embedding unavailability is handled by the keyword-only fallback
+            and does not propagate.
         app.db.connection.DatabaseConfigError
             ``DATABASE_URL`` is missing or malformed.
         Exception
@@ -111,23 +129,33 @@ class RetrievalService:
         if not stripped:
             raise EmbeddingClientError("query must not be empty")
 
-        vector = await embed_query(
-            stripped,
-            model=self._settings.ollama_embed_model,
-            ollama_base_url=self._settings.ollama_base_url,
-            ollama_api_key=self._settings.ollama_api_key,
-        )
-        vec_literal = format_pgvector_literal(vector)
+        try:
+            vector = await embed_query(
+                stripped,
+                model=self._settings.ollama_embed_model,
+                ollama_base_url=self._settings.ollama_base_url,
+                ollama_api_key=self._settings.ollama_api_key,
+            )
+            vec_literal = format_pgvector_literal(vector)
+            embedding_available = True
+        except EmbeddingClientError:
+            # Embedding service unavailable (e.g. 401 from Ollama Cloud).
+            # Fall back to keyword-only retrieval — do not propagate.
+            embedding_available = False
 
         async with connect(self._settings) as conn:
             async with conn.cursor() as cur:
                 active_datasets = await self._fetch_active_datasets(cur)
-                vector_rows = await self._vector_search(cur, vec_literal)
                 keyword_rows = await self._keyword_search(cur, stripped)
                 keyword_rows = self._filter_keyword_candidates(keyword_rows, stripped)
                 for phrase in extract_supplemental_phrases(stripped):
                     extra = await self._phrase_keyword_search(cur, phrase)
                     keyword_rows = self._merge_keyword_rows(keyword_rows, extra)
+                vector_rows = (
+                    await self._vector_search(cur, vec_literal)
+                    if embedding_available
+                    else []
+                )
 
         fused = self._fuse_rrf(
             vector_rows,
