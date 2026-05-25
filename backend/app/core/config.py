@@ -85,6 +85,14 @@ class Settings(BaseSettings):
         default=None,
         validation_alias="OLLAMA_API_KEY",
     )
+    # Embedding model used for query vectorization at retrieval time.
+    # Must match the model used to embed legal_chunks at index time.
+    # Defaults to nomic-embed-text (768 dims). Override when using a
+    # cloud embedding provider that requires a different model name.
+    ollama_embed_model: str = Field(
+        default="nomic-embed-text",
+        validation_alias="OLLAMA_EMBED_MODEL",
+    )
 
     # PRIVACY: full user question text and full generated answer text
     # must NOT be stored by default. This flag stays False unless an

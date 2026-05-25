@@ -111,10 +111,11 @@ class RetrievalService:
         if not stripped:
             raise EmbeddingClientError("query must not be empty")
 
-        # Embed locally — never contacts a public AI API.
         vector = await embed_query(
             stripped,
+            model=self._settings.ollama_embed_model,
             ollama_base_url=self._settings.ollama_base_url,
+            ollama_api_key=self._settings.ollama_api_key,
         )
         vec_literal = format_pgvector_literal(vector)
 

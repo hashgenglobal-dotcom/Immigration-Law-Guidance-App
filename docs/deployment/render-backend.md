@@ -32,6 +32,7 @@ OLLAMA_BASE_URL=
 OLLAMA_CHAT_BASE_URL=
 OLLAMA_CHAT_MODEL=
 OLLAMA_API_KEY=
+OLLAMA_EMBED_MODEL=nomic-embed-text
 
 Do not commit real secrets or API keys.
 
