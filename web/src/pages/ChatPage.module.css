@@ -9,8 +9,8 @@
 .chatHeader {
   flex-shrink: 0;
   padding: 14px 20px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  background: var(--navy);
+  border-bottom: 1px solid rgba(156, 123, 92, 0.35);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -19,12 +19,12 @@
 .chatTitle {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text);
+  color: #ffffff;
 }
 
 .chatSubtitle {
   font-size: 12px;
-  color: var(--text-muted);
+  color: rgba(244, 240, 230, 0.75);
 }
 
 .messages {
@@ -185,10 +185,11 @@
 .sourcesHeader {
   flex-shrink: 0;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
+  background: var(--navy);
+  border-bottom: 1px solid rgba(156, 123, 92, 0.35);
   font-size: 13px;
   font-weight: 600;
-  color: var(--text);
+  color: #ffffff;
 }
 
 .sourcesScroll {
