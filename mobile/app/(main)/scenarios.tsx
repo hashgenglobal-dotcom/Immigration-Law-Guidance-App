@@ -115,7 +115,7 @@ export default function ScenariosScreen() {
             <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
               <Text style={styles.sectionLabel}>Overview</Text>
               <Text style={styles.body}>{selected.overview}</Text>
-              <Text style={styles.sectionLabel}>Key points</Text>
+              <Text style={styles.sectionLabel}>Steps and key points</Text>
               {selected.keyPoints.map((point, i) => (
                 <Text key={i} style={styles.bullet}>
                   · {point}
