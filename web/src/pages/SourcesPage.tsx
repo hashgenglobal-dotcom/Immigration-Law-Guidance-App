@@ -1,246 +1,285 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import {
+  SOURCE_CATALOG,
+  SOURCE_FAMILIES,
+  catalogStats,
+  familyMeta,
+  type SourceEntry,
+  type SourceFamily,
+} from '../lib/sourceCatalog'
+import styles from './SourcesPage.module.css'
 
-const SOURCE_CATEGORIES = [
-  {
-    name: 'Code of Federal Regulations',
-    abbr: 'CFR / eCFR',
-    color: 'var(--blue)',
-    colorTint: 'var(--blue-tint)',
-    desc: 'Binding agency regulations governing immigration procedures, eligibility, and enforcement. Title 8 covers immigration-specific rules issued by DHS and DOJ.',
-    example: '8 CFR § 274a.12 — Employment authorization classes',
-    status: 'MVP source',
-    detail: ['8 CFR § 208', '8 CFR § 214', '8 CFR § 239', '8 CFR § 244', '8 CFR § 274a.12'],
-  },
-  {
-    name: 'Immigration and Nationality Act',
-    abbr: 'INA / U.S. Code',
-    color: '#5b4db5',
-    colorTint: '#f4f0fb',
-    desc: 'Primary statutory authority governing immigration, naturalization, and citizenship. Part of Title 8, U.S. Code — the foundation for all immigration law.',
-    example: 'INA § 208 — Asylum eligibility and procedures',
-    status: 'MVP source',
-    detail: ['INA § 208', 'INA § 274A', 'INA § 316', 'INA § 328–329'],
-  },
-  {
-    name: 'USCIS Forms & Instructions',
-    abbr: 'USCIS Forms',
-    color: '#2d6a2d',
-    colorTint: '#eef6ee',
-    desc: 'Official petitions, applications, and their instructions. Instructions are part of the regulatory framework and carry legal weight for adjudications.',
-    example: 'Form I-765 — Application for Employment Authorization',
-    status: 'MVP source',
-    detail: ['I-130', 'I-485', 'I-539', 'I-589', 'I-765', 'N-400'],
-  },
-  {
-    name: 'USCIS Policy Manual',
-    abbr: 'Policy Manual',
-    color: 'var(--bronze)',
-    colorTint: 'var(--bronze-tint)',
-    desc: 'Official USCIS guidance for adjudicators. Covers employment authorization, naturalization, public charge, and more across 12+ volumes.',
-    example: 'Vol. 10, Part E — Employment Authorization Document procedures',
-    status: 'Planned',
-    detail: ['Vol. 1 – General Policies', 'Vol. 10 – Employment Authorization', 'Vol. 12 – Naturalization'],
-  },
-  {
-    name: 'BIA Precedent Decisions',
-    abbr: 'BIA',
-    color: '#b45309',
-    colorTint: '#fef3c7',
-    desc: 'Board of Immigration Appeals precedent decisions, binding on all immigration judges and DHS officers. Critical for asylum, removal, and relief cases.',
-    example: 'Matter of X — Credibility standards in asylum proceedings',
-    status: 'Planned',
-    detail: [],
-  },
-  {
-    name: 'Federal Register',
-    abbr: 'Fed. Register',
-    color: '#0f7ba7',
-    colorTint: '#e0f2fe',
-    desc: 'Official journal of the U.S. government — immigration rulemaking, proposed rules, TPS designations, and DHS/DOJ agency notices with legal effect.',
-    example: 'TPS extension and redesignation notices; fee schedule rules',
-    status: 'Planned',
-    detail: [],
-  },
-]
+type FamilyFilter = 'all' | SourceFamily
 
-const STATUS_STYLE: Record<string, { background: string; color: string }> = {
-  'MVP source': { background: '#eef6ee', color: '#2d6a2d' },
-  'Planned': { background: 'var(--blue-tint)', color: 'var(--blue)' },
+function statusClass(status: SourceEntry['status']) {
+  if (status === 'indexed') return styles.statusIndexed
+  if (status === 'preview') return styles.statusPreview
+  return styles.statusPlanned
 }
 
 export default function SourcesPage() {
+  const location = useLocation()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [query, setQuery] = useState('')
+  const [familyFilter, setFamilyFilter] = useState<FamilyFilter>('all')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  const stats = catalogStats()
+
+  useEffect(() => {
+    const family = searchParams.get('family') as SourceFamily | null
+    if (family && SOURCE_FAMILIES.some((f) => f.id === family)) {
+      setFamilyFilter(family)
+    }
+    const entryId = searchParams.get('entry')
+    if (entryId && SOURCE_CATALOG.some((e) => e.id === entryId)) {
+      setSelectedId(entryId)
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    if (location.hash === '#cited' || location.hash === '#catalog') {
+      const id = location.hash.slice(1)
+      requestAnimationFrame(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+    }
+  }, [location.hash])
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return SOURCE_CATALOG.filter((entry) => {
+      const matchesFamily = familyFilter === 'all' || entry.family === familyFilter
+      if (!matchesFamily) return false
+      if (!q) return true
+      const haystack = [
+        entry.citation,
+        entry.topic,
+        entry.subtopic,
+        entry.description,
+        familyMeta(entry.family).name,
+        familyMeta(entry.family).abbr,
+        ...entry.tags,
+      ]
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(q)
+    })
+  }, [query, familyFilter])
+
+  const selected =
+    filtered.find((e) => e.id === selectedId) ??
+    SOURCE_CATALOG.find((e) => e.id === selectedId) ??
+    filtered[0] ??
+    null
+
+  useEffect(() => {
+    if (filtered.length === 0) {
+      setSelectedId(null)
+      return
+    }
+    if (!selectedId || !filtered.some((e) => e.id === selectedId)) {
+      setSelectedId(filtered[0].id)
+    }
+  }, [filtered, selectedId])
+
+  function setFilter(next: FamilyFilter) {
+    setFamilyFilter(next)
+    if (next === 'all') {
+      searchParams.delete('family')
+    } else {
+      searchParams.set('family', next)
+    }
+    setSearchParams(searchParams, { replace: true })
+  }
+
   return (
     <DashboardLayout>
-      <div style={{ padding: '28px 32px' }}>
-        {/* Header */}
-        <div style={{ marginBottom: 24, maxWidth: 680 }}>
-          <h1
-            style={{
-              fontSize: 22,
-              fontWeight: 700,
-              color: 'var(--text)',
-              marginBottom: 6,
-              letterSpacing: '-0.02em',
-            }}
-          >
-            Sources
-          </h1>
-          <p style={{ fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-            The guidance tool draws from these official primary sources. Every answer cites its
-            sources inline so you can verify the information directly. Source transparency is a
-            core design principle of this tool.
+      <div className={styles.page}>
+        <header className={styles.header}>
+          <p className={styles.eyebrow}>Source library</p>
+          <h1 className={styles.title}>Sources</h1>
+          <p className={styles.desc}>
+            Browse the official materials behind every cited answer—CFR, INA, USCIS policy, forms, and
+            agency pages indexed for verifiable navigation.
           </p>
+        </header>
+
+        <div className={styles.statsRow}>
+          <span className={styles.stat}>
+            <strong>{stats.total}</strong> catalog entries
+          </span>
+          <span className={styles.stat}>
+            <strong>{stats.indexed}</strong> indexed for retrieval
+          </span>
+          <span className={styles.stat}>
+            <strong>{stats.families}</strong> source families
+          </span>
         </div>
 
-        {/* Search placeholder */}
-        <div style={{ marginBottom: 24, maxWidth: 360 }}>
-          <input
-            disabled
-            placeholder="Search sources… (coming soon)"
-            style={{
-              width: '100%',
-              padding: '9px 14px',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius)',
-              fontSize: 13.5,
-              color: 'var(--text-muted)',
-              background: 'var(--surface)',
-              fontFamily: 'inherit',
-              cursor: 'not-allowed',
-              outline: 'none',
-            }}
-          />
-        </div>
+        <section id="cited" className={styles.citedSection} aria-labelledby="cited-title">
+          <h2 id="cited-title" className={styles.citedTitle}>
+            How citations work
+          </h2>
+          <p className={styles.citedBody}>
+            When you ask a question, SourcePath retrieves relevant passages from the active legal
+            corpus (eCFR Title 8, INA, USCIS Policy Manual, and related official pages). The
+            assistant surfaces citations inline—each maps to a source record you can open on the
+            official government site.
+          </p>
+          <ul className={styles.citedList}>
+            <li>
+              <strong>Citation</strong> — the legal reference (e.g. 8 CFR § 208.7, INA § 208, Form
+              I-765).
+            </li>
+            <li>
+              <strong>Topic / subtopic</strong> — how the chunk is classified in our index for search
+              and display.
+            </li>
+            <li>
+              <strong>Official URL</strong> — link to eCFR, USCIS.gov, or the U.S. Code for primary
+              source verification.
+            </li>
+            <li>
+              <strong>Snippet</strong> — retrieved text shown in chat (from the database, not model
+              memory).
+            </li>
+          </ul>
+        </section>
 
-        {/* Two-column grid of source categories */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 16,
-            marginBottom: 32,
-          }}
-        >
-          {SOURCE_CATEGORIES.map((cat) => (
-            <div
-              key={cat.name}
-              style={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderTop: `3px solid ${cat.color}`,
-                borderRadius: 'var(--radius-lg)',
-                padding: '20px 20px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 10,
-              }}
+        <div id="catalog" className={styles.toolbar}>
+          <label className={styles.searchWrap}>
+            <span className="sr-only">Search sources</span>
+            <input
+              type="search"
+              className={styles.search}
+              placeholder="Search by citation, topic, or tag…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </label>
+          <div className={styles.filters} role="group" aria-label="Filter by source family">
+            <button
+              type="button"
+              className={
+                familyFilter === 'all'
+                  ? `${styles.filterBtn} ${styles.filterActive}`
+                  : styles.filterBtn
+              }
+              onClick={() => setFilter('all')}
             >
-              {/* Header row */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                <div>
-                  <div
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      color: cat.color,
-                      marginBottom: 3,
-                    }}
-                  >
-                    {cat.abbr}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: 'var(--text)',
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {cat.name}
-                  </div>
-                </div>
-                <span
-                  style={{
-                    fontSize: 10.5,
-                    fontWeight: 700,
-                    padding: '3px 9px',
-                    borderRadius: 99,
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                    ...STATUS_STYLE[cat.status],
-                  }}
+              All
+            </button>
+            {SOURCE_FAMILIES.filter((f) => f.status !== 'planned').map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className={
+                  familyFilter === f.id
+                    ? `${styles.filterBtn} ${styles.filterActive}`
+                    : styles.filterBtn
+                }
+                onClick={() => setFilter(f.id)}
+              >
+                {f.abbr}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.layout}>
+          <div className={styles.catalog} role="region" aria-label="Source catalog">
+            <div className={styles.catalogHead}>
+              <span>Citation / topic</span>
+              <span>Family</span>
+              <span>Status</span>
+            </div>
+            {filtered.length === 0 ? (
+              <p className={styles.empty}>No sources match your search. Try a different term or filter.</p>
+            ) : (
+              filtered.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  className={
+                    selected?.id === entry.id
+                      ? `${styles.catalogRow} ${styles.rowSelected}`
+                      : styles.catalogRow
+                  }
+                  onClick={() => setSelectedId(entry.id)}
+                  aria-pressed={selected?.id === entry.id}
                 >
-                  {cat.status}
-                </span>
-              </div>
+                  <span>
+                    <span className={styles.rowCitation}>{entry.citation}</span>
+                    <span className={styles.rowTopic}>
+                      {entry.topic} · {entry.subtopic}
+                    </span>
+                  </span>
+                  <span className={styles.rowFamily}>{familyMeta(entry.family).abbr}</span>
+                  <span className={`${styles.statusBadge} ${statusClass(entry.status)}`}>
+                    {entry.status}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
 
-              {/* Description */}
-              <p
-                style={{
-                  fontSize: 12.5,
-                  color: 'var(--text-secondary)',
-                  lineHeight: 1.65,
-                  margin: 0,
-                }}
-              >
-                {cat.desc}
-              </p>
-
-              {/* Example citation */}
-              <div
-                style={{
-                  padding: '8px 12px',
-                  background: cat.colorTint,
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: 11.5,
-                  color: cat.color,
-                  fontFamily: 'var(--font-mono)',
-                  lineHeight: 1.5,
-                }}
-              >
-                {cat.example}
-              </div>
-
-              {/* Indexed items */}
-              {cat.detail.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                  {cat.detail.map((d) => (
-                    <span
-                      key={d}
-                      style={{
-                        fontSize: 11,
-                        padding: '2px 8px',
-                        background: 'var(--bg)',
-                        border: '1px solid var(--border)',
-                        borderRadius: 4,
-                        color: 'var(--text-secondary)',
-                        fontFamily: 'var(--font-mono)',
-                      }}
-                    >
-                      {d}
+          <aside className={styles.detail} aria-label="Source details">
+            {selected ? (
+              <>
+                <p className={styles.detailCitation}>{selected.citation}</p>
+                <p className={styles.detailMeta}>
+                  {familyMeta(selected.family).name} · {selected.topic} · {selected.subtopic}
+                </p>
+                <p className={styles.detailDesc}>{selected.description}</p>
+                <div className={styles.detailTags}>
+                  {selected.tags.map((tag) => (
+                    <span key={tag} className={styles.tag}>
+                      {tag}
                     </span>
                   ))}
                 </div>
-              )}
-            </div>
-          ))}
+                <span className={`${styles.statusBadge} ${statusClass(selected.status)}`}>
+                  {selected.status}
+                </span>
+                <p className={styles.detailDesc} style={{ marginTop: 14, marginBottom: 0 }}>
+                  <a
+                    href={selected.officialUrl}
+                    className={styles.officialLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open official source ↗
+                  </a>
+                </p>
+              </>
+            ) : (
+              <p className={styles.detailEmpty}>Select a source from the catalog to view full details.</p>
+            )}
+          </aside>
         </div>
 
-        <div
-          style={{
-            padding: '13px 18px',
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
-            fontSize: 12.5,
-            color: 'var(--text-muted)',
-            lineHeight: 1.6,
-          }}
-        >
-          Additional sources including USCIS Policy Manual volumes, BIA precedent decisions, and
-          Federal Register notices will be indexed and connected in Milestone 2.
-        </div>
+        <section className={styles.familiesSection} aria-labelledby="families-title">
+          <h2 id="families-title" className={styles.familiesTitle}>
+            Source families in the corpus
+          </h2>
+          <div className={styles.familiesGrid}>
+            {SOURCE_FAMILIES.map((f) => (
+              <article
+                key={f.id}
+                className={styles.familyCard}
+                style={{ ['--family-color' as string]: f.color }}
+              >
+                <p className={styles.familyAbbr}>{f.abbr}</p>
+                <h3 className={styles.familyName}>{f.name}</h3>
+                <p className={styles.familyDesc}>{f.description}</p>
+                <p className={styles.familyNote}>{f.corpusNote}</p>
+              </article>
+            ))}
+          </div>
+        </section>
       </div>
     </DashboardLayout>
   )

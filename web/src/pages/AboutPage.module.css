@@ -1,0 +1,572 @@
+.page {
+  padding: 24px 32px 48px;
+  max-width: 1100px;
+}
+
+/* ── Wide navy hero ── */
+.navyBanner {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 36px;
+  border: 1px solid rgba(156, 123, 92, 0.35);
+  background: var(--navy);
+  box-shadow: var(--shadow);
+}
+
+.navyBannerArt {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 80% at 100% 0%, rgba(156, 123, 92, 0.32), transparent 58%),
+    radial-gradient(ellipse 40% 50% at 0% 100%, rgba(184, 154, 125, 0.1), transparent 55%);
+}
+
+.navyBannerInner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
+  gap: 40px;
+  padding: 36px 40px 32px;
+  align-items: start;
+}
+
+.missionEyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--bronze-light);
+  margin-bottom: 12px;
+}
+
+.missionHeadline {
+  font-size: clamp(1.5rem, 2.8vw, 1.85rem);
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin-bottom: 10px;
+  max-width: 28ch;
+}
+
+.missionCategory {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--bronze-light);
+  margin-bottom: 16px;
+  max-width: 42ch;
+}
+
+.missionLead {
+  font-size: 15px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.92);
+  margin-bottom: 14px;
+  max-width: 52ch;
+}
+
+.missionBody {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.72);
+  margin-bottom: 24px;
+  max-width: 52ch;
+}
+
+.missionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.missionCtaPrimary {
+  display: inline-block;
+  padding: 11px 22px;
+  background: var(--bronze);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius);
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: background 0.15s, transform 0.1s;
+}
+
+.missionCtaPrimary:hover {
+  background: var(--bronze-hover);
+  color: #fff;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.missionCtaSecondary {
+  display: inline-block;
+  padding: 11px 20px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.missionCtaSecondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.45);
+  color: #fff;
+  text-decoration: none;
+}
+
+/* Identity column inside navy */
+.identity {
+  padding: 20px 22px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.identityBrand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.identityLogo {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.identityName {
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.identityTagline {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.72);
+  margin-top: 2px;
+}
+
+.identityMotto {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 99px;
+  background: var(--bronze);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.identityCompany {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 18px;
+}
+
+.trustStrip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.trustStripTile {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  grid-template-rows: auto auto;
+  gap: 2px 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  align-items: start;
+}
+
+.trustStripTileLink {
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.12s;
+  cursor: pointer;
+}
+
+.trustStripTileLink:hover {
+  background: rgba(255, 255, 255, 0.1);
+  text-decoration: none;
+}
+
+.trustStripTile:not(.trustStripTileLink) {
+  cursor: default;
+}
+
+.trustStripIcon {
+  grid-row: 1 / 3;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: rgba(156, 123, 92, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.trustStripLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--bronze-light);
+  align-self: end;
+}
+
+.trustStripHint {
+  grid-column: 2;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* Legal notice — bottom of navy banner */
+.navyDisclaimer {
+  position: relative;
+  z-index: 1;
+  padding: 16px 40px 20px;
+  border-top: 1px solid rgba(156, 123, 92, 0.35);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.navyDisclaimerLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--bronze-light);
+  margin-bottom: 8px;
+}
+
+.navyDisclaimerText {
+  font-size: 12px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.72);
+  max-width: 72ch;
+  margin-bottom: 8px;
+}
+
+.navyDisclaimerLink {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--bronze-light);
+  text-decoration: none;
+}
+
+.navyDisclaimerLink:hover {
+  text-decoration: underline;
+  color: #fff;
+}
+
+/* ── Section rhythm ── */
+.blockTitle {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--navy);
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+.blockLead {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+  max-width: 56ch;
+}
+
+.blockLead strong {
+  color: var(--navy);
+  font-weight: 600;
+}
+
+.exploreSection {
+  margin-bottom: 40px;
+}
+
+.exploreGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.exploreCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 18px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+}
+
+.exploreCard:hover {
+  border-color: rgba(156, 123, 92, 0.45);
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+.exploreIcon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.exploreTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.exploreSubtitle {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.exploreArrow {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 14px;
+  color: var(--bronze);
+  opacity: 0.6;
+}
+
+/* ── Principles ── */
+.principlesSection {
+  margin-bottom: 40px;
+}
+
+.principlesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.principleCard {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 18px 18px 18px 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.principleRail {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+
+.railNavy {
+  background: var(--navy);
+}
+
+.railBronze {
+  background: var(--bronze);
+}
+
+.principleIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: #fff;
+  margin-bottom: 12px;
+}
+
+.iconNavy {
+  background: var(--navy);
+}
+
+.iconBronze {
+  background: var(--bronze);
+}
+
+.principleTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+
+.principleBody {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+/* ── Sources preview ── */
+.sourcesSection {
+  margin-bottom: 36px;
+  scroll-margin-top: 20px;
+}
+
+.sourcesHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.sourcesHeader .blockLead {
+  margin-bottom: 0;
+}
+
+.sourcesHeaderCta {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bronze);
+  text-decoration: none;
+  white-space: nowrap;
+  padding-top: 4px;
+}
+
+.sourcesHeaderCta:hover {
+  text-decoration: underline;
+}
+
+.sourcesTable {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.sourcesTableRow {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 72px;
+  gap: 16px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border-light);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.1s;
+}
+
+.sourcesTableRow:last-child {
+  border-bottom: none;
+}
+
+.sourcesTableRow:hover {
+  background: var(--bronze-tint);
+  text-decoration: none;
+}
+
+.sourcesCitation {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.sourcesTopic {
+  font-size: 12px;
+  color: var(--text-muted);
+  align-self: center;
+}
+
+.sourcesFamily {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  align-self: center;
+  text-align: right;
+}
+
+/* ── Legal (below fold) ── */
+.legalSection {
+  margin-bottom: 24px;
+  scroll-margin-top: 20px;
+}
+
+.pageMeta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-light);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pageMeta strong {
+  color: var(--navy);
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .navyBannerInner {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 28px 24px;
+  }
+
+  .navyDisclaimer {
+    padding: 14px 24px 18px;
+  }
+
+  .exploreGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .principlesGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 16px 16px 40px;
+  }
+
+  .sourcesTableRow {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .sourcesFamily {
+    text-align: left;
+  }
+}
