@@ -4,8 +4,9 @@ import styles from './SiteHeader.module.css'
 
 const NAV = [
   { to: '/chat', label: 'Ask a question' },
-  { to: '/scenarios', label: 'Scenarios' },
+  { to: '/scenarios', label: 'Scenario' },
   { to: '/updates', label: 'Updates' },
+  { to: '/sources', label: 'Sources' },
   { to: '/about', label: 'About' },
 ] as const
 
