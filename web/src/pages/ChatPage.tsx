@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import DashboardLayout from '../components/layout/DashboardLayout'
-import { sendChatMessage } from '../lib/api'
+import { buildAskConversationPayload, sendChatMessage } from '../lib/api'
 import type { ChatCitation, ChatUsedChunk, ClarificationOption, ChatResponse } from '../lib/api'
 import {
   CHAT_EMPTY_BODY,
@@ -203,9 +203,16 @@ export default function ChatPage() {
   }, [])
 
   const submit = useCallback(
-    async (message: string, category?: string | null, displayText?: string) => {
+    async (
+      message: string,
+      category?: string | null,
+      displayText?: string,
+      priorTurns?: Turn[],
+    ) => {
       const text = message.trim()
       if (!text || loading) return
+
+      const conversation = buildAskConversationPayload(priorTurns ?? turns)
 
       // Clear stale sources immediately so the panel never shows data from a
       // previous answer while a new request is in flight.
@@ -230,6 +237,7 @@ export default function ChatPage() {
           message: text,
           top_k: 5,
           selected_category: category ?? null,
+          ...(conversation.length > 0 ? { conversation } : {}),
         })
 
         if (response.status === 'needs_clarification') {
@@ -267,15 +275,15 @@ export default function ChatPage() {
         scrollToBottom()
       }
     },
-    [loading, scrollToBottom],
+    [loading, scrollToBottom, turns],
   )
 
   const handleSend = useCallback(() => {
     const text = draft.trim()
     if (!text) return
     setDraft('')
-    void submit(text)
-  }, [draft, submit])
+    void submit(text, null, undefined, turns)
+  }, [draft, submit, turns])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -292,9 +300,9 @@ export default function ChatPage() {
       if (!pendingCategory || loading) return
       const { original } = pendingCategory
       setPendingCategory(null)
-      void submit(original, option.value, option.label)
+      void submit(original, option.value, option.label, turns)
     },
-    [pendingCategory, loading, submit],
+    [pendingCategory, loading, submit, turns],
   )
 
   const handleNewConversation = useCallback(() => {

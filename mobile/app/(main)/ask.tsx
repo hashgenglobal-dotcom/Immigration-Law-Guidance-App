@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,28 +18,18 @@ import {
   ChatMessage,
   ChatUserText,
 } from '@/components'
-import { ClarificationOptions, WelcomeCard } from '@/components/chat'
+import { WelcomeCard } from '@/components/chat'
 import { DigitalBackdrop } from '@/components/digital'
-import {
-  ChatApiError,
-  sendChatMessage,
-  toAssistantContent,
-  toClarificationContent,
-} from '@/lib/chatApi'
-import type { ChatAssistantContent, ChatClarificationContent, ClarificationOption } from '@/types/chat'
+import { buildAskConversationPayload } from '@/lib/askConversationPayload'
+import { ChatApiError, sendChatMessage, toAssistantContent } from '@/lib/chatApi'
+import type { ChatAssistantContent } from '@/types/chat'
 import { colors, fontFamily, spacing, typography } from '@/theme'
 
 type Turn =
   | { id: string; role: 'user'; text: string }
   | { id: string; role: 'assistant'; content: ChatAssistantContent }
-  | { id: string; role: 'assistant'; clarification: ChatClarificationContent }
   | { id: string; role: 'assistant'; pending: true }
   | { id: string; role: 'assistant'; error: string }
-
-/** In-memory only — never written to AsyncStorage or the backend. */
-type PendingClarification = {
-  originalMessage: string
-}
 
 let turnId = 0
 function nextId() {
@@ -52,9 +43,6 @@ export default function AskScreen() {
   const [turns, setTurns] = useState<Turn[]>([])
   const [loading, setLoading] = useState(false)
   const [limitModal, setLimitModal] = useState(false)
-  const [pendingClarification, setPendingClarification] = useState<PendingClarification | null>(
-    null,
-  )
   const scrollRef = useRef<ScrollView>(null)
 
   const scrollToEnd = useCallback(() => {
@@ -67,8 +55,13 @@ export default function AskScreen() {
     if (!allowed) setLimitModal(true)
   }, [isGuest, recordGuestChat])
 
+  const startNewConversation = useCallback(() => {
+    setTurns([])
+    setDraft('')
+  }, [])
+
   const submitChat = useCallback(
-    async (message: string, selectedCategory?: string | null, displayUserText?: string) => {
+    async (message: string, priorTurns?: Turn[]) => {
       const text = message.trim()
       if (!text || loading) return
 
@@ -77,30 +70,16 @@ export default function AskScreen() {
         return
       }
 
-      const userLabel = displayUserText?.trim() || text
-      const userTurn: Turn = { id: nextId(), role: 'user', text: userLabel }
+      const userTurn: Turn = { id: nextId(), role: 'user', text }
       const pendingId = nextId()
+      const conversation = buildAskConversationPayload(priorTurns ?? turns)
+
       setLoading(true)
       setTurns((prev) => [...prev, userTurn, { id: pendingId, role: 'assistant', pending: true }])
       scrollToEnd()
 
       try {
-        const response = await sendChatMessage(text, 5, selectedCategory ?? null)
-
-        if (response.status === 'needs_clarification') {
-          setPendingClarification({ originalMessage: text })
-          const clarification = toClarificationContent(response)
-          setTurns((prev) =>
-            prev.map((t) =>
-              t.id === pendingId && t.role === 'assistant' && 'pending' in t
-                ? { id: pendingId, role: 'assistant', clarification }
-                : t,
-            ),
-          )
-          return
-        }
-
-        setPendingClarification(null)
+        const response = await sendChatMessage(text, 5, null, conversation)
         const content = toAssistantContent(response)
         setTurns((prev) =>
           prev.map((t) =>
@@ -127,25 +106,15 @@ export default function AskScreen() {
         scrollToEnd()
       }
     },
-    [loading, scrollToEnd, isGuest, canSendGuestChat, completeGuestChatIfNeeded],
+    [loading, scrollToEnd, isGuest, canSendGuestChat, completeGuestChatIfNeeded, turns],
   )
 
   const handleSend = useCallback(async () => {
     const text = draft.trim()
     if (!text) return
     setDraft('')
-    await submitChat(text)
-  }, [draft, submitChat])
-
-  const handleClarificationSelect = useCallback(
-    async (option: ClarificationOption) => {
-      if (!pendingClarification || loading) return
-      const { originalMessage } = pendingClarification
-      setPendingClarification(null)
-      await submitChat(originalMessage, option.value, option.label)
-    },
-    [pendingClarification, loading, submitChat],
-  )
+    await submitChat(text, turns)
+  }, [draft, submitChat, turns])
 
   const isEmpty = turns.length === 0
 
@@ -157,6 +126,19 @@ export default function AskScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
       >
+        {!isEmpty ? (
+          <View style={styles.threadBar}>
+            <Pressable
+              onPress={startNewConversation}
+              style={({ pressed }) => [styles.newChatBtn, pressed && styles.newChatPressed]}
+              accessibilityRole="button"
+              accessibilityLabel="Start a new conversation"
+            >
+              <Text style={styles.newChatText}>New conversation</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         <ScrollView
           ref={scrollRef}
           style={styles.messages}
@@ -196,20 +178,6 @@ export default function AskScreen() {
                 </ChatMessage>
               )
             }
-            if ('clarification' in turn) {
-              return (
-                <ChatMessage key={turn.id} role="assistant">
-                  <ClarificationOptions
-                    intro={turn.clarification.answer}
-                    question={turn.clarification.clarifyingQuestion}
-                    options={turn.clarification.options}
-                    disclaimer={turn.clarification.disclaimer}
-                    onSelect={handleClarificationSelect}
-                    disabled={loading || !pendingClarification}
-                  />
-                </ChatMessage>
-              )
-            }
             return (
               <ChatMessage key={turn.id} role="assistant">
                 <AssistantChatContent content={turn.content} />
@@ -240,6 +208,25 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
     zIndex: 1,
+  },
+  threadBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xs,
+  },
+  newChatBtn: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  newChatPressed: {
+    opacity: 0.7,
+  },
+  newChatText: {
+    fontFamily: fontFamily.body,
+    fontSize: typography.caption,
+    fontWeight: '600',
+    color: colors.brandBronze,
   },
   messages: {
     flex: 1,

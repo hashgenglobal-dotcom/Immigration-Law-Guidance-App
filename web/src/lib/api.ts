@@ -1,9 +1,33 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
+export type ConversationTurn = {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+const MAX_CONVERSATION_TURNS = 4
+const MAX_ASSISTANT_CHARS = 300
+
+function extractAssistantSummary(answer: string): string {
+  const text = answer.trim()
+  if (!text) return ''
+
+  const shortMatch = text.match(
+    /^Short answer\s*:\s*\n?([\s\S]*?)(?=\n(?:What this means|Typical next steps|Official sources|Important caution)\s*:|$)/im,
+  )
+  if (shortMatch?.[1]?.trim()) {
+    return shortMatch[1].trim().slice(0, MAX_ASSISTANT_CHARS)
+  }
+
+  return text.replace(/\s+/g, ' ').trim().slice(0, MAX_ASSISTANT_CHARS)
+}
+
 export type ChatRequest = {
   message: string
   top_k?: number
   selected_category?: string | null
+  /** Up to 4 prior in-session turns; processed in memory only. */
+  conversation?: ConversationTurn[]
 }
 
 export type ClarificationOption = {
@@ -62,6 +86,30 @@ export type ChatResponse =
       options: ClarificationOption[]
       used_chunks: ChatUsedChunk[]
     }
+
+/** Prior visible turns for in-session memory (never persisted beyond one request). */
+export function buildAskConversationPayload(turns: unknown[]): ConversationTurn[] {
+  const out: ConversationTurn[] = []
+
+  for (const raw of turns) {
+    if (!raw || typeof raw !== 'object') continue
+    const turn = raw as Record<string, unknown>
+
+    if (turn.role === 'user' && typeof turn.text === 'string') {
+      out.push({ role: 'user', content: turn.text.slice(0, 400) })
+      continue
+    }
+
+    if (turn.role !== 'assistant' || !('response' in turn)) continue
+    const response = turn.response as ChatResponse
+    const summary = extractAssistantSummary(response.answer)
+    if (summary) {
+      out.push({ role: 'assistant', content: summary.slice(0, MAX_ASSISTANT_CHARS) })
+    }
+  }
+
+  return out.slice(-MAX_CONVERSATION_TURNS)
+}
 
 type FastAPIErrorDetail = {
   error_code?: string
