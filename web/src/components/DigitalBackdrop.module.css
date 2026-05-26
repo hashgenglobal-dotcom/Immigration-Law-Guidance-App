@@ -1,0 +1,32 @@
+.backdrop {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: var(--parchment);
+}
+
+.washTop {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 45%;
+  background: rgb(156 123 92 / 0.07);
+}
+
+.washBottom {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 40%;
+  background: rgb(31 40 57 / 0.06);
+}
+
+.dots {
+  position: absolute;
+  inset: 0;
+  opacity: 0.14;
+  background-image: radial-gradient(circle, rgb(31 40 57 / 0.35) 1px, transparent 1px);
+  background-size: 20px 20px;
+}

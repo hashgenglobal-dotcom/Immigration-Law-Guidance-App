@@ -1,19 +1,21 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { brand } from '../../lib/brand'
 import styles from './Sidebar.module.css'
 
 const NAV_ITEMS = [
   { label: 'Home', to: '/', icon: '⌂', end: true },
-  { label: 'Chat', to: '/chat', icon: '◈', end: false },
-  { label: 'Official Updates', to: '/updates', icon: '◉', end: false },
-  { label: 'Sources', to: '/sources', icon: '◎', end: false },
+  { label: 'Ask a question', to: '/chat', icon: '💬', end: false },
+  { label: 'Browse scenarios', to: '/scenarios', icon: '📚', end: false },
+  { label: 'Official Updates', to: '/updates', icon: '📰', end: false },
+  { label: 'Sources', to: '/sources', icon: '🔗', end: false },
   { label: 'About', to: '/about', icon: '○', end: false },
 ] as const
 
 const PLACEHOLDER_HISTORY = [
-  'EAD application process',
-  'Asylum eligibility requirements',
-  'Green card adjustment of status',
-  'F-1 OPT STEM extension',
+  'F-1 status basics',
+  'Post-completion OPT',
+  'H-1B cap registration',
+  'Adjustment of status',
 ]
 
 export default function Sidebar() {
@@ -23,10 +25,10 @@ export default function Sidebar() {
     <aside className={styles.sidebar}>
       <Link to="/" className={styles.brandLink}>
         <div className={styles.brandRow}>
-          <span className={styles.brandIcon}>⚖</span>
-          <span className={styles.brandName}>Immigration Law</span>
+          <img src="/sourcepath-icon.png" alt="" className={styles.brandLogo} width={28} height={28} />
+          <span className={styles.brandName}>{brand.name}</span>
         </div>
-        <div className={styles.brandSub}>Guidance Tool</div>
+        <div className={styles.brandSub}>{brand.tagline}</div>
       </Link>
 
       <nav className={styles.nav}>
@@ -54,17 +56,20 @@ export default function Sidebar() {
             className={styles.historyItem}
             title={label}
             onClick={() => navigate('/chat')}
+            onKeyDown={(e) => e.key === 'Enter' && navigate('/chat')}
+            role="button"
+            tabIndex={0}
           >
             {label}
           </div>
         ))}
-        <button className={styles.newChatBtn} onClick={() => navigate('/chat')}>
+        <button type="button" className={styles.newChatBtn} onClick={() => navigate('/chat')}>
           + New conversation
         </button>
       </div>
 
       <div className={styles.disclaimer}>
-        Legal information only — not legal advice. Consult a qualified attorney for personal decisions.
+        {brand.motto} — general information only, not legal advice.
       </div>
     </aside>
   )
