@@ -47,8 +47,8 @@ export default function ScenariosPage() {
           <p className={styles.eyebrow}>Explore</p>
           <h1 className={styles.title}>Browse scenarios</h1>
           <p className={styles.desc}>
-            Step-by-step guides for common immigration situations. These are general guides—consult an
-            attorney for advice about your specific case.
+            Structured paths for common immigration situations, with overviews, key points, and links to
+            official sources you can verify.
           </p>
         </header>
 

@@ -9,7 +9,8 @@ import {
 } from '../lib/aboutContent'
 import { brand } from '../lib/brand'
 import { SOURCE_CATALOG, catalogStats, familyMeta } from '../lib/sourceCatalog'
-import { ABOUT_NAVY_LEGAL_NOTICE_LABEL, LEGAL_DISCLAIMER_FULL } from '../lib/legalCopy'
+import { ABOUT_NAVY_LEGAL_NOTICE_LABEL } from '../lib/legalCopy'
+import { ABOUT_NAVY_LEGAL_SHORT } from '../lib/productMessaging'
 import styles from './AboutPage.module.css'
 
 export default function AboutPage() {
@@ -26,6 +27,9 @@ export default function AboutPage() {
             <div className={styles.mission}>
               <p className={styles.missionEyebrow}>{ABOUT_MISSION.eyebrow}</p>
               <h1 className={styles.missionHeadline}>{ABOUT_MISSION.headline}</h1>
+              {'category' in ABOUT_MISSION ? (
+                <p className={styles.missionCategory}>{ABOUT_MISSION.category}</p>
+              ) : null}
               <p className={styles.missionLead}>{ABOUT_MISSION.lead}</p>
               <p className={styles.missionBody}>{ABOUT_MISSION.body}</p>
               <div className={styles.missionActions}>
@@ -89,14 +93,10 @@ export default function AboutPage() {
             <p id="navy-legal-notice" className={styles.navyDisclaimerLabel}>
               {ABOUT_NAVY_LEGAL_NOTICE_LABEL}
             </p>
-            <p className={styles.navyDisclaimerText}>
-              We are <span className={styles.navyDisclaimerHighlight}>NOT A LAWYER</span> and{' '}
-              <span className={styles.navyDisclaimerHighlight}>do not provide legal advice</span>, suggestions, or
-              representation. SourcePath shares{' '}
-              <span className={styles.navyDisclaimerHighlight}>publicly available</span> official sources and{' '}
-              <span className={styles.navyDisclaimerHighlight}>cited information</span> tied to specific
-              scenarios—not legal advice or recommendations for your case.
-            </p>
+            <p className={styles.navyDisclaimerText}>{ABOUT_NAVY_LEGAL_SHORT}</p>
+            <a href="#full-legal-notice" className={styles.navyDisclaimerLink}>
+              Full legal notice
+            </a>
           </div>
         </header>
 
@@ -124,9 +124,11 @@ export default function AboutPage() {
         {/* Principles — boundaries, stated once */}
         <section className={styles.principlesSection} aria-labelledby="principles-title">
           <h2 id="principles-title" className={styles.blockTitle}>
-            Our principles
+            How SourcePath works
           </h2>
-          <p className={styles.blockLead}>Clear boundaries on what this tool is—and is not.</p>
+          <p className={styles.blockLead}>
+            Retrieval-first navigation with clear boundaries—not a chatbot that guesses.
+          </p>
           <div className={styles.principlesGrid}>
             {ABOUT_PRINCIPLES.map((principle) => {
               const isNavy = principle.accent === 'navy'
@@ -186,19 +188,17 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className={styles.legalSection} aria-labelledby="legal-heading">
-          <div className={styles.legalBanner}>
-            <span className={styles.legalIcon} aria-hidden>
-              ⚠
-            </span>
-            <div>
-              <p className={styles.legalEyebrow}>Legal notice</p>
-              <h2 id="legal-heading" className={styles.legalHeading}>
-                NOT A LAWYER
-              </h2>
-              <p className={styles.legalBody}>{LEGAL_DISCLAIMER_FULL}</p>
-            </div>
-          </div>
+        <section
+          id="full-legal-notice"
+          className={styles.legalSection}
+          aria-labelledby="legal-heading"
+        >
+          <h2 id="legal-heading" className={styles.blockTitle}>
+            Legal notice
+          </h2>
+          <p className={styles.blockLead}>
+            Compliance details for using SourcePath as an information tool.
+          </p>
           <DisclaimerAccordion />
         </section>
 

@@ -2,6 +2,13 @@ import { useCallback, useRef, useState } from 'react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { sendChatMessage } from '../lib/api'
 import type { ChatCitation, ChatUsedChunk, ClarificationOption, ChatResponse } from '../lib/api'
+import {
+  CHAT_EMPTY_BODY,
+  CHAT_EMPTY_TITLE,
+  CHAT_HEADER_SUBTITLE,
+  PRODUCT_LEGAL_LINE,
+  PRODUCT_MOAT_LINE,
+} from '../lib/productMessaging'
 import styles from './ChatPage.module.css'
 
 type Turn =
@@ -88,7 +95,8 @@ function SourcesPanel({ citations, chunks, loading, hasResponse }: SourcesPanelP
       {!loading && !hasResponse && (
         <>
           <p className={styles.sourcesExplainer}>
-            Cited regulations, forms, policy sections, and decisions appear here when answers are generated.
+            Retrieved statutes, regulations, and agency sources appear here with every answer—open any citation
+            to verify.
           </p>
           <div className={styles.sourcesScroll}>
             {SAMPLE_SOURCE_GROUPS.map((group) => (
@@ -314,9 +322,7 @@ export default function ChatPage() {
         <div className={styles.chatHeader}>
           <div>
             <div className={styles.chatTitle}>Ask a question</div>
-            <div className={styles.chatSubtitle}>
-              Official-source grounded answers to U.S. immigration questions
-            </div>
+            <div className={styles.chatSubtitle}>{CHAT_HEADER_SUBTITLE}</div>
           </div>
           {turns.length > 0 && (
             <button
@@ -333,11 +339,9 @@ export default function ChatPage() {
           {turns.length === 0 && (
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}>⚖</div>
-              <h2 className={styles.emptyTitle}>Ask an immigration question</h2>
-              <p className={styles.emptySub}>
-                Answers are grounded in official federal regulations, USCIS policy, and court rules.
-                Sources are cited inline with every response.
-              </p>
+              <h2 className={styles.emptyTitle}>{CHAT_EMPTY_TITLE}</h2>
+              <p className={styles.emptySub}>{CHAT_EMPTY_BODY}</p>
+              <p className={styles.emptyLegal}>{PRODUCT_LEGAL_LINE}</p>
               <div className={styles.suggestions}>
                 {SUGGESTED_QUESTIONS.map((q) => (
                   <button
@@ -446,7 +450,10 @@ export default function ChatPage() {
                       ))}
                     </div>
                   )}
-                  <div className={styles.answerDisclaimer}>{response.disclaimer}</div>
+                  <div className={styles.answerFooter}>
+                    <p className={styles.answerMoat}>{PRODUCT_MOAT_LINE}</p>
+                    <p className={styles.answerLegal}>{PRODUCT_LEGAL_LINE}</p>
+                  </div>
                 </div>
               </div>
             )
@@ -476,8 +483,8 @@ export default function ChatPage() {
         </div>
 
         <div className={styles.disclaimerBar}>
-          This app provides legal information and guidance, not legal advice. For personal legal
-          decisions, consult a qualified immigration attorney.
+          <span className={styles.disclaimerMoat}>{PRODUCT_MOAT_LINE}</span>
+          <span className={styles.disclaimerLegal}>{PRODUCT_LEGAL_LINE}</span>
         </div>
       </div>
     </DashboardLayout>

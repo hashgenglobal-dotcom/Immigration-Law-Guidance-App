@@ -69,7 +69,7 @@ export default function Sidebar() {
       </div>
 
       <div className={styles.disclaimer}>
-        {brand.motto} — general information only, not legal advice.
+        {brand.motto} · verifiable sources, not legal advice
       </div>
     </aside>
   )

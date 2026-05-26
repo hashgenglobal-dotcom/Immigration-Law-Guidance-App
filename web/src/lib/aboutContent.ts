@@ -1,10 +1,12 @@
 import type { PrincipleAccent } from './aboutContentTypes'
+import { PRODUCT_CATEGORY } from './productMessaging'
 
 export type { PrincipleAccent } from './aboutContentTypes'
 
 export const ABOUT_MISSION = {
-  eyebrow: 'Trust center',
+  eyebrow: 'Why SourcePath',
   headline: 'Built for clarity. Grounded in truth.',
+  category: PRODUCT_CATEGORY,
   lead:
     'U.S. immigration law was not written for easy reading—and unreliable advice spreads faster than the rules themselves. SourcePath helps you understand where you stand in plain language, always tied to what the government actually published.',
   body:
@@ -13,9 +15,9 @@ export const ABOUT_MISSION = {
 
 export const TRUST_PILLARS = [
   {
-    icon: '📄',
-    label: 'Cited',
-    desc: 'Answers reference CFR, INA, and USCIS materials you can verify—not unchecked AI output.',
+    icon: '✓',
+    label: 'Verifiable',
+    desc: 'Every claim ties to a retrieved statute, regulation, or agency source you can open.',
   },
   {
     icon: '🔒',
@@ -25,7 +27,7 @@ export const TRUST_PILLARS = [
   {
     icon: '📚',
     label: 'Official',
-    desc: 'Retrieval from government-indexed text—not model memory alone.',
+    desc: 'Navigation over government-indexed corpora—not open-ended chat guesswork.',
     linkTo: '/sources#catalog',
   },
 ] as const
@@ -37,37 +39,37 @@ export const ABOUT_PRINCIPLES: {
   accent: PrincipleAccent
 }[] = [
   {
-    title: 'What SourcePath does',
+    title: 'How navigation works',
     description:
-      'Explains immigration topics in plain language, walks through common procedures, and points you to official sources—with citations you can check.',
-    icon: '✓',
+      'Retrieve official passages from our indexed corpus → cite the source inline → explain in plain language you can verify on USCIS.gov or eCFR.',
+    icon: '⟳',
     accent: 'navy',
   },
   {
-    title: 'What it does not do',
+    title: 'Routine vs. complex matters',
     description:
-      'No legal advice, representation, or attorney–client relationship. Not for emergencies—contact a qualified attorney when you need case-specific counsel.',
+      'Clear, cited orientation for common questions. High-stakes situations (removal, fraud, criminal history) may need a qualified attorney—we surface that boundary, not hide behind disclaimers.',
+    icon: '◎',
+    accent: 'navy',
+  },
+  {
+    title: 'What we do not provide',
+    description:
+      'No legal advice, representation, or attorney–client relationship. Not for emergencies—contact counsel when you need case-specific strategy.',
     icon: '✕',
     accent: 'bronze',
   },
   {
     title: 'Privacy by design',
     description:
-      'We prioritize minimal collection and transparent limits. Answers come from retrieved official text, not from remembering your past chats in a model.',
+      'Answers come from retrieved official text in your session—not from a model remembering your history across users.',
     icon: '🛡',
     accent: 'bronze',
-  },
-  {
-    title: 'Official sources first',
-    description:
-      'When in doubt, read the linked regulation or agency page and confirm it matches your facts, dates, and immigration history.',
-    icon: '📚',
-    accent: 'navy',
   },
 ]
 
 export const EXPLORE_ACTIONS = [
-  { to: '/chat', icon: '💬', title: 'Ask a question', subtitle: 'Citation-first answers from the live corpus' },
-  { to: '/scenarios', icon: '📚', title: 'Browse scenarios', subtitle: 'Step-by-step guides for common situations' },
-  { to: '/sources', icon: '🔗', title: 'Source library', subtitle: 'Full catalog of indexed legal materials' },
+  { to: '/chat', icon: '💬', title: 'Ask a question', subtitle: 'Retrieve, cite, and explain from the live corpus' },
+  { to: '/scenarios', icon: '📚', title: 'Browse scenarios', subtitle: 'Structured paths for common situations' },
+  { to: '/sources', icon: '🔗', title: 'Source library', subtitle: 'Browse indexed CFR, INA, and USCIS materials' },
 ] as const

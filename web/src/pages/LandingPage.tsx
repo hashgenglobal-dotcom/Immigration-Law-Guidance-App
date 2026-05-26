@@ -3,6 +3,7 @@ import DigitalBackdrop from '../components/DigitalBackdrop'
 import DisclaimerAccordion from '../components/DisclaimerAccordion'
 import SiteHeader from '../components/SiteHeader'
 import { brand } from '../lib/brand'
+import { PRODUCT_CATEGORY } from '../lib/productMessaging'
 import { scenarioGuides } from '../lib/scenarioGuides'
 import styles from './LandingPage.module.css'
 
@@ -33,15 +34,15 @@ const EXPLORE = [
     to: '/about',
     icon: '○',
     title: 'About SourcePath',
-    subtitle: 'Principles, privacy, and how we cite sources.',
+    subtitle: 'How navigation works and our boundaries.',
   },
 ] as const
 
 const FEATURES = [
   {
     icon: '◈',
-    title: 'Citation-first answers',
-    desc: 'Responses draw from retrieved CFR, USCIS policy, INA, and agency guidance—not unchecked model memory.',
+    title: 'Verifiable navigation',
+    desc: 'Retrieve official passages, cite them inline, and read plain-language explanations—not open-ended AI guesswork.',
     to: '/chat',
     cta: 'Open Ask',
   },
@@ -101,6 +102,7 @@ export default function LandingPage() {
               <h1 id="hero-title" className={styles.heroTitle}>
                 {brand.name}
               </h1>
+              <p className={styles.heroCategory}>{PRODUCT_CATEGORY}</p>
               <p className={styles.heroTagline}>{brand.tagline}</p>
               <p className={styles.heroSub}>{brand.description}</p>
               <div className={styles.heroCtas}>
@@ -117,7 +119,7 @@ export default function LandingPage() {
                 </span>
                 <span className={styles.heroStatDivider}>·</span>
                 <span className={styles.heroStat}>
-                  <strong>Official</strong> sources cited
+                  <strong>Verifiable</strong> citations
                 </span>
                 <span className={styles.heroStatDivider}>·</span>
                 <span className={styles.heroStat}>

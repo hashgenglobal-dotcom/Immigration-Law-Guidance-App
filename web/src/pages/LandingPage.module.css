@@ -66,7 +66,16 @@
   color: var(--navy);
   line-height: 1.08;
   letter-spacing: -0.035em;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+}
+
+.heroCategory {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--bronze-dark);
+  line-height: 1.45;
+  margin-bottom: 12px;
+  max-width: 480px;
 }
 
 .heroTagline {

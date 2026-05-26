@@ -102,8 +102,8 @@ export default function SourcesPage() {
           <p className={styles.eyebrow}>Source library</p>
           <h1 className={styles.title}>Sources</h1>
           <p className={styles.desc}>
-            Browse the official materials indexed for citation-first answers. Every chat response
-            links back to entries like these so you can verify the law yourself.
+            Browse the official materials behind every cited answer—CFR, INA, USCIS policy, forms, and
+            agency pages indexed for verifiable navigation.
           </p>
         </header>
 
