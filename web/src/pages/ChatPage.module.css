@@ -1,0 +1,398 @@
+/* ── Center panel ── */
+.chatPanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.chatHeader {
+  flex-shrink: 0;
+  padding: 14px 20px;
+  background: var(--navy);
+  border-bottom: 1px solid rgba(156, 123, 92, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chatTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.chatSubtitle {
+  font-size: 12px;
+  color: rgba(244, 240, 230, 0.75);
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 20px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.messageBubble {
+  display: flex;
+  flex-direction: column;
+  max-width: 680px;
+}
+
+.messageBubble.user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.messageBubble.assistant {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.roleLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.bubble {
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.messageBubble.user .bubble {
+  background: var(--navy);
+  color: #ffffff;
+  border-bottom-right-radius: var(--radius-sm);
+}
+
+.messageBubble.assistant .bubble {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.citationRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.citationChip {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--blue-tint);
+  color: var(--blue);
+  border-radius: 99px;
+  font-weight: 500;
+  border: 1px solid rgba(59, 110, 165, 0.2);
+}
+
+/* Input area */
+.inputArea {
+  flex-shrink: 0;
+  padding: 16px 20px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.inputRow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.inputBox {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13.5px;
+  color: var(--text);
+  background: var(--bg);
+  resize: none;
+  outline: none;
+  line-height: 1.5;
+  min-height: 42px;
+  max-height: 160px;
+  transition: border-color 0.15s;
+}
+
+.inputBox:focus {
+  border-color: var(--blue);
+}
+
+.sendBtn {
+  flex-shrink: 0;
+  background: var(--navy);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.sendBtn:hover {
+  background: var(--navy-mid);
+}
+
+.sendBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inputHint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Disclaimer bar */
+.disclaimerBar {
+  flex-shrink: 0;
+  padding: 10px 20px;
+  background: var(--navy);
+  border-top: 1px solid rgba(156, 123, 92, 0.35);
+  font-size: 11px;
+  color: var(--on-navy);
+  line-height: 1.45;
+  text-align: center;
+}
+
+/* ── Right panel — Sources ── */
+.sourcesPanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sourcesHeader {
+  flex-shrink: 0;
+  padding: 14px 16px;
+  background: var(--navy);
+  border-bottom: 1px solid rgba(156, 123, 92, 0.35);
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.sourcesScroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sourceCard {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.sourceType {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.sourceName {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.sourceDesc {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.sourcesEmpty {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Sources explainer text */
+.sourcesExplainer {
+  padding: 11px 16px 12px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  border-bottom: 1px solid var(--border-light);
+  background: #fafbfc;
+  font-style: italic;
+}
+
+/* Source groups in right panel */
+.sourceGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sourceGroupLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  align-self: flex-start;
+  margin-bottom: 2px;
+}
+
+/* ── Empty state ── */
+.emptyState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.emptyIcon {
+  font-size: 34px;
+  color: var(--navy);
+  margin-bottom: 16px;
+  opacity: 0.55;
+  line-height: 1;
+}
+
+.emptyTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.emptySub {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.65;
+  max-width: 380px;
+  margin-bottom: 28px;
+}
+
+/* Suggested question cards */
+.suggestions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  max-width: 560px;
+}
+
+.suggestionCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+  line-height: 1.5;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+}
+
+.suggestionCard:hover:not(:disabled) {
+  border-color: var(--blue);
+  background: var(--blue-tint);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(59, 110, 165, 0.12);
+}
+
+.suggestionCard:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Privacy badge on role label ── */
+.privacyBadge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 6px;
+  background: #eef6ee;
+  color: #2d6a2d;
+  border-radius: 4px;
+  border: 1px solid rgba(45, 106, 45, 0.2);
+  vertical-align: middle;
+}
+
+/* ── Answer metadata (searched sources line) ── */
+.answerMeta {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ── Inline disclaimer under each answer ── */
+.answerDisclaimer {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* ── Chunk snippet text in right panel ── */
+.chunkSnippet {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* ── Official source link in right panel ── */
+.citationUrl {
+  display: inline-block;
+  margin-top: 5px;
+  font-size: 11px;
+  color: var(--blue);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.citationUrl:hover {
+  text-decoration: underline;
+}
