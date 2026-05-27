@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native'
 import type { MockAnswer } from '@/lib/mockData'
-import { hasStructuredSections, parseFormattedAnswer } from '@/lib/parseFormattedAnswer'
 import type { ChatAssistantContent } from '@/types/chat'
 import { CitationCard } from './CitationCard'
 import { colors, fontFamily, radii, spacing, typography } from '@/theme'
@@ -63,48 +62,36 @@ export function AssistantAnswerContent({ answer }: { answer: MockAnswer }) {
 export function AssistantChatContent({ content }: { content: ChatAssistantContent }) {
   return (
     <View style={styles.wrap}>
-      <View style={styles.privacyRow}>
-        <Text style={styles.privacyBadge}>Privacy: {content.privacyMode}</Text>
-        {content.activeDataset ? (
-          <Text style={styles.dataset} numberOfLines={1}>
-            Sources: {content.activeDataset}
-          </Text>
-        ) : null}
+      <View style={styles.sectionBlock}>
+        <Text style={styles.heading}>Short answer</Text>
+        <Text style={styles.lead}>{content.shortAnswer}</Text>
       </View>
 
-      {hasStructuredSections(content.answer) ? (
-        parseFormattedAnswer(content.answer).map((section) => (
-          <View key={section.title} style={styles.sectionBlock}>
-            <Text
-              style={
-                section.title === 'Important caution' ? styles.headingCaution : styles.heading
-              }
-            >
-              {section.title}
-            </Text>
-            <Text
-              style={
-                section.title === 'Important caution' ? styles.bodyCaution : styles.body
-              }
-            >
-              {section.body}
-            </Text>
-          </View>
-        ))
-      ) : (
-        <>
-          <Text style={styles.heading}>Information</Text>
-          <Text style={styles.body}>{content.answer}</Text>
-        </>
-      )}
+      {content.eligibilityChecklist.length > 0 ? (
+        <View style={styles.sectionBlock}>
+          <Text style={styles.heading}>Eligibility checklist</Text>
+          {content.eligibilityChecklist.map((item, i) => (
+            <Text key={i} style={styles.bullet}>· {item}</Text>
+          ))}
+        </View>
+      ) : null}
+
+      {content.nextSteps.length > 0 ? (
+        <View style={styles.sectionBlock}>
+          <Text style={styles.heading}>Next steps</Text>
+          {content.nextSteps.map((step, i) => (
+            <Text key={i} style={styles.bullet}>{i + 1}. {step}</Text>
+          ))}
+        </View>
+      ) : null}
 
       {content.citations.length > 0 ? (
-        <>
+        <View style={styles.sectionBlock}>
           <Text style={styles.heading}>Source links</Text>
           {content.citations.map((citation, i) => (
-            <CitationCard key={`${citation.citation}-${i}`} apiCitation={citation} compact />
+            <CitationCard key={`${citation.title}-${i}`} apiCitation={citation} compact />
           ))}
-        </>
+        </View>
       ) : content.citationsMissing ? (
         <Text style={styles.citationsNote}>
           No official citations were returned for this answer. Verify details using primary
@@ -130,38 +117,11 @@ const styles = StyleSheet.create({
     gap: 4,
     marginBottom: spacing.xs,
   },
-  privacyRow: {
-    gap: 2,
-    marginBottom: spacing.xs,
-  },
-  privacyBadge: {
-    fontFamily: fontFamily.body,
-    fontSize: typography.caption,
-    fontWeight: '600',
-    color: colors.brandBronze,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  dataset: {
-    fontFamily: fontFamily.body,
-    fontSize: typography.caption,
-    color: colors.brandNavy,
-    opacity: 0.65,
-  },
   heading: {
     fontFamily: fontFamily.body,
     fontSize: typography.caption,
     fontWeight: '600',
     color: colors.brandBronze,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginTop: spacing.xs,
-  },
-  headingCaution: {
-    fontFamily: fontFamily.body,
-    fontSize: typography.caption,
-    fontWeight: '600',
-    color: colors.brandNavy,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginTop: spacing.xs,
@@ -179,13 +139,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.brandNavy,
     opacity: 0.85,
-  },
-  bodyCaution: {
-    fontFamily: fontFamily.body,
-    fontSize: typography.small,
-    lineHeight: 20,
-    color: colors.brandNavy,
-    opacity: 0.9,
   },
   bullet: {
     fontFamily: fontFamily.body,

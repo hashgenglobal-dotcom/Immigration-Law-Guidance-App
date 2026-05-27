@@ -1,6 +1,6 @@
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
 import type { OfficialSource } from '@/lib/mockData'
-import type { ChatCitation } from '@/types/chat'
+import type { LegalCitation } from '@/types/chat'
 import { colors, spacing, typography } from '@/theme'
 
 const typeLabels: Record<OfficialSource['type'], string> = {
@@ -10,19 +10,8 @@ const typeLabels: Record<OfficialSource['type'], string> = {
   guidance: 'Guidance',
 }
 
-function apiCitationTitle(citation: ChatCitation): string {
-  if (citation.topic?.trim()) {
-    return citation.subtopic?.trim()
-      ? `${citation.topic} — ${citation.subtopic}`
-      : citation.topic
-  }
-  return citation.citation
-}
-
-function apiCitationMeta(citation: ChatCitation): string {
-  const parts = [citation.citation]
-  if (citation.risk_level) parts.push(citation.risk_level)
-  return parts.join(' · ')
+function apiCitationMeta(citation: LegalCitation): string {
+  return citation.snippet?.trim() || ''
 }
 
 export function CitationCard({
@@ -33,25 +22,27 @@ export function CitationCard({
   /** Mock / scenario sources */
   source?: OfficialSource
   /** Live chat API citation */
-  apiCitation?: ChatCitation
+  apiCitation?: LegalCitation
   compact?: boolean
 }) {
-  const title = source ? source.title : apiCitation ? apiCitationTitle(apiCitation) : ''
+  const title = source ? source.title : apiCitation ? apiCitation.title : ''
   const meta = source
     ? `${typeLabels[source.type]} · ${source.citation}`
     : apiCitation
       ? apiCitationMeta(apiCitation)
       : ''
-  const url = source?.url ?? apiCitation?.official_url ?? null
+  const url = source?.url ?? apiCitation?.url ?? null
 
   return (
     <View style={[styles.card, compact && styles.cardCompact]}>
       <Text style={[styles.title, compact && styles.titleCompact]} numberOfLines={2}>
         {title}
       </Text>
-      <Text style={styles.meta} numberOfLines={1}>
-        {meta}
-      </Text>
+      {meta ? (
+        <Text style={styles.meta} numberOfLines={2}>
+          {meta}
+        </Text>
+      ) : null}
       {url ? (
         <Pressable
           onPress={() => Linking.openURL(url)}

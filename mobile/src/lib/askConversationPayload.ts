@@ -1,5 +1,4 @@
 import type { ChatAssistantContent } from '@/types/chat'
-import { parseFormattedAnswer } from '@/lib/parseFormattedAnswer'
 
 export type ConversationTurnPayload = {
   role: 'user' | 'assistant'
@@ -25,12 +24,9 @@ export function buildAskConversationPayload(turns: unknown[]): ConversationTurnP
     }
     if (turn.role !== 'assistant' || !('content' in turn)) continue
     const content = turn.content as ChatAssistantContent
-    const sections = parseFormattedAnswer(content.answer)
-    const short = sections.find((s) => s.title === 'Short answer')?.body.trim()
-    const summary =
-      short || content.answer.replace(/\s+/g, ' ').trim().slice(0, MAX_ASSISTANT_CHARS)
+    const summary = content.shortAnswer?.replace(/\s+/g, ' ').trim().slice(0, MAX_ASSISTANT_CHARS)
     if (summary) {
-      out.push({ role: 'assistant', content: summary.slice(0, MAX_ASSISTANT_CHARS) })
+      out.push({ role: 'assistant', content: summary })
     }
   }
 
