@@ -174,3 +174,47 @@ class ChatErrorResponse(BaseModel):
     message: str = Field(..., description="Human-readable error description.")
     # Always included so clients can confirm privacy posture even on error.
     privacy_mode: str = Field(default="local-first")
+
+
+class LegalCitation(BaseModel):
+    title: str = Field(
+        ...,
+        description="The formal law section name, e.g., '8 CFR § 214.2(f)(10)(ii)'",
+    )
+    url: str = Field(
+        ...,
+        description="The direct link to the official .gov page if available",
+    )
+    snippet: str = Field(
+        ...,
+        description="The exact raw text quote pulled from the vector database",
+    )
+
+
+class StructuredResultResponse(BaseModel):
+    ui_mode: str = Field(
+        default="result",
+        description="Must strictly be 'result'",
+    )
+    short_answer: str = Field(
+        ...,
+        description="A concise, 1-3 sentence high-level summary of the answer.",
+    )
+    eligibility_checklist: list[str] = Field(
+        default_factory=list,
+        description="A clean list of criteria the user must meet to qualify.",
+    )
+    next_steps: list[str] = Field(
+        default_factory=list,
+        description="A chronological, actionable list of steps the user needs to take next.",
+    )
+    citations: list[LegalCitation] = Field(
+        default_factory=list,
+        description=(
+            "The official legal references mapped directly from vector search results."
+        ),
+    )
+    disclaimer: str = Field(
+        ...,
+        description="Standard protective legal disclaimer tailored to the topic.",
+    )

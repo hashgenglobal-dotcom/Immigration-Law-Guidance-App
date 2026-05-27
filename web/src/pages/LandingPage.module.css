@@ -94,6 +94,57 @@
   max-width: 500px;
 }
 
+.citationProof {
+  max-width: 540px;
+  margin-bottom: 28px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--bronze);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.citationProofEyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--bronze);
+  margin-bottom: 8px;
+}
+
+.citationProofQuestion {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+
+.citationProofAnswer {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.citationProofRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.citationProofChip {
+  display: inline-block;
+  font-size: 11px;
+  padding: 3px 9px;
+  background: var(--blue-tint);
+  color: var(--blue);
+  border-radius: 99px;
+  font-weight: 600;
+  border: 1px solid rgba(59, 110, 165, 0.2);
+}
+
 .heroCtas {
   display: flex;
   gap: 12px;

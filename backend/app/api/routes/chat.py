@@ -24,7 +24,12 @@ from fastapi import status as http_status
 from fastapi.responses import StreamingResponse
 
 from app.core.config import Settings, get_settings
-from app.schemas.chat import ChatRequest, ChatResponse
+from app.schemas.chat import (
+    ChatRequest,
+    ChatResponse,
+    LegalCitation,
+    StructuredResultResponse,
+)
 from app.services.chat_service import ChatService
 from app.services.ollama_chat_client import OllamaChatClientError
 from app.services.ollama_embedding_client import EmbeddingClientError
@@ -32,9 +37,83 @@ from app.services.ollama_embedding_client import EmbeddingClientError
 router = APIRouter(tags=["chat"])
 
 
+def _parse_structured_sections(answer: str) -> dict[str, str]:
+    sections: dict[str, str] = {}
+    current: str | None = None
+    body_lines: list[str] = []
+    headers = {
+        "Short answer",
+        "What this means",
+        "Typical next steps",
+        "Official sources",
+        "Important caution",
+    }
+    for raw in answer.splitlines():
+        line = raw.strip()
+        if line.endswith(":") and line[:-1] in headers:
+            if current:
+                sections[current] = "\n".join(body_lines).strip()
+            current = line[:-1]
+            body_lines = []
+            continue
+        if current:
+            body_lines.append(raw)
+    if current:
+        sections[current] = "\n".join(body_lines).strip()
+    return sections
+
+
+def _to_list_items(text: str) -> list[str]:
+    items: list[str] = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if line[:2].isdigit() and line[2:3] in (".", ")"):
+            line = line[3:].strip()
+        elif line[:1].isdigit() and line[1:2] in (".", ")"):
+            line = line[2:].strip()
+        elif line.startswith(("-", "*", "•")):
+            line = line[1:].strip()
+        if line:
+            items.append(line)
+    return items
+
+
+def _to_payload_2(chat: ChatResponse) -> StructuredResultResponse:
+    sections = _parse_structured_sections(chat.answer)
+    short_answer = sections.get("Short answer", "").strip()
+    if not short_answer:
+        # fallback: first paragraph if model did not follow section format
+        short_answer = chat.answer.strip().split("\n\n")[0].strip()
+
+    eligibility_checklist = _to_list_items(sections.get("What this means", ""))
+    if not eligibility_checklist and sections.get("Important caution"):
+        eligibility_checklist = _to_list_items(sections["Important caution"])
+
+    next_steps = _to_list_items(sections.get("Typical next steps", ""))
+
+    citations = [
+        LegalCitation(
+            title=chunk.citation,
+            url=chunk.official_url or "",
+            snippet=chunk.snippet,
+        )
+        for chunk in chat.used_chunks
+    ]
+
+    return StructuredResultResponse(
+        short_answer=short_answer,
+        eligibility_checklist=eligibility_checklist,
+        next_steps=next_steps,
+        citations=citations,
+        disclaimer=chat.disclaimer,
+    )
+
+
 @router.post(
     "/api/chat",
-    response_model=ChatResponse,
+    response_model=StructuredResultResponse,
     summary="Generate a grounded legal information response",
     description=(
         "Accept a single user question, retrieve the most relevant active "
@@ -48,7 +127,7 @@ router = APIRouter(tags=["chat"])
 async def chat(
     body: ChatRequest,
     settings: Settings = Depends(get_settings),
-) -> ChatResponse:
+) -> StructuredResultResponse:
     """Generate a grounded chat response from retrieved legal chunks.
 
     The raw message is processed in memory and never written to any table.
@@ -58,12 +137,13 @@ async def chat(
     service = ChatService(settings)
 
     try:
-        return await service.generate_chat_response(
+        raw = await service.generate_chat_response(
             message=body.message,
             top_k=body.top_k,
             selected_category=body.selected_category,
             conversation=[t.model_dump() for t in body.conversation],
         )
+        return _to_payload_2(raw)
     except OllamaChatClientError:
         # Local Ollama chat model is unreachable or returned an invalid
         # response. Raw message is not echoed.

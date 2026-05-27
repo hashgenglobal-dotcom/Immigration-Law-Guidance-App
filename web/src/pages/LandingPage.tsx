@@ -81,6 +81,13 @@ const MOCK_CHAT = [
   },
 ] as const
 
+const CITATION_PROOF = {
+  question: 'Can I work while my asylum case is pending?',
+  answer:
+    'Yes, in many cases you may apply for work authorization after the required waiting period. SourcePath shows the governing citation so you can verify the rule directly.',
+  citations: ['8 CFR § 208.7', 'USCIS Policy Manual', 'Form I-765'],
+} as const
+
 const FEATURED_SCENARIOS = scenarioGuides.slice(0, 3)
 
 export default function LandingPage() {
@@ -105,6 +112,18 @@ export default function LandingPage() {
               <p className={styles.heroCategory}>{PRODUCT_CATEGORY}</p>
               <p className={styles.heroTagline}>{brand.tagline}</p>
               <p className={styles.heroSub}>{brand.description}</p>
+              <div className={styles.citationProof} aria-label="Cited answer preview">
+                <div className={styles.citationProofEyebrow}>Cited answer preview</div>
+                <div className={styles.citationProofQuestion}>Q: {CITATION_PROOF.question}</div>
+                <p className={styles.citationProofAnswer}>{CITATION_PROOF.answer}</p>
+                <div className={styles.citationProofRow}>
+                  {CITATION_PROOF.citations.map((citation) => (
+                    <span key={citation} className={styles.citationProofChip}>
+                      {citation}
+                    </span>
+                  ))}
+                </div>
+              </div>
               <div className={styles.heroCtas}>
                 <Link to="/chat" className={styles.ctaPrimary}>
                   Ask a question
