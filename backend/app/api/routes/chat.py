@@ -17,8 +17,11 @@ PRIVACY / SECURITY RULES (must not be loosened without team review):
 
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi import status as http_status
+from fastapi.responses import StreamingResponse
 
 from app.core.config import Settings, get_settings
 from app.schemas.chat import ChatRequest, ChatResponse
@@ -103,3 +106,67 @@ async def chat(
                 "privacy_mode": "local-first",
             },
         )
+
+
+@router.post(
+    "/api/chat/stream",
+    summary="Stream a grounded chat response (SSE)",
+    description=(
+        "Same privacy and grounding rules as POST /api/chat. Emits "
+        "text/event-stream events: token deltas while the local model "
+        "generates, then a final done event with the full ChatResponse JSON."
+    ),
+)
+async def chat_stream(
+    body: ChatRequest,
+    settings: Settings = Depends(get_settings),
+) -> StreamingResponse:
+    """Stream chat tokens then return the complete grounded response."""
+    service = ChatService(settings)
+
+    async def event_generator():
+        try:
+            async for event in service.stream_chat_events(
+                message=body.message,
+                top_k=body.top_k,
+                selected_category=body.selected_category,
+                conversation=[t.model_dump() for t in body.conversation],
+            ):
+                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+        except OllamaChatClientError:
+            err = {
+                "type": "error",
+                "error_code": "CHAT_MODEL_UNAVAILABLE",
+                "message": (
+                    "Local chat model is not available. "
+                    "Ensure Ollama is running: ollama serve"
+                ),
+            }
+            yield f"data: {json.dumps(err)}\n\n"
+        except EmbeddingClientError:
+            err = {
+                "type": "error",
+                "error_code": "CHAT_RETRIEVAL_UNAVAILABLE",
+                "message": (
+                    "Local embedding service is not available. "
+                    "Ensure Ollama is running: ollama serve"
+                ),
+            }
+            yield f"data: {json.dumps(err)}\n\n"
+        except Exception:
+            err = {
+                "type": "error",
+                "error_code": "CHAT_ERROR",
+                "message": "An internal error occurred during chat response generation.",
+            }
+            yield f"data: {json.dumps(err)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

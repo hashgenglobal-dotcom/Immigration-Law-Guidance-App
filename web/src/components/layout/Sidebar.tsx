@@ -1,5 +1,12 @@
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { brand } from '../../lib/brand'
+import {
+  CHAT_HISTORY_UPDATED_EVENT,
+  deleteSession,
+  getSessions,
+  type ChatSession,
+} from '../../lib/chatHistory'
 import styles from './Sidebar.module.css'
 
 const NAV_ITEMS = [
@@ -11,15 +18,40 @@ const NAV_ITEMS = [
   { label: 'About', to: '/about', icon: '○', end: false },
 ] as const
 
-const PLACEHOLDER_HISTORY = [
-  'F-1 status basics',
-  'Post-completion OPT',
-  'H-1B cap registration',
-  'Adjustment of status',
-]
-
 export default function Sidebar() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [sessions, setSessions] = useState<ChatSession[]>([])
+
+  const loadSessions = useCallback(() => {
+    setSessions(getSessions())
+  }, [])
+
+  useEffect(() => {
+    loadSessions()
+    const onStorage = () => loadSessions()
+    const onUpdated = () => loadSessions()
+    window.addEventListener('storage', onStorage)
+    window.addEventListener(CHAT_HISTORY_UPDATED_EVENT, onUpdated)
+    return () => {
+      window.removeEventListener('storage', onStorage)
+      window.removeEventListener(CHAT_HISTORY_UPDATED_EVENT, onUpdated)
+    }
+  }, [loadSessions])
+
+  const activeSessionId = useMemo(() => {
+    const params = new URLSearchParams(location.search)
+    return params.get('session')
+  }, [location.search])
+
+  const handleDelete = useCallback(
+    (sessionId: string) => {
+      deleteSession(sessionId)
+      if (activeSessionId === sessionId) navigate('/chat')
+      else loadSessions()
+    },
+    [activeSessionId, loadSessions, navigate],
+  )
 
   return (
     <aside className={styles.sidebar}>
@@ -50,17 +82,53 @@ export default function Sidebar() {
 
       <div className={styles.history}>
         <div className={styles.historyLabel}>Recent conversations</div>
-        {PLACEHOLDER_HISTORY.map((label) => (
+        {sessions.map((session) => (
           <div
-            key={label}
+            key={session.id}
             className={styles.historyItem}
-            title={label}
-            onClick={() => navigate('/chat')}
-            onKeyDown={(e) => e.key === 'Enter' && navigate('/chat')}
+            title={session.title}
             role="button"
             tabIndex={0}
+            onClick={() => navigate(`/chat?session=${encodeURIComponent(session.id)}`)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') navigate(`/chat?session=${encodeURIComponent(session.id)}`)
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              color: activeSessionId === session.id ? '#ffffff' : undefined,
+              background: activeSessionId === session.id ? 'rgba(255, 255, 255, 0.08)' : undefined,
+            }}
           >
-            {label}
+            <span
+              style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                paddingRight: 8,
+              }}
+            >
+              {session.title}
+            </span>
+            <button
+              type="button"
+              aria-label={`Delete conversation ${session.title}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleDelete(session.id)
+              }}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                color: 'rgba(255, 255, 255, 0.55)',
+                cursor: 'pointer',
+                fontSize: 13,
+                padding: '0 0 0 6px',
+              }}
+            >
+              ×
+            </button>
           </div>
         ))}
         <button type="button" className={styles.newChatBtn} onClick={() => navigate('/chat')}>

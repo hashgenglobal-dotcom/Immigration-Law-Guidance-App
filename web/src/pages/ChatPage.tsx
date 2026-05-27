@@ -1,7 +1,14 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import DashboardLayout from '../components/layout/DashboardLayout'
-import { buildAskConversationPayload, sendChatMessage } from '../lib/api'
+import {
+  buildAskConversationPayload,
+  hasStructuredSections,
+  parseFormattedAnswer,
+  sendChatMessagePreferStream,
+} from '../lib/api'
 import type { ChatCitation, ChatUsedChunk, ClarificationOption, ChatResponse } from '../lib/api'
+import { getSession, saveSession, type StoredTurn } from '../lib/chatHistory'
 import {
   CHAT_EMPTY_BODY,
   CHAT_EMPTY_TITLE,
@@ -15,10 +22,204 @@ type Turn =
   | { id: number; role: 'user'; text: string }
   | { id: number; role: 'assistant'; response: ChatResponse }
   | { id: number; role: 'assistant'; pending: true }
+  | { id: number; role: 'assistant'; streaming: { text: string } }
   | { id: number; role: 'assistant'; error: string }
 
 let _id = 0
 function nextId() { return ++_id }
+function nextSessionId() {
+  return `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+function buildSessionTitle(message: string): string {
+  const words = message.trim().split(/\s+/).filter(Boolean)
+  return words.slice(0, 5).join(' ') || 'New conversation'
+}
+
+function toStoredTurns(turns: Turn[]): StoredTurn[] {
+  const out: StoredTurn[] = []
+  for (const turn of turns) {
+    if (turn.role === 'user') out.push({ role: 'user', text: turn.text })
+    if ('response' in turn) out.push({ role: 'assistant', response: turn.response })
+    else if ('error' in turn) out.push({ role: 'assistant', error: turn.error })
+  }
+  return out
+}
+
+function hydrateSources(turns: Turn[]) {
+  const assistantWithResponse = [...turns]
+    .reverse()
+    .find((turn): turn is Extract<Turn, { role: 'assistant'; response: ChatResponse }> =>
+      turn.role === 'assistant' && 'response' in turn,
+    )
+  if (!assistantWithResponse || assistantWithResponse.response.status !== 'ok') {
+    return { citations: [] as ChatCitation[], chunks: [] as ChatUsedChunk[], hasResponse: false }
+  }
+  return {
+    citations: assistantWithResponse.response.citations,
+    chunks: assistantWithResponse.response.used_chunks,
+    hasResponse: true,
+  }
+}
+
+function citationTitle(c: ChatCitation): string {
+  if (c.topic?.trim()) {
+    return c.subtopic?.trim() ? `${c.topic} — ${c.subtopic}` : c.topic
+  }
+  return c.citation
+}
+
+function ChatSourceDetails({
+  privacyMode,
+  activeDataset,
+}: {
+  privacyMode: string
+  activeDataset?: string | null
+}) {
+  const [open, setOpen] = useState(false)
+  if (!privacyMode && !activeDataset) return null
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          border: 'none',
+          background: 'transparent',
+          color: 'var(--bronze)',
+          fontSize: 12,
+          fontWeight: 600,
+          cursor: 'pointer',
+          padding: '4px 0',
+        }}
+      >
+        {open ? '▲' : '▼'} Source details
+      </button>
+      {open ? (
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', paddingLeft: 8, lineHeight: 1.4 }}>
+          <div>Privacy: {privacyMode}</div>
+          {activeDataset ? <div>Datasets: {activeDataset}</div> : null}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function AssistantAnswerBody({ response }: { response: ChatResponse }) {
+  const [citationsOpen, setCitationsOpen] = useState(false)
+  const sections = hasStructuredSections(response.answer)
+    ? parseFormattedAnswer(response.answer)
+    : [{ title: 'Information', body: response.answer }]
+  const citationsMissing = response.citations.length === 0
+
+  return (
+    <>
+      <ChatSourceDetails
+        privacyMode={response.privacy_mode}
+        activeDataset={response.active_dataset}
+      />
+
+      {sections.map((section, index) => {
+        const isLead = section.title === 'Short answer'
+        const isCaution = section.title === 'Important caution'
+        if (isLead) {
+          return (
+            <p key={`${section.title}-${index}`} style={{ fontSize: 15, lineHeight: 1.55, margin: '0 0 10px' }}>
+              {section.body}
+            </p>
+          )
+        }
+        return (
+          <div key={`${section.title}-${index}`} style={{ marginBottom: 10 }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                color: isCaution ? 'var(--navy)' : 'var(--bronze)',
+                marginBottom: 4,
+              }}
+            >
+              {section.title}
+            </div>
+            <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>{section.body}</p>
+          </div>
+        )
+      })}
+
+      {response.mvp_sources.length > 0 ? (
+        <div className={styles.answerMeta}>Searched: {response.mvp_sources.join(' · ')}</div>
+      ) : null}
+
+      {response.citations.length > 0 ? (
+        <div style={{ marginTop: 10 }}>
+          <button
+            type="button"
+            onClick={() => setCitationsOpen((v) => !v)}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--bronze)',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              padding: '4px 0',
+            }}
+          >
+            {citationsOpen ? '▲' : '▼'} Official source links ({response.citations.length})
+          </button>
+          {citationsOpen
+            ? response.citations.map((c, i) => (
+                <div
+                  key={`${c.citation}-${i}`}
+                  style={{
+                    marginTop: 8,
+                    padding: '8px 10px',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    borderLeft: '3px solid var(--bronze)',
+                    borderRadius: 8,
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{citationTitle(c)}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                    {[c.citation, c.risk_level].filter(Boolean).join(' · ')}
+                  </div>
+                  {c.official_url ? (
+                    <a
+                      href={c.official_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.citationUrl}
+                    >
+                      View source ↗
+                    </a>
+                  ) : (
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      Official link not available
+                    </span>
+                  )}
+                </div>
+              ))
+            : null}
+        </div>
+      ) : citationsMissing ? (
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', marginTop: 8 }}>
+          No official citations were returned for this answer. Verify details using primary government
+          sources or a qualified immigration attorney.
+        </p>
+      ) : null}
+
+      <div className={styles.answerFooter}>
+        <p className={styles.answerMoat}>{PRODUCT_MOAT_LINE}</p>
+        <p className={styles.answerLegal}>
+          {response.disclaimer || PRODUCT_LEGAL_LINE}
+        </p>
+      </div>
+    </>
+  )
+}
 
 const SUGGESTED_QUESTIONS = [
   'How do I apply for an EAD as an asylum applicant?',
@@ -181,6 +382,7 @@ function SourcesPanel({ citations, chunks, loading, hasResponse }: SourcesPanelP
 }
 
 export default function ChatPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [turns, setTurns] = useState<Turn[]>([])
   const [draft, setDraft] = useState('')
   const [loading, setLoading] = useState(false)
@@ -190,6 +392,57 @@ export default function ChatPage() {
   const [hasLatestResponse, setHasLatestResponse] = useState(false)
   const [pendingCategory, setPendingCategory] = useState<{ original: string } | null>(null)
   const messagesRef = useRef<HTMLDivElement>(null)
+  /** Synchronous session id — avoids duplicate creates before React state commits. */
+  const activeSessionIdRef = useRef<string | null>(null)
+  const sessionTitleRef = useRef<string | null>(null)
+  /** Skip one hydrate when we just created the session in submit (URL sync). */
+  const skipSessionHydrateRef = useRef(false)
+
+  const clearConversationState = useCallback(() => {
+    setTurns([])
+    setDraft('')
+    setLatestCitations([])
+    setLatestChunks([])
+    setSourcesLoading(false)
+    setHasLatestResponse(false)
+    setPendingCategory(null)
+    activeSessionIdRef.current = null
+    sessionTitleRef.current = null
+  }, [])
+
+  useEffect(() => {
+    const sessionId = searchParams.get('session')
+    if (!sessionId) {
+      clearConversationState()
+      return
+    }
+    if (skipSessionHydrateRef.current) {
+      skipSessionHydrateRef.current = false
+      activeSessionIdRef.current = sessionId
+      return
+    }
+    const session = getSession(sessionId)
+    if (!session) {
+      clearConversationState()
+      return
+    }
+    const loadedTurns: Turn[] = session.turns.map((turn) => {
+      if (turn.role === 'user') return { id: nextId(), role: 'user' as const, text: turn.text }
+      if ('response' in turn) {
+        return { id: nextId(), role: 'assistant' as const, response: turn.response } as const
+      }
+      return { id: nextId(), role: 'assistant' as const, error: turn.error } as const
+    })
+    const sourceState = hydrateSources(loadedTurns)
+    setTurns(loadedTurns)
+    activeSessionIdRef.current = session.id
+    sessionTitleRef.current = session.title
+    setLatestCitations(sourceState.citations)
+    setLatestChunks(sourceState.chunks)
+    setHasLatestResponse(sourceState.hasResponse)
+    setSourcesLoading(false)
+    setPendingCategory(null)
+  }, [clearConversationState, searchParams])
 
   const scrollToBottom = useCallback(() => {
     // Double rAF ensures React has flushed and the DOM is painted before scrolling.
@@ -212,7 +465,8 @@ export default function ChatPage() {
       const text = message.trim()
       if (!text || loading) return
 
-      const conversation = buildAskConversationPayload(priorTurns ?? turns)
+      const baseTurns = priorTurns ?? turns
+      const conversation = buildAskConversationPayload(baseTurns)
 
       // Clear stale sources immediately so the panel never shows data from a
       // previous answer while a new request is in flight.
@@ -223,59 +477,103 @@ export default function ChatPage() {
       const userLabel = displayText?.trim() || text
       const userTurn: Turn = { id: nextId(), role: 'user', text: userLabel }
       const pendingId = nextId()
-
-      setTurns((prev) => [
-        ...prev,
+      const optimisticTurns: Turn[] = [
+        ...baseTurns,
         userTurn,
         { id: pendingId, role: 'assistant', pending: true },
-      ])
+      ]
+      setTurns(optimisticTurns)
+
+      const resolveSessionId = (): string => {
+        if (activeSessionIdRef.current) return activeSessionIdRef.current
+        const fromUrl = searchParams.get('session')
+        if (fromUrl) {
+          activeSessionIdRef.current = fromUrl
+          return fromUrl
+        }
+        const newId = nextSessionId()
+        activeSessionIdRef.current = newId
+        sessionTitleRef.current = buildSessionTitle(text)
+        skipSessionHydrateRef.current = true
+        const params = new URLSearchParams(searchParams)
+        params.set('session', newId)
+        setSearchParams(params, { replace: true })
+        return newId
+      }
+
+      const sessionId = resolveSessionId()
+
+      const persistTurns = (nextTurns: Turn[]) => {
+        const existing = getSession(sessionId)
+        const title =
+          sessionTitleRef.current ?? existing?.title ?? buildSessionTitle(text)
+        if (!sessionTitleRef.current) sessionTitleRef.current = title
+        saveSession({
+          id: sessionId,
+          title,
+          updatedAt: Date.now(),
+          turns: toStoredTurns(nextTurns),
+        })
+      }
+
+      persistTurns(optimisticTurns)
       setLoading(true)
       scrollToBottom()
 
       try {
-        const response = await sendChatMessage({
+        const chatReq = {
           message: text,
           top_k: 5,
           selected_category: category ?? null,
           ...(conversation.length > 0 ? { conversation } : {}),
+        }
+
+        const response = await sendChatMessagePreferStream(chatReq, (accumulated) => {
+          setTurns((prev) =>
+            prev.map((t) => {
+              if (t.id !== pendingId || t.role !== 'assistant') return t
+              if ('pending' in t || 'streaming' in t) {
+                return { id: pendingId, role: 'assistant' as const, streaming: { text: accumulated } }
+              }
+              return t
+            }),
+          )
         })
 
         if (response.status === 'needs_clarification') {
           // Clarification responses have no usable citations — leave panel empty.
           setPendingCategory({ original: text })
-          setTurns((prev) =>
-            prev.map((t) =>
-              t.id === pendingId ? { id: pendingId, role: 'assistant', response } : t,
-            ),
+          const nextTurns: Turn[] = optimisticTurns.map((t) =>
+            t.id === pendingId ? { id: pendingId, role: 'assistant' as const, response } : t,
           )
+          setTurns(nextTurns)
+          persistTurns(nextTurns)
         } else {
           setPendingCategory(null)
           setHasLatestResponse(true)
           setLatestCitations(response.citations)
           setLatestChunks(response.used_chunks)
-          setTurns((prev) =>
-            prev.map((t) =>
-              t.id === pendingId ? { id: pendingId, role: 'assistant', response } : t,
-            ),
+          const nextTurns: Turn[] = optimisticTurns.map((t) =>
+            t.id === pendingId ? { id: pendingId, role: 'assistant' as const, response } : t,
           )
+          setTurns(nextTurns)
+          persistTurns(nextTurns)
         }
       } catch (err) {
         setPendingCategory(null)
         const msg = err instanceof Error ? err.message : 'An unexpected error occurred.'
-        setTurns((prev) =>
-          prev.map((t) =>
-            t.id === pendingId
-              ? { id: pendingId, role: 'assistant', error: msg }
-              : t,
-          ),
+        const nextTurns: Turn[] = optimisticTurns.map((t) =>
+          t.id === pendingId ? { id: pendingId, role: 'assistant' as const, error: msg } : t,
         )
+        setTurns(nextTurns)
+        persistTurns(nextTurns)
       } finally {
         setLoading(false)
         setSourcesLoading(false)
         scrollToBottom()
       }
     },
-    [loading, scrollToBottom, turns],
+    [loading, scrollToBottom, searchParams, setSearchParams, turns],
   )
 
   const handleSend = useCallback(() => {
@@ -306,14 +604,9 @@ export default function ChatPage() {
   )
 
   const handleNewConversation = useCallback(() => {
-    setTurns([])
-    setDraft('')
-    setLatestCitations([])
-    setLatestChunks([])
-    setSourcesLoading(false)
-    setHasLatestResponse(false)
-    setPendingCategory(null)
-  }, [])
+    setSearchParams({}, { replace: true })
+    clearConversationState()
+  }, [clearConversationState, setSearchParams])
 
   return (
     <DashboardLayout
@@ -384,6 +677,21 @@ export default function ChatPage() {
                 </div>
               )
             }
+            if ('streaming' in turn) {
+              return (
+                <div key={turn.id} className={`${styles.messageBubble} ${styles.assistant}`}>
+                  <div className={styles.roleLabel}>Assistant</div>
+                  <div className={styles.bubble}>
+                    <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>
+                      {turn.streaming.text || ' '}
+                    </p>
+                    <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      Reading official sources…
+                    </p>
+                  </div>
+                </div>
+              )
+            }
             if ('error' in turn) {
               return (
                 <div key={turn.id} className={`${styles.messageBubble} ${styles.assistant}`}>
@@ -443,25 +751,7 @@ export default function ChatPage() {
                   <span className={styles.privacyBadge}>{response.privacy_mode}</span>
                 </div>
                 <div className={styles.bubble}>
-                  <p style={{ whiteSpace: 'pre-wrap' }}>{response.answer}</p>
-                  {response.mvp_sources.length > 0 && (
-                    <div className={styles.answerMeta}>
-                      Searched: {response.mvp_sources.join(' · ')}
-                    </div>
-                  )}
-                  {response.citations.length > 0 && (
-                    <div className={styles.citationRow}>
-                      {response.citations.map((c, i) => (
-                        <span key={`${i}-${c.citation}`} className={styles.citationChip}>
-                          {c.citation}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className={styles.answerFooter}>
-                    <p className={styles.answerMoat}>{PRODUCT_MOAT_LINE}</p>
-                    <p className={styles.answerLegal}>{PRODUCT_LEGAL_LINE}</p>
-                  </div>
+                  <AssistantAnswerBody response={response} />
                 </div>
               </div>
             )
