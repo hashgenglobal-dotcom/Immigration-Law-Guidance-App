@@ -1,6 +1,6 @@
 import { CHAT_REQUEST_TIMEOUT_MS, getApiBaseUrl } from '@/constants/api'
 import type { ConversationTurnPayload } from '@/lib/askConversationPayload'
-import type { ChatAssistantContent, ChatClarificationContent, ChatResponse } from '@/types/chat'
+import type { ChatAssistantContent, ChatResponse } from '@/types/chat'
 
 export type ChatApiErrorCode = 'offline' | 'timeout' | 'http' | 'empty' | 'parse'
 
@@ -21,10 +21,6 @@ const EMPTY_ANSWER_MESSAGE =
   'No answer was returned. Please try again or consult official sources and a qualified immigration attorney.'
 const GENERIC_HTTP_MESSAGE =
   'The guidance service could not complete your request. Please try again later.'
-
-function isOkStatus(status: string | undefined): boolean {
-  return status === 'ok' || status === 'success' || status === 'needs_clarification'
-}
 
 function parseErrorDetail(body: unknown): string | null {
   if (!body || typeof body !== 'object') return null
@@ -91,36 +87,25 @@ export async function sendChatMessage(
   }
 
   const data = body as ChatResponse
-  if (!isOkStatus(data.status)) {
-    throw new ChatApiError('http', GENERIC_HTTP_MESSAGE)
+  if (data.ui_mode !== 'result') {
+    throw new ChatApiError('parse', GENERIC_HTTP_MESSAGE)
   }
 
-  if (data.status !== 'needs_clarification' && !data.answer?.trim()) {
+  if (!data.short_answer?.trim()) {
     throw new ChatApiError('empty', EMPTY_ANSWER_MESSAGE)
   }
 
   return data
 }
 
-export function toClarificationContent(data: ChatResponse): ChatClarificationContent {
-  const options = Array.isArray(data.options) ? data.options : []
-  return {
-    answer: data.answer?.trim() || '',
-    clarifyingQuestion: data.clarifying_question?.trim() || 'Which category best matches you?',
-    options,
-    disclaimer: data.disclaimer?.trim() || '',
-    privacyMode: data.privacy_mode || 'local-first',
-  }
-}
-
 export function toAssistantContent(data: ChatResponse): ChatAssistantContent {
   const citations = Array.isArray(data.citations) ? data.citations : []
   return {
-    answer: data.answer.trim(),
+    shortAnswer: data.short_answer?.trim() || '',
+    eligibilityChecklist: Array.isArray(data.eligibility_checklist) ? data.eligibility_checklist : [],
+    nextSteps: Array.isArray(data.next_steps) ? data.next_steps : [],
     citations,
     disclaimer: data.disclaimer?.trim() || '',
-    privacyMode: data.privacy_mode || 'local-first',
-    activeDataset: data.active_dataset ?? null,
     citationsMissing: citations.length === 0,
   }
 }
