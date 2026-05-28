@@ -49,7 +49,7 @@ class Settings(BaseSettings):
         validation_alias="APP_ENV",
     )
     app_debug: bool = Field(
-        default=True,
+        default=False,
         validation_alias="APP_DEBUG",
     )
 
