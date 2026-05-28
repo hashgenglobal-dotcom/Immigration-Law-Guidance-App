@@ -274,5 +274,241 @@ class RetrievalScoringTests(unittest.TestCase):
         self.assertGreater(n400_boost, unrelated_boost)
 
 
+    # --- Criminal inadmissibility scoring ---
+
+    def test_criminal_inadmissibility_boosts_212a2_chunk(self) -> None:
+        query = (
+            "INA 212(a)(2) criminal grounds of inadmissibility crimes involving moral turpitude "
+            "CIMT aggravated felony controlled substance violation conviction DUI immigration bar"
+        )
+        boost = compute_relevance_boost(
+            query,
+            citation="8 U.S.C. § 1182(a)(2)",
+            topic="criminal inadmissibility",
+            subtopic=None,
+            snippet="A person is inadmissible if convicted of a crime involving moral turpitude. 212(a)(2)",
+        )
+        self.assertGreater(boost, 0.015)
+
+    def test_criminal_inadmissibility_boosts_cimt_chunk(self) -> None:
+        query = (
+            "INA 212(a)(2) criminal grounds of inadmissibility crimes involving moral turpitude "
+            "CIMT aggravated felony controlled substance violation conviction DUI immigration bar"
+        )
+        boost = compute_relevance_boost(
+            query,
+            citation="USCIS Policy Manual — Criminal Grounds",
+            topic="crimes involving moral turpitude",
+            subtopic=None,
+            snippet="Crimes involving moral turpitude (CIMT) are a basis for inadmissibility under INA 212(a)(2).",
+        )
+        self.assertGreater(boost, 0.01)
+
+    def test_criminal_inadmissibility_penalizes_public_charge_chunk(self) -> None:
+        query = (
+            "INA 212(a)(2) criminal grounds of inadmissibility crimes involving moral turpitude "
+            "CIMT aggravated felony controlled substance violation conviction DUI immigration bar"
+        )
+        boost = compute_relevance_boost(
+            query,
+            citation="8 U.S.C. § 1182(a)(4)",
+            topic="public charge",
+            subtopic=None,
+            snippet="An applicant is inadmissible if likely to become a public charge. 212(a)(4).",
+        )
+        self.assertLess(boost, 0)
+
+    def test_criminal_inadmissibility_penalizes_special_immigrant_chunk(self) -> None:
+        query = (
+            "INA 212(a)(2) criminal grounds of inadmissibility crimes involving moral turpitude "
+            "CIMT aggravated felony controlled substance violation conviction DUI immigration bar"
+        )
+        boost = compute_relevance_boost(
+            query,
+            citation="INA § 101(a)(27)",
+            topic="special immigrant",
+            subtopic=None,
+            snippet="Special immigrants include certain religious workers under INA 101(a)(27).",
+        )
+        self.assertLess(boost, 0)
+
+    def test_criminal_inadmissibility_212a2_outranks_public_charge(self) -> None:
+        query = (
+            "INA 212(a)(2) criminal grounds of inadmissibility crimes involving moral turpitude "
+            "CIMT aggravated felony controlled substance violation conviction DUI immigration bar"
+        )
+        criminal_boost = compute_relevance_boost(
+            query,
+            citation="8 U.S.C. § 1182(a)(2)",
+            topic="criminal inadmissibility",
+            subtopic=None,
+            snippet="Criminal grounds of inadmissibility under 212(a)(2) include CIMT and aggravated felony.",
+        )
+        public_charge_boost = compute_relevance_boost(
+            query,
+            citation="8 U.S.C. § 1182(a)(4)",
+            topic="public charge",
+            subtopic=None,
+            snippet="Public charge inadmissibility under 212(a)(4).",
+        )
+        self.assertGreater(criminal_boost, public_charge_boost)
+
+    # --- Criminal deportability scoring ---
+
+    def test_criminal_deportability_boosts_237a2_chunk(self) -> None:
+        query = (
+            "INA 237(a)(2) criminal grounds of deportability aggravated felony crimes involving "
+            "moral turpitude conviction removal deportation criminal record"
+        )
+        boost = compute_relevance_boost(
+            query,
+            citation="8 U.S.C. § 1227(a)(2)",
+            topic="criminal deportability",
+            subtopic=None,
+            snippet="An alien is deportable under INA 237(a)(2) if convicted of an aggravated felony.",
+        )
+        self.assertGreater(boost, 0.015)
+
+    def test_criminal_deportability_penalizes_public_charge_chunk(self) -> None:
+        query = (
+            "INA 237(a)(2) criminal grounds of deportability aggravated felony crimes involving "
+            "moral turpitude conviction removal deportation criminal record"
+        )
+        boost = compute_relevance_boost(
+            query,
+            citation="8 U.S.C. § 1182(a)(4)",
+            topic="public charge",
+            subtopic=None,
+            snippet="Public charge ground. 212(a)(4).",
+        )
+        self.assertLess(boost, 0)
+
+    def test_criminal_deportability_237a2_outranks_public_charge(self) -> None:
+        query = (
+            "INA 237(a)(2) criminal grounds of deportability aggravated felony crimes involving "
+            "moral turpitude conviction removal deportation criminal record"
+        )
+        deportability_boost = compute_relevance_boost(
+            query,
+            citation="8 U.S.C. § 1227(a)(2)",
+            topic="criminal deportability",
+            subtopic=None,
+            snippet="Deportable aliens include those convicted under 237(a)(2) aggravated felony.",
+        )
+        public_charge_boost = compute_relevance_boost(
+            query,
+            citation="8 U.S.C. § 1182(a)(4)",
+            topic="public charge",
+            subtopic=None,
+            snippet="Public charge ground 212(a)(4).",
+        )
+        self.assertGreater(deportability_boost, public_charge_boost)
+
+    # --- Naturalization/GMC chunk penalty for criminal inadmissibility queries ---
+
+    def test_criminal_inadmissibility_penalizes_naturalization_gmc_chunk(self) -> None:
+        # A 8 CFR 316.x chunk about naturalization good moral character should be penalized
+        # for a criminal inadmissibility query — it covers citizenship eligibility, not 212(a)(2) bars.
+        query = (
+            "INA 212(a)(2) 8 U.S.C. 1182(a)(2) criminal grounds of inadmissibility crimes involving "
+            "moral turpitude CIMT controlled substance violation multiple criminal convictions "
+            "trafficking aggravated felony conviction inadmissibility bar"
+        )
+        boost = compute_relevance_boost(
+            query,
+            citation="8 CFR § 316.10",
+            topic="naturalization",
+            subtopic="good moral character",
+            snippet="Good moral character is required for naturalization under 8 CFR 316.10.",
+        )
+        self.assertLess(boost, 0)
+
+    def test_criminal_inadmissibility_naturalization_chunk_outranked_by_212a2_chunk(self) -> None:
+        query = (
+            "INA 212(a)(2) 8 U.S.C. 1182(a)(2) criminal grounds of inadmissibility crimes involving "
+            "moral turpitude CIMT controlled substance violation multiple criminal convictions "
+            "trafficking aggravated felony conviction inadmissibility bar"
+        )
+        criminal_boost = compute_relevance_boost(
+            query,
+            citation="8 U.S.C. § 1182(a)(2)",
+            topic="criminal inadmissibility",
+            subtopic=None,
+            snippet="Criminal grounds of inadmissibility include CIMT and aggravated felony. 212(a)(2)",
+        )
+        nat_boost = compute_relevance_boost(
+            query,
+            citation="8 CFR § 316.10",
+            topic="naturalization",
+            subtopic="good moral character",
+            snippet="Good moral character for naturalization purposes under 8 CFR 316.10.",
+        )
+        self.assertGreater(criminal_boost, nat_boost)
+
+    def test_naturalization_query_no_penalty_for_naturalization_chunk(self) -> None:
+        # When the query explicitly asks about naturalization, the penalty must NOT apply.
+        boost = compute_relevance_boost(
+            "Naturalization Form N-400 continuous residence physical presence good moral character",
+            citation="8 CFR § 316.10",
+            topic="naturalization",
+            subtopic="good moral character",
+            snippet="Good moral character for naturalization under 8 CFR 316.10.",
+        )
+        self.assertGreaterEqual(boost, 0)
+
+    # --- Asylum-eligibility chunk penalty for criminal deportability queries ---
+
+    def test_criminal_deportability_penalizes_asylum_filing_chunk(self) -> None:
+        # An 8 CFR 208.3 (asylum application procedure) chunk should be penalized for
+        # a criminal deportability query — it's about how to apply for asylum, not 237(a)(2).
+        query = (
+            "INA 237(a)(2) 8 U.S.C. 1227(a)(2) criminal grounds of deportability aggravated felony "
+            "crimes involving moral turpitude controlled substance domestic violence firearms "
+            "conviction removal deportation"
+        )
+        boost = compute_relevance_boost(
+            query,
+            citation="8 CFR § 208.3",
+            topic="asylum",
+            subtopic="application procedure",
+            snippet="Applications for asylum must be filed on Form I-589 within one year of arrival.",
+        )
+        self.assertLess(boost, 0)
+
+    def test_criminal_deportability_237a2_outranks_asylum_filing_chunk(self) -> None:
+        query = (
+            "INA 237(a)(2) 8 U.S.C. 1227(a)(2) criminal grounds of deportability aggravated felony "
+            "crimes involving moral turpitude controlled substance domestic violence firearms "
+            "conviction removal deportation"
+        )
+        deportability_boost = compute_relevance_boost(
+            query,
+            citation="8 U.S.C. § 1227(a)(2)",
+            topic="criminal deportability",
+            subtopic=None,
+            snippet="An alien is deportable under 237(a)(2) if convicted of an aggravated felony.",
+        )
+        asylum_boost = compute_relevance_boost(
+            query,
+            citation="8 CFR § 208.3",
+            topic="asylum",
+            subtopic="application procedure",
+            snippet="Applications for asylum must be filed on Form I-589 within one year.",
+        )
+        self.assertGreater(deportability_boost, asylum_boost)
+
+    def test_unrelated_query_no_criminal_boost(self) -> None:
+        # A non-criminal query should not get the criminal inadmissibility boost.
+        boost = compute_relevance_boost(
+            "How do I apply for an EAD as an asylum applicant?",
+            citation="8 U.S.C. § 1182(a)(2)",
+            topic="criminal inadmissibility",
+            subtopic=None,
+            snippet="Criminal grounds of inadmissibility under 212(a)(2).",
+        )
+        # Should not be substantially boosted — no criminal inadmissibility context in query.
+        self.assertLess(boost, 0.015)
+
+
 if __name__ == "__main__":
     unittest.main()

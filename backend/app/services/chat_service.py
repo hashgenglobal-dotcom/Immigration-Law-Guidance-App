@@ -35,6 +35,8 @@ from app.services.message_classifier import (
 from app.services.answer_formatting import (
     build_format_system_addon,
     ensure_structured_answer,
+    is_criminal_info_query,
+    is_dui_info_query,
     is_high_risk_topic,
     retrieval_looks_weak,
 )
@@ -81,6 +83,38 @@ _MEMORY_STYLE = (
     "- Use prior turns only to interpret short follow-ups (for example, documents or next steps).\n"
     "- If the current question is a new topic, ignore earlier topics and answer the new question.\n"
     "- Stay specific: do not give a general survey when a narrow answer is enough.\n"
+)
+
+_DUI_SAFE_ANSWER = (
+    "Short answer:\n"
+    "Whether a DUI or DWI conviction affects immigration depends on the specific facts of the "
+    "offense and the individual's immigration situation. No general rule classifies a DUI as a "
+    "specific ground of inadmissibility or deportability — the analysis is always fact-specific.\n\n"
+    "What this means:\n"
+    "The immigration consequences of a DUI depend on many factors: the specific statute of "
+    "conviction, whether controlled substances or injury to another person were involved, the "
+    "sentence imposed, whether it is a repeat offense, the person's current immigration status, "
+    "and which immigration benefit is being sought. Different immigration pathways — such as "
+    "adjustment of status, a nonimmigrant visa, or naturalization — involve different standards "
+    "and discretionary factors. A DUI is not automatically classified as any specific immigration "
+    "bar without a case-specific legal analysis.\n\n"
+    "Typical next steps:\n"
+    "1. You may wish to speak with a qualified immigration attorney who can review the specific "
+    "offense, conviction record, sentence imposed, and immigration history.\n"
+    "2. You may also wish to consult a qualified criminal defense attorney, as post-conviction "
+    "relief, record treatment, or expungement under state law can affect the immigration analysis.\n"
+    "3. You may want to review the official sources on criminal grounds of inadmissibility "
+    "(INA § 212(a)(2)) and deportability (INA § 237(a)(2)) with the guidance of qualified counsel.\n\n"
+    "Official sources:\n"
+    "INA § 212(a)(2) — 8 U.S.C. § 1182(a)(2) (Criminal grounds of inadmissibility)\n"
+    "INA § 237(a)(2) — 8 U.S.C. § 1227(a)(2) (Criminal grounds of deportability)\n\n"
+    "Important caution:\n"
+    "Whether a DUI constitutes a ground of inadmissibility or deportability under U.S. immigration "
+    "law — including whether it may or may not involve moral turpitude, a controlled substance, or "
+    "any other defined category — depends entirely on the specific facts of the offense and the "
+    "individual case. This is general information only, not legal advice, and does not create an "
+    "attorney-client relationship. Consequences cannot be determined without a case-specific "
+    "evaluation by a qualified immigration attorney."
 )
 
 _NO_RESULTS_ANSWER = (
@@ -203,6 +237,64 @@ class ChatService:
                 used_chunks=[],
             )
 
+        # DUI informational questions: prebuilt safe answer, no retrieval or LLM needed.
+        # classify_message already handles action-seeking DUI messages via criminal_warning.
+        # used_chunks is populated so _to_payload_2 in the route layer can derive LegalCitation
+        # entries for StructuredResultResponse (it reads used_chunks, not citations).
+        if is_dui_info_query(message):
+            return ChatResponse(
+                query_hash=query_hash,
+                answer=_DUI_SAFE_ANSWER,
+                citations=[],
+                disclaimer=_DISCLAIMER,
+                active_dataset=None,
+                active_datasets=[],
+                mvp_sources=[],
+                used_chunks=[
+                    ChatUsedChunk(
+                        rank=1,
+                        chunk_id=0,
+                        citation="INA § 212(a)(2) — 8 U.S.C. § 1182(a)(2)",
+                        official_url=None,
+                        topic="Criminal Grounds of Inadmissibility",
+                        subtopic=None,
+                        risk_level="high",
+                        hybrid_score=1.0,
+                        snippet=(
+                            "Criminal grounds of inadmissibility under the Immigration and Nationality "
+                            "Act. A noncitizen may be found inadmissible based on conviction or "
+                            "admission of certain crimes, including crimes involving moral turpitude, "
+                            "controlled substance violations, and aggravated felonies, among others. "
+                            "Whether a specific offense constitutes a ground of inadmissibility is a "
+                            "fact-specific, case-by-case determination."
+                        ),
+                        dataset_version=None,
+                        source_family=None,
+                    ),
+                    ChatUsedChunk(
+                        rank=2,
+                        chunk_id=0,
+                        citation="INA § 237(a)(2) — 8 U.S.C. § 1227(a)(2)",
+                        official_url=None,
+                        topic="Criminal Grounds of Deportability",
+                        subtopic=None,
+                        risk_level="high",
+                        hybrid_score=1.0,
+                        snippet=(
+                            "Criminal grounds of deportability under the Immigration and Nationality "
+                            "Act. A noncitizen who has been admitted may be found deportable based on "
+                            "conviction of certain crimes after entry, including crimes involving moral "
+                            "turpitude, aggravated felonies, controlled substance offenses, domestic "
+                            "violence offenses, and firearms offenses, among others. Whether a specific "
+                            "offense constitutes a ground of deportability is a fact-specific, "
+                            "case-by-case determination."
+                        ),
+                        dataset_version=None,
+                        source_family=None,
+                    ),
+                ],
+            )
+
         if selected_category and not is_valid_category_value(selected_category):
             selected_category = None
 
@@ -243,6 +335,7 @@ class ChatService:
 
         high_risk = is_high_risk_topic(message, results)
         weak_sources = retrieval_looks_weak(results)
+        criminal_info = is_criminal_info_query(message)
 
         messages = self._build_messages(
             message,
@@ -251,6 +344,7 @@ class ChatService:
             conversation=thread if use_memory else None,
             high_risk=high_risk,
             weak_sources=weak_sources,
+            criminal_info=criminal_info,
         )
 
         raw_answer = await self._chat_client.generate_chat_response(
@@ -285,6 +379,7 @@ class ChatService:
         conversation: list | None = None,
         high_risk: bool = False,
         weak_sources: bool = False,
+        criminal_info: bool = False,
     ) -> list[dict[str, str]]:
         """Build the Ollama messages list from the user message and retrieved chunks.
 
@@ -320,6 +415,7 @@ class ChatService:
             high_risk=high_risk,
             weak_sources=weak_sources,
             selected_category=selected_category,
+            criminal_info=criminal_info,
         )
         memory_addon = f"\n\n{_MEMORY_STYLE}" if conversation else ""
         return [
