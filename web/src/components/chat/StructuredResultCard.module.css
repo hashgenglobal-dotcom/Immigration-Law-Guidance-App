@@ -1,0 +1,195 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.shortAnswer {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bronze-tint);
+  padding: 16px;
+}
+
+.shortAnswerInner {
+  border-left: 4px solid var(--bronze);
+  padding-left: 12px;
+}
+
+.shortAnswerLabel {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bronze);
+}
+
+.shortAnswerText {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--navy);
+}
+
+.section {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+  background: var(--surface);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.listItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.checkIcon {
+  margin-top: 2px;
+  flex-shrink: 0;
+  color: var(--bronze);
+}
+
+.steps {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stepRow {
+  display: flex;
+  gap: 12px;
+}
+
+.stepBadge {
+  display: flex;
+  height: 24px;
+  width: 24px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--navy);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--on-navy);
+}
+
+.stepText {
+  padding-top: 2px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.citationsToggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+}
+
+.citationsTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.citationsMeta {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.citationsList {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.citationCard {
+  border-radius: var(--radius);
+  border: 1px solid var(--border-light);
+  padding: 12px;
+  background: var(--bg);
+}
+
+.citationHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.citationTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.citationLink {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--bronze);
+  text-decoration: none;
+}
+
+.citationLink:hover {
+  color: var(--bronze-hover);
+  text-decoration: underline;
+}
+
+.snippet {
+  margin-top: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bronze-tint);
+  padding: 8px;
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.emptyCitations {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.disclaimer {
+  padding: 12px;
+  border-radius: var(--radius);
+  border-left: 3px solid var(--bronze);
+  background: var(--bronze-tint);
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--navy);
+}
