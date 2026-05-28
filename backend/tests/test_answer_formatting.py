@@ -9,6 +9,8 @@ from app.services.answer_formatting import (
     build_format_system_addon,
     ensure_structured_answer,
     has_required_sections,
+    is_criminal_info_query,
+    is_dui_info_query,
     is_high_risk_topic,
     normalize_section_headers,
     retrieval_looks_weak,
@@ -149,6 +151,70 @@ class AnswerFormattingTests(unittest.TestCase):
             self.assertLessEqual(out.lower().count(header), 1, f"Duplicate header: {header}")
 
 
+class CriminalInfoQueryDetectionTests(unittest.TestCase):
+    """is_criminal_info_query correctly identifies criminal immigration info questions."""
+
+    def test_dui_affect_immigration_is_criminal_info(self) -> None:
+        self.assertTrue(is_criminal_info_query("Can a DUI affect immigration?"))
+
+    def test_criminal_inadmissibility_is_criminal_info(self) -> None:
+        self.assertTrue(is_criminal_info_query("What is criminal inadmissibility?"))
+
+    def test_criminal_deportability_is_criminal_info(self) -> None:
+        self.assertTrue(is_criminal_info_query("What is criminal deportability?"))
+
+    def test_conviction_affect_green_card_is_criminal_info(self) -> None:
+        self.assertTrue(is_criminal_info_query("Can a criminal conviction affect my green card?"))
+
+    def test_what_crimes_make_inadmissible_is_criminal_info(self) -> None:
+        self.assertTrue(is_criminal_info_query("What crimes can make someone inadmissible?"))
+
+    def test_moral_turpitude_is_criminal_info(self) -> None:
+        self.assertTrue(is_criminal_info_query("What is a crime involving moral turpitude?"))
+
+    def test_dui_make_inadmissible_is_criminal_info(self) -> None:
+        self.assertTrue(is_criminal_info_query("Can a DUI conviction make someone inadmissible?"))
+
+    def test_ead_question_is_not_criminal_info(self) -> None:
+        self.assertFalse(is_criminal_info_query("How do I apply for an EAD?"))
+
+    def test_naturalization_requirements_is_not_criminal_info(self) -> None:
+        self.assertFalse(is_criminal_info_query("What are the requirements for naturalization?"))
+
+    def test_i485_travel_is_not_criminal_info(self) -> None:
+        self.assertFalse(is_criminal_info_query("Can I travel while my I-485 is pending?"))
+
+
+class CriminalInfoAddonTests(unittest.TestCase):
+    """build_format_system_addon with criminal_info=True includes DUI/offense-specific caution."""
+
+    def test_criminal_info_addon_warns_against_dui_as_aggravated_felony(self) -> None:
+        addon = build_format_system_addon(
+            high_risk=False, weak_sources=False, selected_category=None, criminal_info=True
+        )
+        self.assertIn("CRIMINAL IMMIGRATION GROUNDS", addon)
+        self.assertIn("DUI", addon)
+        self.assertIn("aggravated felony", addon.lower())
+
+    def test_criminal_info_addon_requires_hedged_language(self) -> None:
+        addon = build_format_system_addon(
+            high_risk=False, weak_sources=False, selected_category=None, criminal_info=True
+        )
+        self.assertIn("may constitute", addon)
+
+    def test_criminal_info_addon_recommends_attorney(self) -> None:
+        addon = build_format_system_addon(
+            high_risk=False, weak_sources=False, selected_category=None, criminal_info=True
+        )
+        self.assertIn("immigration attorney", addon.lower())
+
+    def test_no_criminal_info_flag_omits_caution(self) -> None:
+        addon = build_format_system_addon(
+            high_risk=False, weak_sources=False, selected_category=None, criminal_info=False
+        )
+        self.assertNotIn("CRIMINAL IMMIGRATION GROUNDS", addon)
+
+
 class ChatServiceFormattingTests(unittest.IsolatedAsyncioTestCase):
     async def test_direct_answer_is_structured(self) -> None:
         class _FakeRetrieval:
@@ -175,6 +241,147 @@ class ChatServiceFormattingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status, "ok")
         self.assertIn("Short answer:", response.answer)
         self.assertIn("Important caution:", response.answer)
+
+
+class DUIInfoQueryDetectionTests(unittest.TestCase):
+    """is_dui_info_query identifies informational DUI/immigration questions."""
+
+    def test_can_dui_affect_immigration_matches(self) -> None:
+        self.assertTrue(is_dui_info_query("Can a DUI affect immigration?"))
+
+    def test_dui_affect_visa_matches(self) -> None:
+        self.assertTrue(is_dui_info_query("Can a DUI affect my visa?"))
+
+    def test_dui_make_inadmissible_matches(self) -> None:
+        self.assertTrue(is_dui_info_query("Can a DUI conviction make someone inadmissible?"))
+
+    def test_dui_green_card_matches(self) -> None:
+        self.assertTrue(is_dui_info_query("Can a DUI affect my green card application?"))
+
+    def test_dwi_affect_immigration_matches(self) -> None:
+        self.assertTrue(is_dui_info_query("Does a DWI affect immigration status?"))
+
+    def test_immigration_consequence_of_dui_matches(self) -> None:
+        self.assertTrue(is_dui_info_query("What is the immigration consequence of a DUI?"))
+
+    def test_dui_deportation_matches(self) -> None:
+        self.assertTrue(is_dui_info_query("Can a DUI lead to deportation?"))
+
+    def test_dui_naturalization_matches(self) -> None:
+        self.assertTrue(is_dui_info_query("Does a DUI affect naturalization?"))
+
+    def test_ead_question_does_not_match(self) -> None:
+        self.assertFalse(is_dui_info_query("How do I apply for an EAD?"))
+
+    def test_criminal_inadmissibility_does_not_match(self) -> None:
+        self.assertFalse(is_dui_info_query("What is criminal inadmissibility?"))
+
+    def test_what_crimes_inadmissible_does_not_match(self) -> None:
+        self.assertFalse(is_dui_info_query("What crimes can make someone inadmissible?"))
+
+    def test_i485_travel_does_not_match(self) -> None:
+        self.assertFalse(is_dui_info_query("Can I travel while my I-485 is pending?"))
+
+    def test_action_seeking_dui_no_immigration_word_does_not_match(self) -> None:
+        # "I had a DUI, what should I do?" — no immigration effect word near DUI
+        self.assertFalse(is_dui_info_query("I had a DUI, what should I do?"))
+
+
+class DUISafeResponseTests(unittest.IsolatedAsyncioTestCase):
+    """DUI informational questions return a prebuilt safe answer without LLM or retrieval."""
+
+    async def _get_dui_response(self, message: str):
+        class _NoRetrieval:
+            async def retrieve_hybrid(self, query: str, top_k: int = 5):
+                raise AssertionError("Retrieval must not be called for DUI info response")
+
+        class _NoChat:
+            async def generate_chat_response(self, **kwargs):
+                raise AssertionError("LLM must not be called for DUI info response")
+
+        service = ChatService(retrieval_service=_NoRetrieval(), chat_client=_NoChat())
+        return await service.generate_chat_response(message, selected_category=None)
+
+    async def test_dui_affect_immigration_returns_ok(self) -> None:
+        response = await self._get_dui_response("Can a DUI affect immigration?")
+        self.assertEqual(response.status, "ok")
+
+    async def test_dui_response_is_structured(self) -> None:
+        response = await self._get_dui_response("Can a DUI affect immigration?")
+        self.assertTrue(has_required_sections(response.answer))
+
+    async def test_dui_response_does_not_say_dui_is_aggravated_felony(self) -> None:
+        response = await self._get_dui_response("Can a DUI affect immigration?")
+        self.assertNotIn("DUI is an aggravated felony", response.answer)
+
+    async def test_dui_response_does_not_have_risky_dui_felony_phrasing(self) -> None:
+        import re as _re
+        response = await self._get_dui_response("Can a DUI affect immigration?")
+        risky = _re.search(
+            r"dui.{0,50}(could|can|may|might|would)\s+be\s+an?\s+aggravated\s+felony",
+            response.answer,
+            _re.I,
+        )
+        self.assertIsNone(risky, f"Risky aggravated felony phrasing found in answer")
+
+    async def test_dui_response_mentions_sentence_and_facts(self) -> None:
+        response = await self._get_dui_response("Can a DUI affect immigration?")
+        lower = response.answer.lower()
+        self.assertIn("sentence", lower)
+        self.assertIn("specific", lower)
+
+    async def test_dui_response_mentions_status(self) -> None:
+        response = await self._get_dui_response("Can a DUI affect immigration?")
+        self.assertIn("immigration status", response.answer.lower())
+
+    async def test_dui_response_recommends_immigration_attorney(self) -> None:
+        response = await self._get_dui_response("Can a DUI affect immigration?")
+        self.assertIn("immigration attorney", response.answer.lower())
+
+    async def test_dui_response_recommends_criminal_defense_attorney(self) -> None:
+        response = await self._get_dui_response("Can a DUI affect immigration?")
+        self.assertIn("criminal defense attorney", response.answer.lower())
+
+    async def test_dui_response_has_at_least_two_used_chunks(self) -> None:
+        response = await self._get_dui_response("Can a DUI affect immigration?")
+        self.assertGreaterEqual(len(response.used_chunks), 2)
+
+    async def test_dui_response_used_chunks_include_212a2(self) -> None:
+        response = await self._get_dui_response("Can a DUI affect immigration?")
+        self.assertTrue(
+            any("212(a)(2)" in c.citation for c in response.used_chunks),
+            "used_chunks must include INA 212(a)(2)",
+        )
+
+    async def test_dui_response_used_chunks_include_237a2(self) -> None:
+        response = await self._get_dui_response("Can a DUI affect immigration?")
+        self.assertTrue(
+            any("237(a)(2)" in c.citation for c in response.used_chunks),
+            "used_chunks must include INA 237(a)(2)",
+        )
+
+    async def test_dui_used_chunks_have_non_empty_snippets(self) -> None:
+        response = await self._get_dui_response("Can a DUI affect immigration?")
+        for chunk in response.used_chunks:
+            self.assertTrue(chunk.snippet.strip(), f"Chunk {chunk.citation} has empty snippet")
+
+    async def test_hit_and_run_action_seeking_returns_criminal_warning_not_dui_answer(self) -> None:
+        """hit-and-run action-seeking must return CRIMINAL_WARNING_ANSWER, not the DUI safe answer."""
+        class _NoRetrieval:
+            async def retrieve_hybrid(self, query: str, top_k: int = 5):
+                raise AssertionError("Retrieval must not be called for criminal_warning")
+
+        class _NoChat:
+            async def generate_chat_response(self, **kwargs):
+                raise AssertionError("LLM must not be called for criminal_warning")
+
+        service = ChatService(retrieval_service=_NoRetrieval(), chat_client=_NoChat())
+        response = await service.generate_chat_response(
+            "I had a hit and run case, what should I do?"
+        )
+        self.assertIn("criminal defense attorney", response.answer.lower())
+        # Must NOT be the DUI safe answer
+        self.assertNotIn("fact-specific", response.answer)
 
 
 if __name__ == "__main__":

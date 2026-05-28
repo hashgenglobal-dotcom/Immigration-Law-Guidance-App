@@ -41,6 +41,48 @@ _SECTION_HEADERS = (
 
 _WEAK_RETRIEVAL_SCORE_THRESHOLD = 0.017
 
+# Matches informational questions about criminal grounds of inadmissibility or deportability.
+# Used to inject DUI/offense-specific caution into the system prompt so the LLM does not
+# overstate that a particular offense automatically constitutes an aggravated felony or CIMT.
+_CRIMINAL_INFO_QUERY_RE = re.compile(
+    r"("
+    r"\bcriminal\b.{0,60}\b(?:inadmissib\w*|deportab\w*|grounds?|bar)\b"
+    r"|\b(?:dui|dwi|felony|misdemeanor|conviction|cimt)\b.{0,100}"
+    r"\b(?:immigration|visa|green\s*card|inadmissib\w*|deportab\w*|naturalization)\b"
+    r"|\bmoral\s+turpitude\b"
+    r"|\b212\s*\(\s*a\s*\)\s*\(\s*2\s*\)\b|\b237\s*\(\s*a\s*\)\s*\(\s*2\s*\)\b"
+    r"|\bcriminal\s+grounds?\b|\bcriminal\s+inadmissibility\b|\bcriminal\s+deportability\b"
+    r"|\binadmissib\w+.{0,80}\b(?:criminal|crime|felony|conviction|dui)\b"
+    r"|\bdeportab\w+.{0,80}\b(?:criminal|crime|felony|conviction|dui)\b"
+    r"|\b(?:what|which)\s+crimes?\b.{0,80}\b(?:inadmissib\w*|ineligible|bar|deportab\w*)\b"
+    r")",
+    re.I,
+)
+
+
+def is_criminal_info_query(message: str) -> bool:
+    """Return True for informational questions about criminal grounds of inadmissibility/deportability."""
+    return bool(_CRIMINAL_INFO_QUERY_RE.search(message.strip()))
+
+
+# Matches informational "can DUI/DWI affect immigration" questions.
+# Action-seeking DUI messages (criminal_warning) are filtered by message_classifier before this runs.
+_DUI_INFO_QUERY_RE = re.compile(
+    r"("
+    r"\b(?:dui|dwi)\b.{0,100}"
+    r"\b(?:affect|impact|immigration|visa|green\s*card|inadmissib\w*|deportab\w*"
+    r"|naturalization|citizenship|removal|deportation|status|bar)\b"
+    r"|\b(?:immigration|visa|green\s*card|inadmissib\w*|deportab\w*"
+    r"|naturalization|citizenship|removal|deportation)\b.{0,100}\b(?:dui|dwi)\b"
+    r")",
+    re.I,
+)
+
+
+def is_dui_info_query(message: str) -> bool:
+    """Return True for informational questions about DUI/DWI and immigration consequences."""
+    return bool(_DUI_INFO_QUERY_RE.search(message.strip()))
+
 
 def is_high_risk_topic(
     message: str,
@@ -81,6 +123,7 @@ def build_format_system_addon(
     high_risk: bool,
     weak_sources: bool,
     selected_category: str | None,
+    criminal_info: bool = False,
 ) -> str:
     """Extra system instructions for structured, plain-language answers."""
     lines = [
@@ -136,6 +179,16 @@ def build_format_system_addon(
             "can have serious consequences, and strongly recommend consulting a qualified "
             "immigration attorney promptly. If the topic involves a Notice to Appear, removal, "
             "or court, mention appearing as required and not ignoring government notices."
+        )
+    if criminal_info:
+        lines.append(
+            "- CRIMINAL IMMIGRATION GROUNDS: Do not state that a specific offense (such as a DUI, "
+            "misdemeanor, or any particular crime) is automatically or generally an aggravated felony "
+            "or a crime involving moral turpitude. Whether a conviction constitutes a ground of "
+            "inadmissibility or deportability depends on the specific offense, sentence imposed, "
+            "applicable state law, and the facts of the individual case. Use hedged language such as "
+            "'may constitute' or 'could be considered' rather than absolute statements. "
+            "Always recommend consulting a qualified immigration attorney for any offense-specific question."
         )
     return "\n".join(lines)
 

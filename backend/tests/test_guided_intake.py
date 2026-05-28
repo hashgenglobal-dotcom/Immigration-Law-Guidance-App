@@ -131,6 +131,91 @@ class GuidedIntakeDetectionTests(unittest.TestCase):
         self.assertIsNone(detect_broad_topic("What are the requirements for naturalization?"))
         self.assertIsNone(detect_broad_topic("Am I eligible for naturalization?"))
 
+    # --- Criminal inadmissibility query rewriting ---
+
+    def test_criminal_inadmissibility_rewrites_to_ina_212(self) -> None:
+        q = resolve_retrieval_query("What is criminal inadmissibility?", None)
+        self.assertIn("212(a)(2)", q)
+        self.assertIn("moral turpitude", q.lower())
+
+    def test_criminal_inadmissibility_rewrite_includes_usc_1182(self) -> None:
+        q = resolve_retrieval_query("What is criminal inadmissibility?", None)
+        self.assertIn("1182(a)(2)", q)
+
+    def test_criminal_inadmissibility_rewrite_no_dui_term(self) -> None:
+        # DUI was removed from the template to prevent the LLM grouping DUI
+        # as automatically an aggravated felony.
+        q = resolve_retrieval_query("What is criminal inadmissibility?", None)
+        self.assertNotIn("DUI", q)
+
+    def test_dui_affect_immigration_rewrites_to_criminal_inadmissibility(self) -> None:
+        q = resolve_retrieval_query("Can a DUI affect immigration?", None)
+        self.assertIn("212(a)(2)", q)
+        self.assertIn("inadmissibility", q.lower())
+
+    def test_criminal_conviction_green_card_rewrites(self) -> None:
+        q = resolve_retrieval_query(
+            "Can a criminal conviction affect my green card?", None
+        )
+        self.assertIn("212(a)(2)", q)
+
+    def test_what_crimes_make_someone_inadmissible_rewrites(self) -> None:
+        q = resolve_retrieval_query("What crimes can make someone inadmissible?", None)
+        self.assertIn("212(a)(2)", q)
+        self.assertIn("moral turpitude", q.lower())
+
+    def test_cimt_rewrites_to_criminal_inadmissibility(self) -> None:
+        q = resolve_retrieval_query("What is CIMT?", None)
+        self.assertIn("moral turpitude", q.lower())
+        self.assertIn("212(a)(2)", q)
+
+    def test_criminal_record_affect_visa_rewrites(self) -> None:
+        q = resolve_retrieval_query(
+            "Can my criminal record affect my visa application?", None
+        )
+        self.assertIn("212(a)(2)", q)
+
+    # --- Criminal deportability query rewriting ---
+
+    def test_criminal_deportability_rewrites_to_ina_237(self) -> None:
+        q = resolve_retrieval_query("What is criminal deportability?", None)
+        self.assertIn("237(a)(2)", q)
+        self.assertIn("deportability", q.lower())
+
+    def test_criminal_deportability_rewrite_includes_usc_1227(self) -> None:
+        q = resolve_retrieval_query("What is criminal deportability?", None)
+        self.assertIn("1227(a)(2)", q)
+
+    def test_criminal_deportability_rewrite_includes_domestic_violence(self) -> None:
+        q = resolve_retrieval_query("What is criminal deportability?", None)
+        self.assertIn("domestic violence", q.lower())
+
+    def test_conviction_deportation_rewrites_to_ina_237(self) -> None:
+        q = resolve_retrieval_query(
+            "Can a conviction lead to deportation?", None
+        )
+        self.assertIn("237(a)(2)", q)
+
+    def test_deportability_for_criminal_convictions_rewrites(self) -> None:
+        q = resolve_retrieval_query(
+            "What is deportability for criminal convictions?", None
+        )
+        self.assertIn("237(a)(2)", q)
+
+    # --- Must NOT rewrite action-seeking or unrelated queries ---
+
+    def test_dui_what_should_i_do_no_inadmissibility_rewrite(self) -> None:
+        # Action-seeking form — resolve_retrieval_query sees raw message (classifier
+        # short-circuits it first in ChatService); when called directly it must NOT
+        # rewrite because it lacks the immigration-effect context words.
+        q = resolve_retrieval_query("I had a DUI, what should I do?", None)
+        self.assertEqual(q.strip(), "I had a DUI, what should I do?")
+
+    def test_generic_criminal_question_no_rewrite(self) -> None:
+        # No immigration context → returns raw message.
+        q = resolve_retrieval_query("I was arrested last year.", None)
+        self.assertEqual(q.strip(), "I was arrested last year.")
+
 
 class ChatServiceCategoryHintTests(unittest.IsolatedAsyncioTestCase):
     async def test_selected_category_uses_focused_retrieval_query(self) -> None:
@@ -212,6 +297,35 @@ class ChatServiceAutoRoutingTests(unittest.IsolatedAsyncioTestCase):
         (no auto-detection pattern matches it)."""
         q = await self._capture_query("How do I apply for EAD?")
         self.assertEqual(q.strip(), "How do I apply for EAD?")
+
+    async def test_criminal_inadmissibility_rewrites_at_retrieval(self) -> None:
+        q = await self._capture_query("What is criminal inadmissibility?")
+        self.assertIn("212(a)(2)", q)
+        self.assertIn("moral turpitude", q.lower())
+
+    async def test_dui_affect_immigration_short_circuits_before_retrieval(self) -> None:
+        """DUI info queries now return a prebuilt safe answer — retrieval is never called."""
+
+        class _NoRetrieval:
+            async def retrieve_hybrid(self, query: str, top_k: int = 5):
+                raise AssertionError("Retrieval must not be called for DUI info questions")
+
+        class _NoChat:
+            async def generate_chat_response(self, **kwargs):
+                raise AssertionError("LLM must not be called for DUI info questions")
+
+        from app.services.chat_service import ChatService
+
+        service = ChatService(retrieval_service=_NoRetrieval(), chat_client=_NoChat())
+        response = await service.generate_chat_response(
+            "Can a DUI affect immigration?", selected_category=None
+        )
+        self.assertEqual(response.status, "ok")
+        self.assertIn("fact-specific", response.answer)
+
+    async def test_criminal_deportability_rewrites_at_retrieval(self) -> None:
+        q = await self._capture_query("What is criminal deportability?")
+        self.assertIn("237(a)(2)", q)
 
 
 if __name__ == "__main__":

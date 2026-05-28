@@ -31,6 +31,9 @@ _PHRASE_SIGNALS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("naturalization", ("316.", "naturalization", "n-400", "vol 12")),
     ("removal", ("239.", "240.", "removal")),
     ("overstay", ("244.", "unlawful presence", "245.")),
+    ("crimes involving moral turpitude", ("moral turpitude", "cimt", "212(a)(2)", "237(a)(2)")),
+    ("aggravated felony", ("aggravated felony", "1101(a)(43)", "237(a)(2)", "iiraira")),
+    ("criminal inadmissibility", ("212(a)(2)", "1182(a)(2)", "criminal inadmissibility", "moral turpitude")),
 )
 
 # I-485 travel context: matches rewritten travel_aos query and direct travel+I-485 questions.
@@ -65,6 +68,60 @@ _NATURALIZATION_CONTEXT_RE = re.compile(
     re.I,
 )
 
+# Criminal inadmissibility context — matches the criminal_inadmissibility rewritten query
+# and direct user questions about criminal grounds / criminal record effects.
+_CRIMINAL_INADMISSIBILITY_CONTEXT_RE = re.compile(
+    r"(\bina\s*212\b|\b212\s*\(a\)\s*\(2\)\b"
+    r"|\bcriminal\s+(?:grounds?\s+of\s+)?inadmissib\w+"
+    r"|\bcrimes?\s+involving\s+moral\s+turpitude\b|\bcimt\b"
+    r"|\baggravated\s+felon\w+\b.{0,80}\b(?:immigration|inadmissib|visa|green\s+card|bar)\b"
+    r"|\bcontrolled\s+substance\b.{0,80}\binadmissib\w+\b)",
+    re.I,
+)
+
+# Criminal deportability context — matches the criminal_deportability rewritten query.
+_CRIMINAL_DEPORTABILITY_CONTEXT_RE = re.compile(
+    r"(\bina\s*237\b|\b237\s*\(a\)\s*\(2\)\b"
+    r"|\bcriminal\s+(?:grounds?\s+of\s+)?deportab\w+"
+    r"|\baggravated\s+felon\w+\b.{0,80}\b(?:deport\w+|removal)\b)",
+    re.I,
+)
+
+_CRIMINAL_INADMISSIBILITY_BOOST_SIGNALS = (
+    "212(a)(2)", "1182(a)(2)", "moral turpitude", "cimt",
+    "criminal inadmissibility", "inadmissibility",
+    "aggravated felony", "controlled substance",
+)
+_CRIMINAL_DEPORTABILITY_BOOST_SIGNALS = (
+    "237(a)(2)", "1227(a)(2)", "criminal deportability", "deportability",
+    "aggravated felony", "moral turpitude",
+)
+# Penalize public-charge and special-immigrant sections for criminal-grounds queries.
+_PUBLIC_CHARGE_CHUNK_SIGNALS = (
+    "212(a)(4)", "1182(a)(4)", "public charge",
+)
+_SPECIAL_IMMIGRANT_CHUNK_SIGNALS = (
+    "101(a)(27)", "1101(a)(27)", "special immigrant",
+)
+# Naturalization-GMC chunks are about citizenship eligibility, not inadmissibility bars.
+# Penalize them for criminal inadmissibility queries unless the query asks about naturalization.
+_NATURALIZATION_GMC_CHUNK_SIGNALS = (
+    "316.", "n-400", "n400", "vol 12", "naturalization",
+)
+# Criminal-grounds signals that must be absent from a chunk for the naturalization penalty to fire.
+# If the chunk ALSO discusses criminal grounds it's relevant — don't penalize it.
+_CRIMINAL_GROUNDS_CHUNK_SIGNALS = (
+    "212(a)(2)", "1182(a)(2)", "237(a)(2)", "1227(a)(2)",
+    "criminal grounds", "criminal inadmissibility", "criminal deportability",
+    "moral turpitude",
+)
+# Asylum-eligibility procedure chunks are about how to file asylum, not about deportability.
+# Penalize them for criminal deportability queries unless the query asks about asylum.
+_ASYLUM_FILING_CHUNK_SIGNALS = (
+    "i-589", "208.1", "208.2", "208.3", "208.4", "208.5", "208.6",
+    "asylum eligibility", "asylum application",
+)
+
 _TOPIC_AFFINITY: tuple[tuple[re.Pattern[str], tuple[str, ...]], ...] = (
     (re.compile(r"\basylum\b", re.I), ("208.", "1158", "asylum")),
     (re.compile(r"\btps\b|temporary protected", re.I), ("244.", "tps", "274a.12")),
@@ -79,6 +136,10 @@ _TOPIC_AFFINITY: tuple[tuple[re.Pattern[str], tuple[str, ...]], ...] = (
     (re.compile(r"\bfamily petition\b|\bi[- ]?130\b", re.I), ("i-130", "petition", "family")),
     (re.compile(r"\bi[- ]?864\b|affidavit of support", re.I), ("i-864", "213a", "affidavit")),
     (re.compile(r"\baddress\b.*\buscis\b|change of address", re.I), ("address", "265.", "official page")),
+    (re.compile(r"\bcriminal\b.{0,60}\b(?:inadmissib|deportab|grounds?|conviction)\b", re.I),
+     ("212(a)(2)", "237(a)(2)", "moral turpitude", "aggravated felony")),
+    (re.compile(r"\bcimt\b|\bmoral turpitude\b", re.I), ("moral turpitude", "cimt", "212(a)(2)")),
+    (re.compile(r"\baggravated felony\b", re.I), ("aggravated felony", "1101(a)(43)", "237(a)(2)")),
 )
 
 
@@ -231,6 +292,47 @@ def compute_relevance_boost(
                 boost -= 0.010
         if "good moral character" in q and "§ 245." in cite and "316." not in cite:
             boost -= 0.008
+
+    # Criminal inadmissibility: boost INA 212(a)(2)/CIMT/aggravated-felony chunks;
+    # penalize unrelated inadmissibility grounds (public charge, special immigrant,
+    # and naturalization-only GMC sections that are about citizenship eligibility,
+    # not criminal bars).
+    if _CRIMINAL_INADMISSIBILITY_CONTEXT_RE.search(query):
+        if any(s in blob for s in _CRIMINAL_INADMISSIBILITY_BOOST_SIGNALS):
+            boost += 0.012
+        if "212(a)(2)" in blob or "1182(a)(2)" in blob:
+            boost += 0.008
+        if any(s in blob for s in _PUBLIC_CHARGE_CHUNK_SIGNALS):
+            boost -= 0.018
+        if any(s in blob for s in _SPECIAL_IMMIGRANT_CHUNK_SIGNALS):
+            boost -= 0.014
+        # Penalize naturalization/GMC-only chunks (8 CFR 316.x, N-400, Vol 12) when the
+        # query is not about naturalization or citizenship.  If the chunk also contains
+        # criminal-grounds signals it is still relevant, so skip the penalty.
+        if "naturalization" not in q and "citizen" not in q:
+            if any(s in blob for s in _NATURALIZATION_GMC_CHUNK_SIGNALS):
+                if not any(s in blob for s in _CRIMINAL_GROUNDS_CHUNK_SIGNALS):
+                    boost -= 0.012
+
+    # Criminal deportability: boost INA 237(a)(2)/aggravated-felony chunks;
+    # penalize unrelated grounds and asylum-filing-procedure chunks that have no
+    # connection to the criminal deportability grounds being asked about.
+    if _CRIMINAL_DEPORTABILITY_CONTEXT_RE.search(query):
+        if any(s in blob for s in _CRIMINAL_DEPORTABILITY_BOOST_SIGNALS):
+            boost += 0.012
+        if "237(a)(2)" in blob or "1227(a)(2)" in blob:
+            boost += 0.008
+        if any(s in blob for s in _PUBLIC_CHARGE_CHUNK_SIGNALS):
+            boost -= 0.018
+        if any(s in blob for s in _SPECIAL_IMMIGRANT_CHUNK_SIGNALS):
+            boost -= 0.014
+        # Penalize asylum-eligibility/filing-procedure chunks (208.1–208.6, I-589)
+        # when the query is not about asylum.  Chunks that also discuss criminal grounds
+        # are still relevant, so skip the penalty in that case.
+        if "asylum" not in q:
+            if any(s in blob for s in _ASYLUM_FILING_CHUNK_SIGNALS):
+                if not any(s in blob for s in _CRIMINAL_GROUNDS_CHUNK_SIGNALS):
+                    boost -= 0.012
 
     return max(-0.025, min(_MAX_BOOST, boost))
 

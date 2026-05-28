@@ -114,6 +114,16 @@ _CATEGORY_RETRIEVAL_QUERIES: dict[str, str] = {
     "family_not_sure": (
         "Form I-130 family-based immigration petition overview"
     ),
+    "criminal_inadmissibility": (
+        "INA 212(a)(2) 8 U.S.C. 1182(a)(2) criminal grounds of inadmissibility crimes involving "
+        "moral turpitude CIMT controlled substance violation multiple criminal convictions "
+        "trafficking aggravated felony conviction inadmissibility bar"
+    ),
+    "criminal_deportability": (
+        "INA 237(a)(2) 8 U.S.C. 1227(a)(2) criminal grounds of deportability aggravated felony "
+        "crimes involving moral turpitude controlled substance domestic violence firearms "
+        "conviction removal deportation"
+    ),
 }
 
 _EAD_OPTIONS = (
@@ -354,6 +364,39 @@ _ASYLUM_EAD_RE = re.compile(
     re.I,
 )
 
+# Detects questions specifically about criminal grounds of deportability/removal.
+# Checked before the inadmissibility RE so "what is criminal deportability?"
+# routes to the INA 237(a)(2) focused template rather than the broader one.
+_CRIMINAL_DEPORTABILITY_RE = re.compile(
+    r"("
+    r"\bcriminal\b.{0,40}\bdeportab\w+"
+    r"|\bdeportab\w+\b.{0,80}\b(?:criminal|crime|conviction|felony|misdemeanor)\b"
+    r"|\b(?:dui|dwi|conviction|criminal (?:charge|record|conviction)|felony|misdemeanor|crime)\b"
+    r".{0,100}\b(?:deportab\w+|deported|deportation)\b"
+    r"|\bina\s*237\b|\b237\s*\(\s*a\s*\)\s*\(\s*2\s*\)\b"
+    r")",
+    re.I,
+)
+
+# Detects informational questions about criminal inadmissibility or the general
+# effect of a criminal record on immigration status.  Action-seeking forms
+# ("what should I do?") are caught by the criminal_warning classifier before
+# reaching resolve_retrieval_query so no overlap guard is needed here.
+_CRIMINAL_INADMISSIBILITY_RE = re.compile(
+    r"("
+    r"\bcriminal\b.{0,40}\binadmissib\w+"
+    r"|\binadmissib\w+\b.{0,80}\b(?:criminal|crime|conviction|dui|dwi|felony|misdemeanor)\b"
+    r"|\b(?:dui|dwi|conviction|criminal (?:charge|record|history|conviction)|felony|misdemeanor|crime|arrest)\b"
+    r".{0,100}\b(?:affect|impact|bar|preclude|ineligible|inadmissible|prevent)\b"
+    r".{0,80}\b(?:immigration|visa|green card|status|naturalization|admissibility)\b"
+    r"|\b(?:what|which)\s+crimes?\b.{0,80}\b(?:inadmissib\w+|ineligible|bar)\b"
+    r"|\bcrimes?\s+involving\s+moral\s+turpitude\b|\bcimt\b"
+    r"|\baggravated\s+felon\w+\b.{0,80}\b(?:immigration|inadmissib|visa|green card|naturalization)\b"
+    r"|\bina\s*212\b|\b212\s*\(\s*a\s*\)\s*\(\s*2\s*\)\b"
+    r")",
+    re.I,
+)
+
 # Match when message mentions I-485/adjustment of status + travel.
 _I485_TRAVEL_RE = re.compile(
     r"(\bi[- ]?485\b.{0,80}\btravel\b|\btravel\b.{0,80}\bi[- ]?485\b"
@@ -394,6 +437,10 @@ def resolve_retrieval_query(message: str, selected_category: str | None) -> str:
         return _CATEGORY_RETRIEVAL_QUERIES["f1_opt_stem_opt"]
     if _NATURALIZATION_REQUIREMENTS_RE.search(m):
         return _CATEGORY_RETRIEVAL_QUERIES["naturalization_residence"]
+    if _CRIMINAL_DEPORTABILITY_RE.search(m):
+        return _CATEGORY_RETRIEVAL_QUERIES["criminal_deportability"]
+    if _CRIMINAL_INADMISSIBILITY_RE.search(m):
+        return _CATEGORY_RETRIEVAL_QUERIES["criminal_inadmissibility"]
     return m
 
 
