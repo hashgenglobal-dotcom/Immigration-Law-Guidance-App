@@ -239,6 +239,105 @@ class ChatServiceCategoryHintTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("STEM OPT", captured["query"])
 
 
+class QueryRewritingH4OPTTests(unittest.TestCase):
+    """Tests for H-4 process, H-4 EAD, and OPT query rewriting."""
+
+    # --- H-4 process ---
+
+    def test_what_is_h4_process_rewrites(self) -> None:
+        q = resolve_retrieval_query("What is H-4 process?", None)
+        self.assertNotEqual(q.strip(), "What is H-4 process?")
+
+    def test_h4_process_rewrite_does_not_include_naturalization(self) -> None:
+        q = resolve_retrieval_query("What is H-4 process?", None)
+        self.assertNotIn("N-400", q)
+        self.assertNotIn("naturalization", q.lower())
+
+    def test_h4_process_rewrite_includes_dependent(self) -> None:
+        q = resolve_retrieval_query("What is H-4 process?", None)
+        self.assertIn("dependent", q.lower())
+
+    def test_h4_process_rewrite_includes_cfr_214_2h(self) -> None:
+        q = resolve_retrieval_query("What is H-4 process?", None)
+        self.assertIn("214.2(h)", q)
+
+    def test_how_does_h4_status_work_rewrites_to_h4_process(self) -> None:
+        q = resolve_retrieval_query("How does H-4 status work?", None)
+        self.assertIn("dependent", q.lower())
+        self.assertNotIn("N-400", q)
+
+    def test_h4_spouse_rewrites_to_h4_process(self) -> None:
+        q = resolve_retrieval_query("What is H-4 spouse visa?", None)
+        self.assertIn("dependent", q.lower())
+
+    # --- H-4 EAD ---
+
+    def test_h4_ead_rewrites(self) -> None:
+        q = resolve_retrieval_query("How does H-4 EAD work?", None)
+        self.assertNotEqual(q.strip(), "How does H-4 EAD work?")
+
+    def test_h4_ead_rewrite_includes_h4_spouse(self) -> None:
+        q = resolve_retrieval_query("How does H-4 EAD work?", None)
+        self.assertIn("H-4 spouse", q)
+
+    def test_h4_ead_rewrite_includes_i765(self) -> None:
+        q = resolve_retrieval_query("How does H-4 EAD work?", None)
+        self.assertIn("I-765", q)
+
+    def test_h4_ead_rewrite_includes_274a_12_c26(self) -> None:
+        q = resolve_retrieval_query("How does H-4 EAD work?", None)
+        self.assertIn("274a.12(c)(26)", q)
+
+    def test_h4_ead_rewrite_does_not_include_naturalization(self) -> None:
+        q = resolve_retrieval_query("How does H-4 EAD work?", None)
+        self.assertNotIn("N-400", q)
+        self.assertNotIn("naturalization", q.lower())
+
+    def test_h4_employment_authorization_rewrites_to_h4_ead(self) -> None:
+        q = resolve_retrieval_query("Can I get employment authorization on H-4?", None)
+        self.assertIn("274a.12(c)(26)", q)
+
+    # --- OPT general ---
+
+    def test_what_is_opt_rewrites(self) -> None:
+        q = resolve_retrieval_query("What is OPT?", None)
+        self.assertNotEqual(q.strip(), "What is OPT?")
+
+    def test_opt_rewrite_includes_f1(self) -> None:
+        q = resolve_retrieval_query("What is OPT?", None)
+        self.assertIn("F-1", q)
+
+    def test_opt_rewrite_includes_optional_practical_training(self) -> None:
+        q = resolve_retrieval_query("What is OPT?", None)
+        self.assertIn("optional practical training", q.lower())
+
+    def test_opt_rewrite_includes_214_2f(self) -> None:
+        q = resolve_retrieval_query("What is OPT?", None)
+        self.assertIn("214.2(f)", q)
+
+    def test_opt_rewrite_includes_274a_12_c3(self) -> None:
+        q = resolve_retrieval_query("What is OPT?", None)
+        self.assertIn("274a.12(c)(3)", q)
+
+    def test_f1_opt_direct_rewrites_to_opt_general(self) -> None:
+        q = resolve_retrieval_query("How does F-1 OPT work?", None)
+        self.assertIn("214.2(f)", q)
+
+    # --- Priority ordering: H-4 EAD before H-4 process ---
+
+    def test_h4_ead_takes_priority_over_h4_process(self) -> None:
+        # "H-4 EAD" should route to h4_ead (274a.12(c)(26)), not h4_process.
+        q = resolve_retrieval_query("What is H-4 EAD?", None)
+        self.assertIn("274a.12(c)(26)", q)
+        self.assertNotIn("I-539", q)
+
+    # --- OPT EAD still routes to f1_opt_stem_opt (existing behavior preserved) ---
+
+    def test_f1_ead_still_routes_to_f1_opt_stem_opt(self) -> None:
+        q = resolve_retrieval_query("How do I get EAD as an F-1 student on OPT?", None)
+        self.assertIn("STEM OPT", q)
+
+
 class ChatServiceAutoRoutingTests(unittest.IsolatedAsyncioTestCase):
     """Auto-detected query rewrites fire even without an explicit selected_category."""
 
@@ -326,6 +425,272 @@ class ChatServiceAutoRoutingTests(unittest.IsolatedAsyncioTestCase):
     async def test_criminal_deportability_rewrites_at_retrieval(self) -> None:
         q = await self._capture_query("What is criminal deportability?")
         self.assertIn("237(a)(2)", q)
+
+    async def test_h4_process_faq_bypasses_retrieval_no_category(self) -> None:
+        # "What is H-4 process?" now returns a prebuilt FAQ answer — retrieval is never
+        # called. Verify the service returns ok without hitting retrieval.
+
+        class _NoRetrieval:
+            async def retrieve_hybrid(self, query: str, top_k: int = 5):
+                raise AssertionError("Retrieval must not be called for H-4 process FAQ")
+
+        class _NoChat:
+            async def generate_chat_response(self, **kwargs):
+                raise AssertionError("LLM must not be called for H-4 process FAQ")
+
+        service = ChatService(retrieval_service=_NoRetrieval(), chat_client=_NoChat())
+        response = await service.generate_chat_response("What is H-4 process?", selected_category=None)
+        self.assertEqual(response.status, "ok")
+        self.assertIn("H-1B", response.answer)
+
+    async def test_h4_ead_faq_bypasses_retrieval_no_category(self) -> None:
+        # "How does H-4 EAD work?" now returns a prebuilt FAQ answer — retrieval is never
+        # called. Verify the service returns ok without hitting retrieval.
+
+        class _NoRetrieval:
+            async def retrieve_hybrid(self, query: str, top_k: int = 5):
+                raise AssertionError("Retrieval must not be called for H-4 EAD FAQ")
+
+        class _NoChat:
+            async def generate_chat_response(self, **kwargs):
+                raise AssertionError("LLM must not be called for H-4 EAD FAQ")
+
+        service = ChatService(retrieval_service=_NoRetrieval(), chat_client=_NoChat())
+        response = await service.generate_chat_response("How does H-4 EAD work?", selected_category=None)
+        self.assertEqual(response.status, "ok")
+        self.assertIn("274a.12(c)(26)", response.answer)
+
+    async def test_opt_no_category_rewrites(self) -> None:
+        q = await self._capture_query("What is OPT?")
+        self.assertIn("214.2(f)", q)
+        self.assertIn("274a.12(c)(3)", q)
+
+
+class H4FAQDetectionTests(unittest.TestCase):
+    """Unit tests for is_h4_process_faq_query and is_h4_ead_faq_query."""
+
+    def setUp(self) -> None:
+        from app.services.answer_formatting import is_h4_ead_faq_query, is_h4_process_faq_query
+        self.h4_process = is_h4_process_faq_query
+        self.h4_ead = is_h4_ead_faq_query
+
+    # --- H-4 process positive matches ---
+
+    def test_what_is_h4_process_matches_process_faq(self) -> None:
+        self.assertTrue(self.h4_process("What is H-4 process?"))
+
+    def test_what_is_h4_visa_matches_process_faq(self) -> None:
+        self.assertTrue(self.h4_process("What is an H-4 visa?"))
+
+    def test_how_does_h4_work_matches_process_faq(self) -> None:
+        self.assertTrue(self.h4_process("How does H-4 work?"))
+
+    def test_h4_visa_requirements_matches_process_faq(self) -> None:
+        self.assertTrue(self.h4_process("H-4 visa requirements"))
+
+    def test_h4_status_matches_process_faq(self) -> None:
+        self.assertTrue(self.h4_process("What is H-4 status?"))
+
+    # --- H-4 EAD positive matches ---
+
+    def test_how_does_h4_ead_work_matches_ead_faq(self) -> None:
+        self.assertTrue(self.h4_ead("How does H-4 EAD work?"))
+
+    def test_what_is_h4_ead_matches_ead_faq(self) -> None:
+        self.assertTrue(self.h4_ead("What is H-4 EAD?"))
+
+    def test_h4_employment_authorization_matches_ead_faq(self) -> None:
+        self.assertTrue(self.h4_ead("What is H-4 employment authorization?"))
+
+    def test_can_h4_holders_work_matches_ead_faq(self) -> None:
+        self.assertTrue(self.h4_ead("Can H-4 holders work?"))
+
+    # --- EAD FAQ takes priority over process FAQ ---
+
+    def test_h4_ead_query_does_not_match_process_faq(self) -> None:
+        # "What is H-4 EAD?" has EAD context; it must be caught by EAD FAQ.
+        # The process FAQ would also match "What is...H-4", so the service
+        # must check EAD first. Verify EAD detection works.
+        self.assertTrue(self.h4_ead("What is H-4 EAD?"))
+
+    # --- Case-specific exclusions (must NOT match either FAQ) ---
+
+    def test_my_h4_was_denied_not_process_faq(self) -> None:
+        self.assertFalse(self.h4_process("My H-4 was denied, what should I do?"))
+
+    def test_my_h4_was_denied_not_ead_faq(self) -> None:
+        self.assertFalse(self.h4_ead("My H-4 was denied, what should I do?"))
+
+    def test_my_h4_ead_application_pending_not_ead_faq(self) -> None:
+        self.assertFalse(self.h4_ead("My H-4 EAD application is pending."))
+
+    def test_what_should_i_do_excluded_from_process_faq(self) -> None:
+        self.assertFalse(self.h4_process("H-4 visa process, what should I do?"))
+
+    def test_h4_denied_excluded_from_process_faq(self) -> None:
+        self.assertFalse(self.h4_process("H-4 visa was denied."))
+
+    # --- OPT / other topics do not match H-4 FAQs ---
+
+    def test_opt_question_does_not_match_h4_process_faq(self) -> None:
+        self.assertFalse(self.h4_process("What is OPT?"))
+
+    def test_opt_question_does_not_match_h4_ead_faq(self) -> None:
+        self.assertFalse(self.h4_ead("What is OPT?"))
+
+
+class ChatServiceH4FAQBypassTests(unittest.IsolatedAsyncioTestCase):
+    """H-4 FAQ safe responses bypass retrieval and LLM for broad informational questions."""
+
+    async def _run_faq_bypass(self, message: str):
+        """Run generate_chat_response asserting retrieval and LLM are never called."""
+
+        class _NoRetrieval:
+            async def retrieve_hybrid(self, query: str, top_k: int = 5):
+                raise AssertionError(
+                    f"Retrieval must not be called for FAQ message: {message!r}"
+                )
+
+        class _NoChat:
+            async def generate_chat_response(self, **kwargs):
+                raise AssertionError(
+                    f"LLM must not be called for FAQ message: {message!r}"
+                )
+
+        service = ChatService(retrieval_service=_NoRetrieval(), chat_client=_NoChat())
+        return await service.generate_chat_response(message, selected_category=None)
+
+    # --- H-4 process FAQ ---
+
+    async def test_h4_process_faq_bypasses_retrieval_and_llm(self) -> None:
+        response = await self._run_faq_bypass("What is H-4 process?")
+        self.assertEqual(response.status, "ok")
+
+    async def test_h4_process_faq_has_required_sections(self) -> None:
+        response = await self._run_faq_bypass("What is H-4 process?")
+        lower = response.answer.lower()
+        for header in ("short answer:", "what this means:", "typical next steps:",
+                       "official sources:", "important caution:"):
+            self.assertIn(header, lower)
+
+    async def test_h4_process_faq_does_not_mention_naturalization(self) -> None:
+        response = await self._run_faq_bypass("What is H-4 process?")
+        self.assertNotIn("N-400", response.answer)
+        self.assertNotIn("naturalization", response.answer.lower())
+
+    async def test_h4_process_faq_mentions_h1b_not_h3_only(self) -> None:
+        response = await self._run_faq_bypass("What is H-4 process?")
+        # Answer must describe H-1B as a common H principal.
+        self.assertIn("H-1B", response.answer)
+
+    async def test_h4_process_faq_next_steps_identify_inside_outside(self) -> None:
+        response = await self._run_faq_bypass("What is H-4 process?")
+        self.assertIn("inside or outside", response.answer.lower())
+
+    async def test_h4_process_faq_mentions_i539_for_inside_us(self) -> None:
+        response = await self._run_faq_bypass("What is H-4 process?")
+        self.assertIn("I-539", response.answer)
+
+    async def test_h4_process_faq_has_used_chunks_with_cfr_214_2h(self) -> None:
+        response = await self._run_faq_bypass("What is H-4 process?")
+        citations = [c.citation for c in response.used_chunks]
+        self.assertTrue(any("214.2(h)" in c for c in citations))
+
+    async def test_h4_process_faq_has_used_chunks(self) -> None:
+        response = await self._run_faq_bypass("What is H-4 process?")
+        self.assertGreater(len(response.used_chunks), 0)
+
+    # --- H-4 EAD FAQ ---
+
+    async def test_h4_ead_faq_bypasses_retrieval_and_llm(self) -> None:
+        response = await self._run_faq_bypass("How does H-4 EAD work?")
+        self.assertEqual(response.status, "ok")
+
+    async def test_h4_ead_faq_has_required_sections(self) -> None:
+        response = await self._run_faq_bypass("How does H-4 EAD work?")
+        lower = response.answer.lower()
+        for header in ("short answer:", "what this means:", "typical next steps:",
+                       "official sources:", "important caution:"):
+            self.assertIn(header, lower)
+
+    async def test_h4_ead_faq_does_not_say_incident_to_status(self) -> None:
+        response = await self._run_faq_bypass("How does H-4 EAD work?")
+        self.assertNotIn("incident to status", response.answer.lower())
+
+    async def test_h4_ead_faq_does_not_mention_e_l_spouse(self) -> None:
+        response = await self._run_faq_bypass("How does H-4 EAD work?")
+        lower = response.answer.lower()
+        # Must not reference E or L spouse incident-to-status rules.
+        self.assertNotIn("e-3 spouse", lower)
+        self.assertNotIn("l-2 spouse", lower)
+        self.assertNotIn("e spouse", lower)
+
+    async def test_h4_ead_faq_says_certain_eligible_not_all(self) -> None:
+        response = await self._run_faq_bypass("How does H-4 EAD work?")
+        lower = response.answer.lower()
+        self.assertTrue(
+            "certain eligible" in lower or "eligible h-4 spouse" in lower
+        )
+        self.assertNotIn("all h-4 dependents", lower)
+
+    async def test_h4_ead_faq_mentions_i765(self) -> None:
+        response = await self._run_faq_bypass("How does H-4 EAD work?")
+        self.assertIn("I-765", response.answer)
+
+    async def test_h4_ead_faq_mentions_i140_or_ac21(self) -> None:
+        response = await self._run_faq_bypass("How does H-4 EAD work?")
+        self.assertIn("I-140", response.answer)
+        self.assertIn("AC21", response.answer)
+
+    async def test_h4_ead_faq_has_used_chunks_with_274a_12_c26(self) -> None:
+        response = await self._run_faq_bypass("How does H-4 EAD work?")
+        citations = [c.citation for c in response.used_chunks]
+        self.assertTrue(any("274a.12(c)(26)" in c for c in citations))
+
+    async def test_h4_ead_faq_has_used_chunks(self) -> None:
+        response = await self._run_faq_bypass("How does H-4 EAD work?")
+        self.assertGreater(len(response.used_chunks), 0)
+
+    # --- Case-specific H-4 questions must NOT bypass FAQ ---
+
+    async def test_h4_denial_does_not_bypass_faq(self) -> None:
+        """'My H-4 was denied' must reach retrieval, not the FAQ bypass."""
+        captured: dict[str, str] = {}
+
+        class _FakeRetrieval:
+            async def retrieve_hybrid(self, query: str, top_k: int = 5):
+                captured["query"] = query
+                return [], ["test-dataset"], "test-dataset"
+
+        class _FakeChat:
+            async def generate_chat_response(self, **kwargs):
+                raise AssertionError("LLM must not be called when retrieval returns empty")
+
+        service = ChatService(retrieval_service=_FakeRetrieval(), chat_client=_FakeChat())
+        response = await service.generate_chat_response(
+            "My H-4 was denied, what should I do?", selected_category=None
+        )
+        self.assertIn("query", captured, "Retrieval should have been called for case-specific question")
+
+    async def test_h4_ead_denial_does_not_bypass_faq(self) -> None:
+        """'My H-4 EAD application is pending' must reach retrieval."""
+        captured: dict[str, str] = {}
+
+        class _FakeRetrieval:
+            async def retrieve_hybrid(self, query: str, top_k: int = 5):
+                captured["query"] = query
+                return [], ["test-dataset"], "test-dataset"
+
+        class _FakeChat:
+            async def generate_chat_response(self, **kwargs):
+                raise AssertionError("LLM must not be called when retrieval returns empty")
+
+        service = ChatService(retrieval_service=_FakeRetrieval(), chat_client=_FakeChat())
+        await service.generate_chat_response(
+            "My H-4 EAD application is pending. What are my next steps?",
+            selected_category=None,
+        )
+        self.assertIn("query", captured, "Retrieval should have been called for case-specific question")
 
 
 if __name__ == "__main__":

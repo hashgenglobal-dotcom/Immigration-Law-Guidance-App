@@ -122,6 +122,34 @@ _ASYLUM_FILING_CHUNK_SIGNALS = (
     "asylum eligibility", "asylum application",
 )
 
+# I-864 / affidavit of support chunks — irrelevant for H-4 and OPT queries.
+_I864_CHUNK_SIGNALS = ("i-864", "i864", "213a", "affidavit of support")
+
+# H-4 process context — matches rewritten h4_process query and direct H-4 status questions.
+_H4_PROCESS_CONTEXT_RE = re.compile(
+    r"(\bh[- ]?4\b.{0,80}\b(?:dependent|spouse|status|process|nonimmigrant|change\s+of\s+status|extension)\b"
+    r"|\b214\.2\s*\(\s*h\s*\)\b"
+    r"|\bh[- ]?4\s+(?:dependent|visa|status)\b)",
+    re.I,
+)
+
+# H-4 EAD context — matches rewritten h4_ead query and direct H-4 employment authorization questions.
+_H4_EAD_CONTEXT_RE = re.compile(
+    r"(\bh[- ]?4\b.{0,80}\b(?:ead|employment\s+authorization|work\s+authorization|i[- ]?765)\b"
+    r"|\b274a\.12\s*\(\s*c\s*\)\s*\(\s*26\s*\)\b"
+    r"|\bh[- ]?4\s+ead\b)",
+    re.I,
+)
+
+# OPT context — matches rewritten opt_general query and direct F-1 OPT questions.
+_OPT_CONTEXT_RE = re.compile(
+    r"(\boptional\s+practical\s+training\b"
+    r"|\b214\.2\s*\(\s*f\s*\)\b"
+    r"|\b274a\.12\s*\(\s*c\s*\)\s*\(\s*3\s*\)\b"
+    r"|\bpost[- ]?completion\s+opt\b|\bpre[- ]?completion\s+opt\b)",
+    re.I,
+)
+
 _TOPIC_AFFINITY: tuple[tuple[re.Pattern[str], tuple[str, ...]], ...] = (
     (re.compile(r"\basylum\b", re.I), ("208.", "1158", "asylum")),
     (re.compile(r"\btps\b|temporary protected", re.I), ("244.", "tps", "274a.12")),
@@ -333,6 +361,59 @@ def compute_relevance_boost(
             if any(s in blob for s in _ASYLUM_FILING_CHUNK_SIGNALS):
                 if not any(s in blob for s in _CRIMINAL_GROUNDS_CHUNK_SIGNALS):
                     boost -= 0.012
+
+    # H-4 process: boost 8 CFR 214.2(h) / H-4 dependent chunks; penalize naturalization
+    # and I-864/special-immigrant chunks that are irrelevant to nonimmigrant H-4 status.
+    if _H4_PROCESS_CONTEXT_RE.search(query):
+        if "214.2(h)" in blob:
+            boost += 0.016
+        if "h-4" in blob or "h4" in blob:
+            boost += 0.008
+        if "i-539" in blob:
+            boost += 0.008
+        if "naturalization" not in q and "citizen" not in q:
+            if any(s in blob for s in _NATURALIZATION_GMC_CHUNK_SIGNALS):
+                boost -= 0.018
+        if any(s in blob for s in _SPECIAL_IMMIGRANT_CHUNK_SIGNALS):
+            boost -= 0.016
+        if any(s in blob for s in _I864_CHUNK_SIGNALS):
+            boost -= 0.016
+
+    # H-4 EAD: boost 8 CFR 274a.12(c)(26) / I-765 chunks; penalize naturalization
+    # and I-864/special-immigrant chunks that are irrelevant to H-4 employment authorization.
+    if _H4_EAD_CONTEXT_RE.search(query):
+        if "274a.12(c)(26)" in blob:
+            boost += 0.016
+        if "274a.12" in blob:
+            boost += 0.010
+        if "i-765" in blob:
+            boost += 0.008
+        if "naturalization" not in q and "citizen" not in q:
+            if any(s in blob for s in _NATURALIZATION_GMC_CHUNK_SIGNALS):
+                boost -= 0.018
+        if any(s in blob for s in _SPECIAL_IMMIGRANT_CHUNK_SIGNALS):
+            boost -= 0.016
+        if any(s in blob for s in _I864_CHUNK_SIGNALS):
+            boost -= 0.016
+
+    # OPT: boost 8 CFR 214.2(f) / 274a.12(c)(3) chunks; penalize naturalization
+    # and I-864/special-immigrant chunks that are irrelevant to F-1 OPT.
+    if _OPT_CONTEXT_RE.search(query):
+        if "214.2(f)" in blob:
+            boost += 0.014
+        if "274a.12(c)(3)" in blob:
+            boost += 0.012
+        if "i-765" in blob:
+            boost += 0.008
+        if "optional practical training" in blob:
+            boost += 0.006
+        if "naturalization" not in q and "citizen" not in q:
+            if any(s in blob for s in _NATURALIZATION_GMC_CHUNK_SIGNALS):
+                boost -= 0.018
+        if any(s in blob for s in _SPECIAL_IMMIGRANT_CHUNK_SIGNALS):
+            boost -= 0.016
+        if any(s in blob for s in _I864_CHUNK_SIGNALS):
+            boost -= 0.016
 
     return max(-0.025, min(_MAX_BOOST, boost))
 

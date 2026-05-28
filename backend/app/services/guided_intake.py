@@ -124,6 +124,19 @@ _CATEGORY_RETRIEVAL_QUERIES: dict[str, str] = {
         "crimes involving moral turpitude controlled substance domestic violence firearms "
         "conviction removal deportation"
     ),
+    "h4_process": (
+        "H-4 dependent nonimmigrant status spouse child of H-1B 8 CFR 214.2(h)(9)(iv) "
+        "H-4 visa change of status extension of stay consular processing Form I-539"
+    ),
+    "h4_ead": (
+        "H-4 EAD employment authorization H-4 spouse 8 CFR 274a.12(c)(26) "
+        "Form I-765 H-1B principal approved I-140 AC21 extension beyond six years "
+        "H-4 dependent employment authorization document"
+    ),
+    "opt_general": (
+        "F-1 optional practical training OPT 8 CFR 214.2(f)(10) "
+        "post-completion OPT pre-completion OPT Form I-765 8 CFR 274a.12(c)(3)"
+    ),
 }
 
 _EAD_OPTIONS = (
@@ -421,6 +434,32 @@ _NATURALIZATION_REQUIREMENTS_RE = re.compile(
     re.I,
 )
 
+# H-4 EAD must be checked before H-4 process (more specific; both mention H-4).
+_H4_EAD_RE = re.compile(
+    r"(\bh[- ]?4\b.{0,100}\b(?:ead|employment\s+authorization|work\s+authorization|i[- ]?765)\b"
+    r"|\b(?:ead|employment\s+authorization|work\s+authorization|i[- ]?765)\b.{0,100}\bh[- ]?4\b"
+    r"|\bh[- ]?4\s+ead\b)",
+    re.I,
+)
+
+_H4_PROCESS_RE = re.compile(
+    r"(\bh[- ]?4\b.{0,100}\b(?:process|visa|status|dependent|spouse|child|apply|eligib\w*|requirements?)\b"
+    r"|\b(?:what\s+is|how\s+does|how\s+do|explain)\b.{0,60}\bh[- ]?4\b"
+    r"|\bh[- ]?4\s+(?:visa|dependent|status|process|requirements?)\b"
+    r"|\bh[- ]?4\s+spouse\b|\bh[- ]?4\s+holder\b)",
+    re.I,
+)
+
+# Matches standalone OPT questions not already caught by _OPT_EAD_RE.
+_OPT_GENERAL_RE = re.compile(
+    r"(\bwhat\s+is\b.{0,60}\bopt\b"
+    r"|\bopt\b.{0,80}\b(?:process|eligib\w*|requirements?|f[- ]?1|student|work|allow)\b"
+    r"|\boptional\s+practical\s+training\b"
+    r"|\bf[- ]?1\b.{0,60}\bopt\b|\bopt\b.{0,60}\bf[- ]?1\b"
+    r"|\bhow\s+(?:does|do)\b.{0,60}\bopt\b)",
+    re.I,
+)
+
 
 def resolve_retrieval_query(message: str, selected_category: str | None) -> str:
     """Build the retrieval query from the user message and optional category selection."""
@@ -433,8 +472,16 @@ def resolve_retrieval_query(message: str, selected_category: str | None) -> str:
         return _CATEGORY_RETRIEVAL_QUERIES["asylum_pending"]
     if _I485_TRAVEL_RE.search(m):
         return _CATEGORY_RETRIEVAL_QUERIES["travel_aos"]
+    # H-4 EAD before H-4 process (more specific; both mention H-4).
+    if _H4_EAD_RE.search(m):
+        return _CATEGORY_RETRIEVAL_QUERIES["h4_ead"]
+    if _H4_PROCESS_RE.search(m):
+        return _CATEGORY_RETRIEVAL_QUERIES["h4_process"]
+    # OPT EAD (existing F-1+EAD) before OPT general (standalone OPT).
     if _OPT_EAD_RE.search(m):
         return _CATEGORY_RETRIEVAL_QUERIES["f1_opt_stem_opt"]
+    if _OPT_GENERAL_RE.search(m):
+        return _CATEGORY_RETRIEVAL_QUERIES["opt_general"]
     if _NATURALIZATION_REQUIREMENTS_RE.search(m):
         return _CATEGORY_RETRIEVAL_QUERIES["naturalization_residence"]
     if _CRIMINAL_DEPORTABILITY_RE.search(m):
