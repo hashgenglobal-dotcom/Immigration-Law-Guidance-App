@@ -54,6 +54,14 @@ class AnswerFormattingTests(unittest.TestCase):
         self.assertIn("HIGH-RISK", addon)
         self.assertIn("immigration attorney", addon)
 
+    def test_format_addon_has_safe_next_steps_guidance(self) -> None:
+        """Format addon must instruct hedged language in Typical next steps."""
+        addon = build_format_system_addon(high_risk=False, weak_sources=False, selected_category=None)
+        # Safe phrasing example must be present
+        self.assertIn("You may need to", addon)
+        # Explicitly avoided command forms must be named
+        self.assertIn("File Form", addon)
+
     def test_normalize_headers(self) -> None:
         raw = "short answer\nLine one\n\nwhat this means\nLine two"
         out = normalize_section_headers("Short answer:\nLine one\n\nWhat this means:\nLine two")
