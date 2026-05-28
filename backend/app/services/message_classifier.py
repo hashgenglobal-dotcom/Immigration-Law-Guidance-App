@@ -1,8 +1,9 @@
 """Lightweight message classifier — runs before retrieval and LLM.
 
-Handles two cases:
+Handles three cases:
 1. Casual greetings: return a friendly structured response without RAG or LLM.
-2. Criminal/fraud/evasion strategy: return a pre-built refusal without RAG or LLM.
+2. Criminal matter + action-seeking: return a safe referral response without RAG or LLM.
+3. Criminal/fraud/evasion strategy: return a pre-built refusal without RAG or LLM.
 
 Patterns are deliberately narrow to avoid false positives on legitimate
 legal-information questions like "What is unlawful presence?" or
@@ -29,11 +30,45 @@ _GREETING_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
 )
 
 # Matches questions that seek consequences/information, never strategy.
-# These are excluded from refusal even if they contain deceptive-verb words.
+# These are excluded from refusal and criminal_warning even if they contain
+# criminal-matter words.
 _CONSEQUENCE_QUESTION_RE = re.compile(
     r"^(what (happens?|are the consequences?|is the penalty|is the punishment"
     r"|are the risks?|could happen|will happen)|what could happen|what will happen"
     r"|what is the risk|what if i)",
+    re.I,
+)
+
+# Criminal-matter terms that indicate the user has a personal criminal situation.
+_CRIMINAL_MATTER_RE = re.compile(
+    r"\b("
+    r"dui|dwi"
+    r"|hit[- ]and[- ]run|hit and run"
+    r"|arrest(?:ed)?"
+    r"|conviction|convicted"
+    r"|criminal (?:charge|case|matter|record|history)"
+    r"|theft|robbery|assault|battery|burglary"
+    r"|felony|misdemeanor"
+    r"|drug (?:charge|offense|arrest|conviction)"
+    r"|domestic violence"
+    r")\b",
+    re.I,
+)
+
+# Action/strategy-seeking phrases that indicate the user wants personal guidance
+# on what to do — not just general legal information.
+_CRIMINAL_ACTION_SEEKING_RE = re.compile(
+    r"\b("
+    r"what should (?:i|we) do"
+    r"|what do i do"
+    r"|what can (?:i|we) do"
+    r"|how (?:do|should|can) (?:i|we) (?:handle|deal with|proceed|approach)"
+    r"|how to (?:handle|deal with|proceed)"
+    r"|what are (?:my|our) (?:options|next steps|choices)"
+    r"|what (?:is|are) my next steps?"
+    r"|advise me"
+    r"|help me (?:deal with|handle|navigate)"
+    r")\b",
     re.I,
 )
 
@@ -120,9 +155,33 @@ REFUSAL_ANSWER = (
     "enforcement action, speaking with a qualified immigration attorney promptly is strongly recommended."
 )
 
+CRIMINAL_WARNING_ANSWER = (
+    "Short answer:\n"
+    "This question may involve both criminal and immigration consequences. This assistant cannot "
+    "advise you on what to do in a criminal matter or how to handle your specific case.\n\n"
+    "What this means:\n"
+    "Criminal charges, arrests, and convictions can have serious immigration consequences — "
+    "including being found inadmissible or deportable. The right course of action depends on the "
+    "specific facts of your criminal case, your current immigration status, and applicable law. "
+    "Both the criminal and immigration dimensions require qualified legal counsel.\n\n"
+    "Typical next steps:\n"
+    "1. Consider speaking with a licensed criminal defense attorney about the criminal aspects of "
+    "your situation as soon as possible — ideally before any court appearances or statements.\n"
+    "2. Consider consulting a qualified immigration attorney to understand how your situation may "
+    "affect your immigration status, benefits, or pending applications.\n"
+    "3. If you would like, this assistant can help you prepare general questions to ask your "
+    "attorney — just let me know what area you want to focus on.\n\n"
+    "Official sources:\n"
+    "(No retrieval performed — this response is a referral to qualified counsel, not a "
+    "legal information answer.)\n\n"
+    "Important caution:\n"
+    "This is general information only, not legal advice. Criminal and immigration consequences "
+    "can be serious and are highly case-specific. Do not delay speaking with qualified attorneys."
+)
+
 
 def classify_message(message: str) -> str:
-    """Return 'greeting', 'refusal', or 'pass' for a user message.
+    """Return 'greeting', 'criminal_warning', 'refusal', or 'pass' for a user message.
 
     Called before retrieval and LLM to short-circuit casual and harmful requests.
     Patterns are intentionally narrow — legitimate legal-information questions
@@ -136,9 +195,14 @@ def classify_message(message: str) -> str:
     if len(text) <= _MAX_GREETING_LEN and any(p.search(text) for p in _GREETING_PATTERNS):
         return "greeting"
 
-    # Consequence questions ask about effects, not strategy — never refused.
+    # Consequence questions ask about effects, not strategy — always pass.
     if _CONSEQUENCE_QUESTION_RE.search(text):
         return "pass"
+
+    # Criminal matter + personal action-seeking: user has a criminal situation and
+    # is asking what to do. Return a safe referral instead of legal strategy.
+    if _CRIMINAL_MATTER_RE.search(text) and _CRIMINAL_ACTION_SEEKING_RE.search(text):
+        return "criminal_warning"
 
     # Refusal: messages seeking strategy for fraud, evasion, or misrepresentation.
     if any(p.search(text) for p in _REFUSAL_PATTERNS):

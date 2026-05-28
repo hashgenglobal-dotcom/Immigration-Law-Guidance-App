@@ -27,6 +27,7 @@ from app.services.ask_memory_context import (
 )
 from app.services.guided_intake import is_valid_category_value, resolve_retrieval_query
 from app.services.message_classifier import (
+    CRIMINAL_WARNING_ANSWER,
     GREETING_ANSWER,
     REFUSAL_ANSWER,
     classify_message,
@@ -172,6 +173,17 @@ class ChatService:
             return ChatResponse(
                 query_hash=query_hash,
                 answer=GREETING_ANSWER,
+                citations=[],
+                disclaimer=_DISCLAIMER,
+                active_dataset=None,
+                active_datasets=[],
+                mvp_sources=[],
+                used_chunks=[],
+            )
+        if kind == "criminal_warning":
+            return ChatResponse(
+                query_hash=query_hash,
+                answer=CRIMINAL_WARNING_ANSWER,
                 citations=[],
                 disclaimer=_DISCLAIMER,
                 active_dataset=None,

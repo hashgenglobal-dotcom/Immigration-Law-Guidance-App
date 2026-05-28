@@ -1,4 +1,4 @@
-"""Tests for message_classifier: greeting detection and criminal/fraud refusal."""
+"""Tests for message_classifier: greeting detection, criminal warning, and refusal."""
 
 from __future__ import annotations
 
@@ -62,6 +62,109 @@ class GreetingDetectionTests(unittest.TestCase):
 
     def test_empty_string_is_pass(self) -> None:
         self.assertEqual(classify_message(""), "pass")
+
+
+class CriminalWarningDetectionTests(unittest.TestCase):
+    """classify_message returns 'criminal_warning' for personal criminal matter + action-seeking."""
+
+    # --- Should trigger criminal_warning ---
+
+    def test_dui_what_should_i_do(self) -> None:
+        self.assertEqual(
+            classify_message("I got a DUI, what should I do for immigration?"),
+            "criminal_warning",
+        )
+
+    def test_hit_and_run_what_should_i_do(self) -> None:
+        self.assertEqual(
+            classify_message("I had a hit and run case, what should I do?"),
+            "criminal_warning",
+        )
+
+    def test_arrested_what_should_i_do(self) -> None:
+        self.assertEqual(
+            classify_message("I was arrested, what should I do?"),
+            "criminal_warning",
+        )
+
+    def test_theft_charge_what_should_i_do(self) -> None:
+        self.assertEqual(
+            classify_message("I have a theft charge, what should I do?"),
+            "criminal_warning",
+        )
+
+    def test_felony_what_are_my_options(self) -> None:
+        self.assertEqual(
+            classify_message("I was convicted of a felony, what are my options?"),
+            "criminal_warning",
+        )
+
+    def test_misdemeanor_how_do_i_handle(self) -> None:
+        self.assertEqual(
+            classify_message("I have a misdemeanor on my record, how do I handle this?"),
+            "criminal_warning",
+        )
+
+    def test_criminal_case_next_steps(self) -> None:
+        self.assertEqual(
+            classify_message("I have a criminal case pending, what are my next steps?"),
+            "criminal_warning",
+        )
+
+    def test_assault_charge_what_can_i_do(self) -> None:
+        self.assertEqual(
+            classify_message("I was charged with assault last year, what can I do?"),
+            "criminal_warning",
+        )
+
+    def test_drug_charge_what_should_i_do(self) -> None:
+        self.assertEqual(
+            classify_message("I have a drug charge from 2022, what should I do?"),
+            "criminal_warning",
+        )
+
+    def test_domestic_violence_how_should_i_proceed(self) -> None:
+        self.assertEqual(
+            classify_message(
+                "I was arrested for domestic violence. How should I proceed with my green card?"
+            ),
+            "criminal_warning",
+        )
+
+    # --- Must NOT trigger criminal_warning (informational/general questions) ---
+
+    def test_can_dui_affect_immigration_is_pass(self) -> None:
+        self.assertEqual(
+            classify_message("Can a DUI affect immigration?"), "pass"
+        )
+
+    def test_criminal_inadmissibility_info_is_pass(self) -> None:
+        self.assertEqual(
+            classify_message("What is criminal inadmissibility?"), "pass"
+        )
+
+    def test_conviction_consequences_is_pass(self) -> None:
+        # Starts with "What happens" → caught by consequence_question_re first.
+        self.assertEqual(
+            classify_message("What happens if someone has a conviction?"), "pass"
+        )
+
+    def test_dui_general_effect_is_pass(self) -> None:
+        # Criminal matter (DUI) but no action-seeking phrase.
+        self.assertEqual(
+            classify_message("Can a DUI conviction make someone inadmissible?"), "pass"
+        )
+
+    def test_what_are_criminal_grounds_is_pass(self) -> None:
+        self.assertEqual(
+            classify_message("What are criminal grounds of inadmissibility?"), "pass"
+        )
+
+    def test_felony_consequences_question_is_pass(self) -> None:
+        self.assertEqual(
+            classify_message("What are the consequences of a felony conviction for a green card?"),
+            "pass",
+        )
 
 
 class RefusalDetectionTests(unittest.TestCase):
@@ -214,6 +317,32 @@ class ChatServiceClassifierTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(retrieval_called["count"], 0)
         self.assertIn("attorney", response.answer.lower())
+
+    async def test_criminal_warning_skips_retrieval(self) -> None:
+        retrieval_called: dict[str, int] = {"count": 0}
+        service = await self._make_service(retrieval_called)
+        response = await service.generate_chat_response(
+            "I got a DUI, what should I do for immigration?"
+        )
+        self.assertEqual(retrieval_called["count"], 0)
+        self.assertIn("attorney", response.answer.lower())
+
+    async def test_criminal_warning_response_has_status_ok(self) -> None:
+        retrieval_called: dict[str, int] = {"count": 0}
+        service = await self._make_service(retrieval_called)
+        response = await service.generate_chat_response(
+            "I was arrested, what should I do?"
+        )
+        self.assertEqual(response.status, "ok")
+        self.assertIn("criminal defense attorney", response.answer.lower())
+
+    async def test_criminal_warning_mentions_immigration_attorney(self) -> None:
+        retrieval_called: dict[str, int] = {"count": 0}
+        service = await self._make_service(retrieval_called)
+        response = await service.generate_chat_response(
+            "I have a theft charge, what should I do?"
+        )
+        self.assertIn("immigration attorney", response.answer.lower())
 
     async def test_greeting_response_has_status_ok(self) -> None:
         retrieval_called: dict[str, int] = {"count": 0}
