@@ -84,6 +84,127 @@ def is_dui_info_query(message: str) -> bool:
     return bool(_DUI_INFO_QUERY_RE.search(message.strip()))
 
 
+# ---- H-4 FAQ bypass detectors -------------------------------------------
+
+# Broad informational questions about H-4 process/visa/status (not case-specific).
+_H4_PROCESS_FAQ_RE = re.compile(
+    r"("
+    r"\bwhat\s+is\b.{0,80}\bh[- ]?4\b"
+    r"|\bwhat\s+are\b.{0,80}\bh[- ]?4\b"
+    r"|\bhow\s+does\b.{0,80}\bh[- ]?4\b"
+    r"|\bexplain\b.{0,60}\bh[- ]?4\b"
+    r"|\bh[- ]?4\s+(?:visa\s+)?process\b"
+    r"|\bh[- ]?4\s+(?:visa|status|dependent)\b"
+    r"|\bwhat\s+are\s+the\s+(?:requirements?|eligib\w*)\s+for\s+(?:an?\s+)?h[- ]?4\b"
+    r"|\bhow\s+do\s+(?:i|you)\b.{0,80}\bh[- ]?4\b"
+    r")",
+    re.I,
+)
+
+# Broad informational questions about H-4 EAD/employment authorization (not case-specific).
+# Must be checked BEFORE _H4_PROCESS_FAQ_RE because both match queries mentioning H-4.
+_H4_EAD_FAQ_RE = re.compile(
+    r"("
+    r"\bwhat\s+is\b.{0,80}\bh[- ]?4\b.{0,80}\b(?:ead|employment\s+authorization|work\s+authorization)\b"
+    r"|\bwhat\s+is\s+h[- ]?4\s+ead\b"
+    r"|\bhow\s+does\b.{0,80}\bh[- ]?4\b.{0,100}\b(?:ead|employment\s+authorization)\b"
+    r"|\bhow\s+does\b.{0,80}\b(?:ead|employment\s+authorization)\b.{0,80}\bh[- ]?4\b"
+    r"|\bh[- ]?4\s+ead\b"
+    r"|\bh[- ]?4\b.{0,80}\b(?:ead|employment\s+authorization)\b.{0,80}"
+    r"\b(?:requirements?|eligib\w*|process|overview)\b"
+    r"|\bcan\s+h[- ]?4\b.{0,80}\bwork\b"
+    r"|\bhow\s+do\b.{0,80}\bh[- ]?4\b.{0,80}\b(?:get|obtain)\b"
+    r".{0,80}\b(?:ead|employment\s+authorization|work\s+authorization)\b"
+    r"|\bh[- ]?4\s+(?:employment|work)\s+authorization\b"
+    r")",
+    re.I,
+)
+
+# Excludes personal/case-specific H-4 questions from FAQ bypass.
+_H4_FAQ_EXCLUSION_RE = re.compile(
+    r"("
+    r"\bmy\s+h[- ]?4\b"
+    r"|\bmy\s+(?:application|case|status|visa|petition)\b"
+    r"|\bh[- ]?4\b.{0,80}\b(?:denied|rejected|expired|rfe)\b"
+    r"|\b(?:denied|rejected)\b.{0,80}\bh[- ]?4\b"
+    r"|\bwhat\s+should\s+i\s+do\b"
+    r"|\bi\s+(?:was|have\s+been)\s+(?:denied|rejected)\b"
+    r"|\bhelp\s+(?:me|with)\s+my\b"
+    r")",
+    re.I,
+)
+
+
+def is_h4_process_faq_query(message: str) -> bool:
+    """Return True for broad informational H-4 process/visa/status questions.
+
+    Returns False for case-specific questions (denials, personal possessives, RFEs).
+    """
+    text = message.strip()
+    if _H4_FAQ_EXCLUSION_RE.search(text):
+        return False
+    return bool(_H4_PROCESS_FAQ_RE.search(text))
+
+
+def is_h4_ead_faq_query(message: str) -> bool:
+    """Return True for broad informational H-4 EAD/employment authorization questions.
+
+    Returns False for case-specific questions (denials, personal possessives, RFEs).
+    """
+    text = message.strip()
+    if _H4_FAQ_EXCLUSION_RE.search(text):
+        return False
+    return bool(_H4_EAD_FAQ_RE.search(text))
+
+
+# ---- Answer intent classifier -------------------------------------------
+
+# "What is X?", "What are X?", "What does X mean?", "Explain X", "Tell me about X"
+_DEFINITIONAL_RE = re.compile(
+    r"^\s*(?:what\s+is\b|what\s+are\b|what\s+does\b|explain\b|define\b|"
+    r"how\s+is\b|tell\s+me\s+about\b)",
+    re.I,
+)
+
+# "How do I?", "How does X work?", "How can I?", "What is the process?", "What are the steps?"
+_PROCESS_QUESTION_RE = re.compile(
+    r"^\s*(?:how\s+do\s+i\b|how\s+does\b|how\s+can\s+i\b|how\s+would\s+i\b|"
+    r"how\s+to\b|what\s+are\s+the\s+steps\b|what\s+is\s+the\s+process\b)",
+    re.I,
+)
+
+# Personal situation or case-specific risk signals.
+_PERSONAL_RISK_RE = re.compile(
+    r"(?:"
+    r"\bmy\s+(?:case|application|status|record|visa|petition|appeal|denial)\b"
+    r"|\bi\s+(?:was\s+denied|have\s+been\s+denied|was\s+arrested|"
+    r"have\s+an?\s+arrest\b|have\s+a\s+conviction\b|have\s+a\s+criminal\s+record\b|"
+    r"overstayed\b|am\s+detained\b)"
+    r"|\bprior\s+(?:denial|refusal|conviction|arrest)\b"
+    r"|\bunlawful\s+presence\b|\boverstay(?:ed|ing)?\b|\bcriminal\s+record\b"
+    r"|\bfraud\b|\bmisrepresent\w*\b"
+    r")",
+    re.I,
+)
+
+
+def classify_answer_intent(message: str) -> str:
+    """Return 'general_info', 'process_info', or 'case_specific_or_risk'.
+
+    Controls attorney-referral tone in Typical next steps.
+    is_high_risk_topic() is a separate, higher-priority safety check that
+    overrides this for NTA, removal, criminal, fraud, and similar topics.
+    """
+    text = message.strip()
+    if _PERSONAL_RISK_RE.search(text):
+        return "case_specific_or_risk"
+    if _DEFINITIONAL_RE.search(text):
+        return "general_info"
+    if _PROCESS_QUESTION_RE.search(text):
+        return "process_info"
+    return "general_info"
+
+
 def is_high_risk_topic(
     message: str,
     results: list[RetrievalResult] | None = None,
@@ -124,6 +245,7 @@ def build_format_system_addon(
     weak_sources: bool,
     selected_category: str | None,
     criminal_info: bool = False,
+    answer_intent: str = "general_info",
 ) -> str:
     """Extra system instructions for structured, plain-language answers."""
     lines = [
@@ -154,13 +276,28 @@ def build_format_system_addon(
         "what they must do in their specific case.",
         "- Do not include immigration scenarios unrelated to the question.",
         "- Do not over-explain or copy long statutory text.",
-        "- In Typical next steps, use hedged language: prefer 'You may need to discuss [X] with a "
-        "qualified immigration attorney, DSO, or accredited representative' or 'Consider asking "
-        "whether [Form/Action] is required before proceeding'. Do not write direct commands like "
-        "'File Form X', 'Submit', 'Apply for', or 'Do X' — users must make their own decisions "
-        "with qualified counsel.",
         "- This is general legal information only, not legal advice.",
     ]
+
+    # Next-steps tone: practical for informational questions, hedged for personal/risk questions.
+    if not high_risk and answer_intent in ("general_info", "process_info"):
+        lines.append(
+            "- In Typical next steps, use practical, informational language. Describe concrete "
+            "steps to understand or begin the process — for example: 'Review the official USCIS "
+            "instructions for the relevant form on uscis.gov', 'Identify whether the applicant "
+            "is inside or outside the U.S.', 'Check the official eligibility criteria in the "
+            "sources cited above'. You may include a step to consult a qualified immigration "
+            "attorney for complex or unusual cases, but do not make attorney consultation the "
+            "only step."
+        )
+    else:
+        lines.append(
+            "- In Typical next steps, use hedged language: prefer 'You may need to discuss [X] with a "
+            "qualified immigration attorney, DSO, or accredited representative' or 'Consider asking "
+            "whether [Form/Action] is required before proceeding'. Do not write direct commands like "
+            "'File Form X', 'Submit', 'Apply for', or 'Do X' — users must make their own decisions "
+            "with qualified counsel."
+        )
     if selected_category:
         lines.append(
             f"- The user already selected category \"{selected_category}\". "

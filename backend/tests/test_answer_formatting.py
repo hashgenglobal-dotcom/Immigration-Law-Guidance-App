@@ -7,6 +7,7 @@ import unittest
 from app.schemas.retrieval import RetrievalResult
 from app.services.answer_formatting import (
     build_format_system_addon,
+    classify_answer_intent,
     ensure_structured_answer,
     has_required_sections,
     is_criminal_info_query,
@@ -57,8 +58,11 @@ class AnswerFormattingTests(unittest.TestCase):
         self.assertIn("immigration attorney", addon)
 
     def test_format_addon_has_safe_next_steps_guidance(self) -> None:
-        """Format addon must instruct hedged language in Typical next steps."""
-        addon = build_format_system_addon(high_risk=False, weak_sources=False, selected_category=None)
+        """For case_specific_or_risk intent, format addon must instruct hedged next-steps language."""
+        addon = build_format_system_addon(
+            high_risk=False, weak_sources=False, selected_category=None,
+            answer_intent="case_specific_or_risk",
+        )
         # Safe phrasing example must be present
         self.assertIn("You may need to", addon)
         # Explicitly avoided command forms must be named
@@ -382,6 +386,165 @@ class DUISafeResponseTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("criminal defense attorney", response.answer.lower())
         # Must NOT be the DUI safe answer
         self.assertNotIn("fact-specific", response.answer)
+
+
+class AnswerIntentClassifierTests(unittest.TestCase):
+    """classify_answer_intent returns the correct intent for common question types."""
+
+    # --- General info / definitional questions ---
+
+    def test_what_is_h4_process_is_general_info(self) -> None:
+        self.assertEqual(classify_answer_intent("What is H-4 process?"), "general_info")
+
+    def test_what_is_opt_is_general_info(self) -> None:
+        self.assertEqual(classify_answer_intent("What is OPT?"), "general_info")
+
+    def test_what_is_form_i765_is_general_info(self) -> None:
+        self.assertEqual(classify_answer_intent("What is Form I-765?"), "general_info")
+
+    def test_what_are_naturalization_requirements_is_general_info(self) -> None:
+        self.assertEqual(
+            classify_answer_intent("What are the requirements for naturalization?"),
+            "general_info",
+        )
+
+    def test_what_does_ead_mean_is_general_info(self) -> None:
+        self.assertEqual(classify_answer_intent("What does EAD mean?"), "general_info")
+
+    # --- Process questions ---
+
+    def test_how_does_h4_ead_work_is_process_or_general(self) -> None:
+        result = classify_answer_intent("How does H-4 EAD work?")
+        self.assertIn(result, ("general_info", "process_info"))
+
+    def test_how_do_i_apply_for_ead_is_process_or_general(self) -> None:
+        result = classify_answer_intent("How do I apply for EAD?")
+        self.assertIn(result, ("general_info", "process_info"))
+
+    def test_how_does_h4_process_work_is_process_or_general(self) -> None:
+        result = classify_answer_intent("How does the H-4 visa process work?")
+        self.assertIn(result, ("general_info", "process_info"))
+
+    # --- Case-specific / risk questions ---
+
+    def test_arrest_green_card_is_case_specific(self) -> None:
+        self.assertEqual(
+            classify_answer_intent("I have an arrest and want a green card, what should I do?"),
+            "case_specific_or_risk",
+        )
+
+    def test_prior_denial_is_case_specific(self) -> None:
+        self.assertEqual(
+            classify_answer_intent("My application was denied last year."),
+            "case_specific_or_risk",
+        )
+
+    def test_overstayed_is_case_specific(self) -> None:
+        self.assertEqual(
+            classify_answer_intent("I overstayed my visa, what happens?"),
+            "case_specific_or_risk",
+        )
+
+    def test_criminal_record_is_case_specific(self) -> None:
+        self.assertEqual(
+            classify_answer_intent("I have a criminal record and want to apply for citizenship."),
+            "case_specific_or_risk",
+        )
+
+    def test_was_arrested_is_case_specific(self) -> None:
+        self.assertEqual(
+            classify_answer_intent("I was arrested last year, can I still get a visa?"),
+            "case_specific_or_risk",
+        )
+
+    def test_unlawful_presence_is_case_specific(self) -> None:
+        self.assertEqual(
+            classify_answer_intent("Does unlawful presence affect my green card?"),
+            "case_specific_or_risk",
+        )
+
+    def test_prior_conviction_is_case_specific(self) -> None:
+        self.assertEqual(
+            classify_answer_intent("Prior conviction can affect adjustment of status."),
+            "case_specific_or_risk",
+        )
+
+
+class AnswerIntentToneTests(unittest.TestCase):
+    """build_format_system_addon uses the right next-steps tone per intent."""
+
+    def test_general_info_addon_uses_practical_next_steps(self) -> None:
+        addon = build_format_system_addon(
+            high_risk=False, weak_sources=False, selected_category=None,
+            answer_intent="general_info",
+        )
+        self.assertIn("practical", addon.lower())
+        # Attorney-first hedged command ban should NOT dominate general info questions
+        self.assertNotIn("Do not write direct commands like", addon)
+
+    def test_process_info_addon_uses_practical_next_steps(self) -> None:
+        addon = build_format_system_addon(
+            high_risk=False, weak_sources=False, selected_category=None,
+            answer_intent="process_info",
+        )
+        self.assertIn("practical", addon.lower())
+        self.assertNotIn("Do not write direct commands like", addon)
+
+    def test_general_info_addon_still_allows_attorney_mention(self) -> None:
+        addon = build_format_system_addon(
+            high_risk=False, weak_sources=False, selected_category=None,
+            answer_intent="general_info",
+        )
+        # Attorney referral is still permitted as an optional step
+        self.assertIn("immigration attorney", addon.lower())
+
+    def test_case_specific_addon_uses_hedged_next_steps(self) -> None:
+        addon = build_format_system_addon(
+            high_risk=False, weak_sources=False, selected_category=None,
+            answer_intent="case_specific_or_risk",
+        )
+        self.assertIn("You may need to", addon)
+        self.assertIn("Do not write direct commands like", addon)
+
+    def test_high_risk_overrides_general_info_to_attorney_language(self) -> None:
+        """high_risk=True forces hedged next-steps even for general_info questions."""
+        addon = build_format_system_addon(
+            high_risk=True, weak_sources=False, selected_category=None,
+            answer_intent="general_info",
+        )
+        # HIGH-RISK block is added
+        self.assertIn("HIGH-RISK", addon)
+        self.assertIn("immigration attorney", addon.lower())
+        # Hedged next-steps rule is used (not practical language)
+        self.assertIn("Do not write direct commands like", addon)
+
+    def test_h4_process_question_gets_practical_tone_in_system_prompt(self) -> None:
+        """End-to-end: classify_answer_intent + build_format_system_addon for H-4 question."""
+        intent = classify_answer_intent("What is H-4 process?")
+        addon = build_format_system_addon(
+            high_risk=False, weak_sources=False, selected_category=None,
+            answer_intent=intent,
+        )
+        self.assertIn("practical", addon.lower())
+        self.assertNotIn("Do not write direct commands like", addon)
+
+    def test_opt_question_gets_practical_tone_in_system_prompt(self) -> None:
+        intent = classify_answer_intent("What is OPT?")
+        addon = build_format_system_addon(
+            high_risk=False, weak_sources=False, selected_category=None,
+            answer_intent=intent,
+        )
+        self.assertIn("practical", addon.lower())
+
+    def test_arrest_question_gets_hedged_tone_in_system_prompt(self) -> None:
+        intent = classify_answer_intent(
+            "I have an arrest and want a green card, what should I do?"
+        )
+        addon = build_format_system_addon(
+            high_risk=False, weak_sources=False, selected_category=None,
+            answer_intent=intent,
+        )
+        self.assertIn("Do not write direct commands like", addon)
 
 
 if __name__ == "__main__":

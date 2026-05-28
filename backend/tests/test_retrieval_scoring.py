@@ -510,5 +510,226 @@ class RetrievalScoringTests(unittest.TestCase):
         self.assertLess(boost, 0.015)
 
 
+class H4OPTScoringTests(unittest.TestCase):
+    """Tests for H-4 process, H-4 EAD, and OPT retrieval scoring boosts and penalties."""
+
+    _H4_PROCESS_QUERY = (
+        "H-4 dependent nonimmigrant status spouse child of H-1B 8 CFR 214.2(h)(9)(iv) "
+        "H-4 visa change of status extension of stay consular processing Form I-539"
+    )
+    _H4_EAD_QUERY = (
+        "H-4 EAD employment authorization H-4 spouse 8 CFR 274a.12(c)(26) "
+        "Form I-765 H-1B principal approved I-140 AC21 extension beyond six years "
+        "H-4 dependent employment authorization document"
+    )
+    _OPT_QUERY = (
+        "F-1 optional practical training OPT 8 CFR 214.2(f)(10) "
+        "post-completion OPT pre-completion OPT Form I-765 8 CFR 274a.12(c)(3)"
+    )
+
+    # --- H-4 process boosts ---
+
+    def test_h4_process_query_boosts_214_2h_chunk(self) -> None:
+        boost = compute_relevance_boost(
+            self._H4_PROCESS_QUERY,
+            citation="8 CFR § 214.2(h)",
+            topic="H-4 dependent nonimmigrant status",
+            subtopic=None,
+            snippet="H-4 dependent status is available to the spouse and child of an H-1B principal under 8 CFR 214.2(h)(9)(iv).",
+        )
+        self.assertGreater(boost, 0.01)
+
+    # --- H-4 process penalties ---
+
+    def test_h4_process_query_penalizes_naturalization_chunk(self) -> None:
+        boost = compute_relevance_boost(
+            self._H4_PROCESS_QUERY,
+            citation="USCIS Form N-400",
+            topic="naturalization",
+            subtopic=None,
+            snippet="Application for Naturalization. Eligibility requires 5 years as LPR. N-400.",
+        )
+        self.assertLess(boost, 0)
+
+    def test_h4_process_query_penalizes_i864_chunk(self) -> None:
+        boost = compute_relevance_boost(
+            self._H4_PROCESS_QUERY,
+            citation="USCIS Form I-864",
+            topic="affidavit of support",
+            subtopic=None,
+            snippet="I-864 Affidavit of Support under Section 213A of the INA.",
+        )
+        self.assertLess(boost, 0)
+
+    def test_h4_process_query_penalizes_special_immigrant_chunk(self) -> None:
+        boost = compute_relevance_boost(
+            self._H4_PROCESS_QUERY,
+            citation="INA § 101(a)(27)",
+            topic="special immigrant",
+            subtopic=None,
+            snippet="Special immigrants under INA 101(a)(27) include certain religious workers.",
+        )
+        self.assertLess(boost, 0)
+
+    def test_h4_process_214_2h_outranks_naturalization_chunk(self) -> None:
+        h4_boost = compute_relevance_boost(
+            self._H4_PROCESS_QUERY,
+            citation="8 CFR § 214.2(h)",
+            topic="H-4 dependent nonimmigrant status",
+            subtopic=None,
+            snippet="H-4 dependent status for spouses of H-1B principals under 8 CFR 214.2(h)(9)(iv).",
+        )
+        nat_boost = compute_relevance_boost(
+            self._H4_PROCESS_QUERY,
+            citation="USCIS Form N-400",
+            topic="naturalization",
+            subtopic=None,
+            snippet="Application for Naturalization. N-400.",
+        )
+        self.assertGreater(h4_boost, nat_boost)
+
+    # --- H-4 EAD boosts ---
+
+    def test_h4_ead_query_boosts_274a_12_c26_chunk(self) -> None:
+        boost = compute_relevance_boost(
+            self._H4_EAD_QUERY,
+            citation="8 CFR § 274a.12(c)(26)",
+            topic="H-4 employment authorization",
+            subtopic=None,
+            snippet="H-4 dependent spouses of certain H-1B holders may obtain employment authorization under 8 CFR 274a.12(c)(26).",
+        )
+        self.assertGreater(boost, 0.015)
+
+    def test_h4_ead_query_boosts_i765_chunk(self) -> None:
+        boost = compute_relevance_boost(
+            self._H4_EAD_QUERY,
+            citation="USCIS Form I-765",
+            topic="employment authorization",
+            subtopic=None,
+            snippet="Form I-765 Application for Employment Authorization.",
+        )
+        self.assertGreater(boost, 0.01)
+
+    # --- H-4 EAD penalties ---
+
+    def test_h4_ead_query_penalizes_naturalization_chunk(self) -> None:
+        boost = compute_relevance_boost(
+            self._H4_EAD_QUERY,
+            citation="USCIS Form N-400",
+            topic="naturalization",
+            subtopic=None,
+            snippet="Application for Naturalization. N-400 form for naturalization eligibility.",
+        )
+        self.assertLess(boost, 0)
+
+    def test_h4_ead_query_penalizes_i864_chunk(self) -> None:
+        boost = compute_relevance_boost(
+            self._H4_EAD_QUERY,
+            citation="USCIS Form I-864",
+            topic="affidavit of support",
+            subtopic=None,
+            snippet="I-864 Affidavit of Support under Section 213A of the INA.",
+        )
+        self.assertLess(boost, 0)
+
+    def test_h4_ead_query_penalizes_special_immigrant_chunk(self) -> None:
+        boost = compute_relevance_boost(
+            self._H4_EAD_QUERY,
+            citation="INA § 101(a)(27)",
+            topic="special immigrant",
+            subtopic=None,
+            snippet="Special immigrants under INA 101(a)(27) include certain religious workers.",
+        )
+        self.assertLess(boost, 0)
+
+    def test_h4_ead_274a_12_c26_outranks_naturalization_chunk(self) -> None:
+        ead_boost = compute_relevance_boost(
+            self._H4_EAD_QUERY,
+            citation="8 CFR § 274a.12(c)(26)",
+            topic="H-4 employment authorization",
+            subtopic=None,
+            snippet="H-4 dependent spouses may apply for employment authorization under 8 CFR 274a.12(c)(26).",
+        )
+        nat_boost = compute_relevance_boost(
+            self._H4_EAD_QUERY,
+            citation="USCIS Form N-400",
+            topic="naturalization",
+            subtopic=None,
+            snippet="Application for Naturalization. N-400.",
+        )
+        self.assertGreater(ead_boost, nat_boost)
+
+    # --- OPT boosts ---
+
+    def test_opt_query_boosts_214_2f_chunk(self) -> None:
+        boost = compute_relevance_boost(
+            self._OPT_QUERY,
+            citation="8 CFR § 214.2(f)(10)",
+            topic="F-1 optional practical training",
+            subtopic=None,
+            snippet="An F-1 student may apply for optional practical training under 8 CFR 214.2(f)(10).",
+        )
+        self.assertGreater(boost, 0.015)
+
+    def test_opt_query_boosts_274a_12_c3_chunk(self) -> None:
+        boost = compute_relevance_boost(
+            self._OPT_QUERY,
+            citation="8 CFR § 274a.12(c)(3)",
+            topic="OPT employment authorization",
+            subtopic=None,
+            snippet="Category (c)(3) allows F-1 students on OPT to obtain employment authorization under 8 CFR 274a.12(c)(3).",
+        )
+        self.assertGreater(boost, 0.01)
+
+    # --- OPT penalties ---
+
+    def test_opt_query_penalizes_naturalization_chunk(self) -> None:
+        boost = compute_relevance_boost(
+            self._OPT_QUERY,
+            citation="USCIS Form N-400",
+            topic="naturalization",
+            subtopic=None,
+            snippet="Application for Naturalization. N-400 form.",
+        )
+        self.assertLess(boost, 0)
+
+    def test_opt_query_penalizes_i864_chunk(self) -> None:
+        boost = compute_relevance_boost(
+            self._OPT_QUERY,
+            citation="USCIS Form I-864",
+            topic="affidavit of support",
+            subtopic=None,
+            snippet="I-864 Affidavit of Support under Section 213A of the INA.",
+        )
+        self.assertLess(boost, 0)
+
+    def test_opt_query_penalizes_special_immigrant_chunk(self) -> None:
+        boost = compute_relevance_boost(
+            self._OPT_QUERY,
+            citation="INA § 101(a)(27)",
+            topic="special immigrant",
+            subtopic=None,
+            snippet="Special immigrants under INA 101(a)(27) include certain religious workers.",
+        )
+        self.assertLess(boost, 0)
+
+    def test_opt_214_2f_outranks_naturalization_chunk(self) -> None:
+        opt_boost = compute_relevance_boost(
+            self._OPT_QUERY,
+            citation="8 CFR § 214.2(f)(10)",
+            topic="F-1 optional practical training",
+            subtopic=None,
+            snippet="Optional practical training for F-1 students under 8 CFR 214.2(f)(10).",
+        )
+        nat_boost = compute_relevance_boost(
+            self._OPT_QUERY,
+            citation="USCIS Form N-400",
+            topic="naturalization",
+            subtopic=None,
+            snippet="Application for Naturalization. N-400 form.",
+        )
+        self.assertGreater(opt_boost, nat_boost)
+
+
 if __name__ == "__main__":
     unittest.main()

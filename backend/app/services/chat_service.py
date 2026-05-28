@@ -34,9 +34,12 @@ from app.services.message_classifier import (
 )
 from app.services.answer_formatting import (
     build_format_system_addon,
+    classify_answer_intent,
     ensure_structured_answer,
     is_criminal_info_query,
     is_dui_info_query,
+    is_h4_ead_faq_query,
+    is_h4_process_faq_query,
     is_high_risk_topic,
     retrieval_looks_weak,
 )
@@ -115,6 +118,67 @@ _DUI_SAFE_ANSWER = (
     "individual case. This is general information only, not legal advice, and does not create an "
     "attorney-client relationship. Consequences cannot be determined without a case-specific "
     "evaluation by a qualified immigration attorney."
+)
+
+_H4_PROCESS_SAFE_ANSWER = (
+    "Short answer:\n"
+    "H-4 is a dependent nonimmigrant status available to the eligible spouse and unmarried "
+    "children of H principal nonimmigrant visa holders, most commonly H-1B workers. H-4 "
+    "status does not, by itself, include employment authorization.\n\n"
+    "What this means:\n"
+    "To obtain H-4 status, a qualifying family member of an H visa holder may follow one of "
+    "two routes depending on whether they are currently inside or outside the United States. "
+    "A person outside the United States may apply for an H-4 visa at a U.S. consulate or "
+    "embassy and seek admission at a U.S. port of entry. A person already inside the United "
+    "States in a valid nonimmigrant status may apply for a change of status or an extension "
+    "of stay. The H-4 nonimmigrant classification is set out at 8 CFR § 214.2(h)(9)(iv).\n\n"
+    "Typical next steps:\n"
+    "1. Identify whether the applicant is applying from inside or outside the United States, "
+    "since the process differs.\n"
+    "2. Review whether consular processing (applying for an H-4 visa at a U.S. consulate or "
+    "embassy) or a change or extension of status inside the United States applies.\n"
+    "3. If applying inside the United States, review whether Form I-539 (Application to "
+    "Extend/Change Nonimmigrant Status) is relevant and applicable to the situation.\n"
+    "4. Review the official USCIS guidance on H-4 dependent nonimmigrant status on uscis.gov.\n"
+    "5. Consider consulting a qualified immigration attorney for guidance on the specific "
+    "situation and filing requirements.\n\n"
+    "Official sources:\n"
+    "8 CFR § 214.2(h)(9)(iv) — H-4 Nonimmigrant Classification\n\n"
+    "Important caution:\n"
+    "H-4 eligibility and the applicable process depend on the specific facts of the case, "
+    "including the H principal visa holder's status and category. This is general legal "
+    "information only, not legal advice, and does not create an attorney-client relationship."
+)
+
+_H4_EAD_SAFE_ANSWER = (
+    "Short answer:\n"
+    "Certain eligible H-4 spouses of H-1B nonimmigrant workers may apply for employment "
+    "authorization by filing Form I-765. H-4 employment authorization is not available to "
+    "every H-4 dependent — it requires a separate USCIS application and approval.\n\n"
+    "What this means:\n"
+    "H-4 spouses may be eligible for employment authorization under 8 CFR § 274a.12(c)(26) "
+    "when certain criteria are met. A commonly cited eligibility basis is that the H-1B "
+    "principal has an approved Form I-140 immigrant petition or has received an H-1B "
+    "extension under the AC21 provisions beyond the standard six-year maximum. H-4 status "
+    "does not itself authorize employment — a qualifying H-4 spouse must file Form I-765 "
+    "and receive USCIS approval before beginning work.\n\n"
+    "Typical next steps:\n"
+    "1. Review the official USCIS page on H-4 EAD eligibility to identify whether the "
+    "H-1B principal's situation meets the applicable requirements.\n"
+    "2. Review Form I-765 instructions and filing requirements for the H-4 EAD category "
+    "on uscis.gov.\n"
+    "3. Identify whether the H-1B principal has an approved Form I-140 or a qualifying "
+    "AC21 extension, as these are common eligibility bases.\n"
+    "4. Consider consulting a qualified immigration attorney for case-specific guidance on "
+    "eligibility and the application process.\n\n"
+    "Official sources:\n"
+    "8 CFR § 274a.12(c)(26) — Employment Authorization for Certain H-4 Spouses\n"
+    "Form I-765 — Application for Employment Authorization\n"
+    "8 CFR § 214.2(h)(9)(iv) — H-4 Nonimmigrant Classification\n\n"
+    "Important caution:\n"
+    "Not all H-4 spouses qualify for employment authorization. Eligibility depends on the "
+    "specific circumstances of the H-1B principal's case. This is general legal information "
+    "only, not legal advice, and does not create an attorney-client relationship."
 )
 
 _NO_RESULTS_ANSWER = (
@@ -295,6 +359,109 @@ class ChatService:
                 ],
             )
 
+        # H-4 EAD FAQ: prebuilt safe answer for broad informational questions.
+        # Checked before H-4 process (both match H-4; EAD is more specific).
+        # Case-specific questions (denials, "my H-4") are not caught here and
+        # proceed to normal retrieval.
+        if is_h4_ead_faq_query(message):
+            return ChatResponse(
+                query_hash=query_hash,
+                answer=_H4_EAD_SAFE_ANSWER,
+                citations=[],
+                disclaimer=_DISCLAIMER,
+                active_dataset=None,
+                active_datasets=[],
+                mvp_sources=[],
+                used_chunks=[
+                    ChatUsedChunk(
+                        rank=1,
+                        chunk_id=0,
+                        citation="8 CFR § 274a.12(c)(26)",
+                        official_url=None,
+                        topic="H-4 Employment Authorization",
+                        subtopic="Eligible H-4 Spouses",
+                        risk_level=None,
+                        hybrid_score=1.0,
+                        snippet=(
+                            "An H-4 nonimmigrant who is the spouse of an H-1B nonimmigrant may be "
+                            "authorized to engage in employment if the H-1B principal has an approved "
+                            "Form I-140 or has been granted H-1B status beyond six years under AC21. "
+                            "Employment authorization requires a separate application on Form I-765."
+                        ),
+                        dataset_version=None,
+                        source_family=None,
+                    ),
+                    ChatUsedChunk(
+                        rank=2,
+                        chunk_id=0,
+                        citation="Form I-765 — Application for Employment Authorization",
+                        official_url=None,
+                        topic="Employment Authorization Document",
+                        subtopic="H-4 EAD Category",
+                        risk_level=None,
+                        hybrid_score=1.0,
+                        snippet=(
+                            "Form I-765 is used to apply for an Employment Authorization Document. "
+                            "H-4 spouses seeking employment authorization must file Form I-765 with "
+                            "USCIS under the applicable category. Employment is not authorized until "
+                            "USCIS approves the application."
+                        ),
+                        dataset_version=None,
+                        source_family=None,
+                    ),
+                    ChatUsedChunk(
+                        rank=3,
+                        chunk_id=0,
+                        citation="8 CFR § 214.2(h)(9)(iv)",
+                        official_url=None,
+                        topic="H-4 Nonimmigrant Classification",
+                        subtopic="Dependent Status",
+                        risk_level=None,
+                        hybrid_score=1.0,
+                        snippet=(
+                            "H-4 nonimmigrant classification covers the spouse and unmarried children "
+                            "of an H principal nonimmigrant. H-4 status does not independently "
+                            "authorize employment."
+                        ),
+                        dataset_version=None,
+                        source_family=None,
+                    ),
+                ],
+            )
+
+        # H-4 process FAQ: prebuilt safe answer for broad informational questions.
+        # Case-specific questions proceed to normal retrieval.
+        if is_h4_process_faq_query(message):
+            return ChatResponse(
+                query_hash=query_hash,
+                answer=_H4_PROCESS_SAFE_ANSWER,
+                citations=[],
+                disclaimer=_DISCLAIMER,
+                active_dataset=None,
+                active_datasets=[],
+                mvp_sources=[],
+                used_chunks=[
+                    ChatUsedChunk(
+                        rank=1,
+                        chunk_id=0,
+                        citation="8 CFR § 214.2(h)(9)(iv)",
+                        official_url=None,
+                        topic="H-4 Nonimmigrant Classification",
+                        subtopic="Dependent Status",
+                        risk_level=None,
+                        hybrid_score=1.0,
+                        snippet=(
+                            "H-4 nonimmigrant classification covers the spouse and unmarried children "
+                            "of an H principal nonimmigrant visa holder. The H-4 classification is "
+                            "available to qualifying family members of H-1B and other H category "
+                            "workers. H-4 status does not independently authorize employment."
+                        ),
+                        dataset_version=None,
+                        source_family=None,
+                    ),
+                ],
+            )
+
         if selected_category and not is_valid_category_value(selected_category):
             selected_category = None
 
@@ -336,6 +503,7 @@ class ChatService:
         high_risk = is_high_risk_topic(message, results)
         weak_sources = retrieval_looks_weak(results)
         criminal_info = is_criminal_info_query(message)
+        answer_intent = classify_answer_intent(message)
 
         messages = self._build_messages(
             message,
@@ -345,6 +513,7 @@ class ChatService:
             high_risk=high_risk,
             weak_sources=weak_sources,
             criminal_info=criminal_info,
+            answer_intent=answer_intent,
         )
 
         raw_answer = await self._chat_client.generate_chat_response(
@@ -380,6 +549,7 @@ class ChatService:
         high_risk: bool = False,
         weak_sources: bool = False,
         criminal_info: bool = False,
+        answer_intent: str = "general_info",
     ) -> list[dict[str, str]]:
         """Build the Ollama messages list from the user message and retrieved chunks.
 
@@ -416,6 +586,7 @@ class ChatService:
             weak_sources=weak_sources,
             selected_category=selected_category,
             criminal_info=criminal_info,
+            answer_intent=answer_intent,
         )
         memory_addon = f"\n\n{_MEMORY_STYLE}" if conversation else ""
         return [
