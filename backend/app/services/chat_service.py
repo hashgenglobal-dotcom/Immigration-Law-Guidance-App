@@ -26,6 +26,11 @@ from app.services.ask_memory_context import (
     should_use_conversation_context,
 )
 from app.services.guided_intake import is_valid_category_value, resolve_retrieval_query
+from app.services.message_classifier import (
+    GREETING_ANSWER,
+    REFUSAL_ANSWER,
+    classify_message,
+)
 from app.services.answer_formatting import (
     build_format_system_addon,
     ensure_structured_answer,
@@ -161,15 +166,42 @@ class ChatService:
         normalized = message.strip().lower()
         query_hash = hashlib.sha256(normalized.encode()).hexdigest()
 
+        # Short-circuit before retrieval and LLM for greetings and refusals.
+        kind = classify_message(message)
+        if kind == "greeting":
+            return ChatResponse(
+                query_hash=query_hash,
+                answer=GREETING_ANSWER,
+                citations=[],
+                disclaimer=_DISCLAIMER,
+                active_dataset=None,
+                active_datasets=[],
+                mvp_sources=[],
+                used_chunks=[],
+            )
+        if kind == "refusal":
+            return ChatResponse(
+                query_hash=query_hash,
+                answer=REFUSAL_ANSWER,
+                citations=[],
+                disclaimer=_DISCLAIMER,
+                active_dataset=None,
+                active_datasets=[],
+                mvp_sources=[],
+                used_chunks=[],
+            )
+
         if selected_category and not is_valid_category_value(selected_category):
             selected_category = None
 
         thread = sanitize_conversation(conversation)
-        category_query = (
-            resolve_retrieval_query(message, selected_category)
-            if selected_category
-            else None
-        )
+
+        # Always attempt query rewriting — both category-selected and auto-detected
+        # patterns (I-485 travel, asylum EAD, OPT, naturalization) run regardless
+        # of whether a category was explicitly chosen.
+        rewritten = resolve_retrieval_query(message, selected_category)
+        category_query = rewritten if rewritten.strip() != message.strip() else None
+
         retrieval_query = build_memory_retrieval_query(
             message,
             thread,

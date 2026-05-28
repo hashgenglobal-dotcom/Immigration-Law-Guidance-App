@@ -111,6 +111,11 @@ def build_format_system_addon(
         "what they must do in their specific case.",
         "- Do not include immigration scenarios unrelated to the question.",
         "- Do not over-explain or copy long statutory text.",
+        "- In Typical next steps, use hedged language: prefer 'You may need to discuss [X] with a "
+        "qualified immigration attorney, DSO, or accredited representative' or 'Consider asking "
+        "whether [Form/Action] is required before proceeding'. Do not write direct commands like "
+        "'File Form X', 'Submit', 'Apply for', or 'Do X' — users must make their own decisions "
+        "with qualified counsel.",
         "- This is general legal information only, not legal advice.",
     ]
     if selected_category:

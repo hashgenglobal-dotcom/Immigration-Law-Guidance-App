@@ -154,5 +154,65 @@ class ChatServiceCategoryHintTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("STEM OPT", captured["query"])
 
 
+class ChatServiceAutoRoutingTests(unittest.IsolatedAsyncioTestCase):
+    """Auto-detected query rewrites fire even without an explicit selected_category."""
+
+    async def _capture_query(self, message: str) -> str:
+        """Run generate_chat_response and return the query passed to retrieve_hybrid."""
+        captured: dict[str, str] = {}
+
+        class _FakeRetrieval:
+            async def retrieve_hybrid(self, query: str, top_k: int = 5):
+                captured["query"] = query
+                return [], ["test-dataset"], "test-dataset"
+
+        class _FakeChat:
+            async def generate_chat_response(self, **kwargs):
+                raise AssertionError("LLM must not be called when retrieval returns empty")
+
+        service = ChatService(retrieval_service=_FakeRetrieval(), chat_client=_FakeChat())
+        await service.generate_chat_response(message, selected_category=None)
+        return captured["query"]
+
+    async def test_i485_travel_no_category_rewrites_to_advance_parole_query(self) -> None:
+        """I-485 travel question without a category must reach retrieval with the advance
+        parole rewritten query, not the raw user message."""
+        q = await self._capture_query("Can I travel while my I-485 is pending?")
+        self.assertIn("advance parole", q.lower())
+        self.assertIn("I-131", q)
+
+    async def test_i485_travel_alternate_phrasing_rewrites(self) -> None:
+        q = await self._capture_query(
+            "Can I travel abroad while my adjustment of status application is pending?"
+        )
+        self.assertIn("advance parole", q.lower())
+        self.assertIn("I-131", q)
+
+    async def test_asylum_ead_no_category_rewrites_to_asylum_pending_query(self) -> None:
+        q = await self._capture_query(
+            "How do I apply for an EAD as an asylum applicant?"
+        )
+        self.assertIn("208.7", q)
+        self.assertIn("asylum", q.lower())
+
+    async def test_stem_opt_no_category_rewrites(self) -> None:
+        q = await self._capture_query(
+            "How do I extend my STEM OPT work authorization?"
+        )
+        self.assertIn("STEM OPT", q)
+        self.assertIn("214.2", q)
+
+    async def test_naturalization_requirements_no_category_rewrites(self) -> None:
+        q = await self._capture_query("What are the requirements for naturalization?")
+        self.assertIn("N-400", q)
+        self.assertIn("continuous residence", q)
+
+    async def test_generic_ead_no_auto_rewrite(self) -> None:
+        """A broad EAD question without category should NOT be rewritten
+        (no auto-detection pattern matches it)."""
+        q = await self._capture_query("How do I apply for EAD?")
+        self.assertEqual(q.strip(), "How do I apply for EAD?")
+
+
 if __name__ == "__main__":
     unittest.main()
