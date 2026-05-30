@@ -10,6 +10,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from app.services.query_understanding import understand_query
+
 
 @dataclass(frozen=True)
 class ClarificationOption:
@@ -468,6 +470,12 @@ def resolve_retrieval_query(message: str, selected_category: str | None) -> str:
         if template:
             return template
     m = message.strip()
+    # Query understanding layer: handles topics not yet covered by the inline patterns below.
+    # When understand_query detects a known topic it returns an optimised retrieval query.
+    # When no topic matches it returns topic="general" and we fall through to existing patterns.
+    _understanding = understand_query(m)
+    if _understanding.topic != "general":
+        return _understanding.retrieval_query
     if _ASYLUM_EAD_RE.search(m):
         return _CATEGORY_RETRIEVAL_QUERIES["asylum_pending"]
     if _I485_TRAVEL_RE.search(m):

@@ -24,6 +24,7 @@ from app.core.config import Settings, get_settings
 from app.schemas.retrieval import RetrievalRequest, RetrievalResponse
 from app.services.ollama_embedding_client import EmbeddingClientError
 from app.services.mvp_source_scope import mvp_source_families_from_versions
+from app.services.query_understanding import filter_results_for_understanding, understand_query
 from app.services.retrieval_service import RetrievalService
 
 router = APIRouter(tags=["retrieval"])
@@ -53,14 +54,22 @@ async def retrieve_hybrid(
 
     Errors never include the raw query, the database DSN, or stack traces.
     """
-    # Hash computed in memory only — never persisted anywhere.
+    # Hash always computed from the original query — represents what the user sent,
+    # not the rewritten retrieval query, so privacy audit semantics are preserved.
     query_hash = hashlib.sha256(body.query.lower().strip().encode()).hexdigest()
+
+    if body.use_query_understanding:
+        understanding = understand_query(body.query)
+        retrieval_query = understanding.retrieval_query
+    else:
+        understanding = None
+        retrieval_query = body.query
 
     service = RetrievalService(settings)
 
     try:
         results, active_datasets, active_dataset = await service.retrieve_hybrid(
-            query=body.query,
+            query=retrieval_query,
             top_k=body.top_k,
         )
     except EmbeddingClientError:
@@ -91,6 +100,9 @@ async def retrieve_hybrid(
             },
         )
 
+    if understanding is not None:
+        results = filter_results_for_understanding(results, understanding)
+
     return RetrievalResponse(
         query_hash=query_hash,
         top_k=body.top_k,
@@ -98,4 +110,5 @@ async def retrieve_hybrid(
         active_datasets=active_datasets,
         mvp_sources=mvp_source_families_from_versions(active_datasets),
         results=results,
+        effective_query=retrieval_query if body.use_query_understanding else None,
     )

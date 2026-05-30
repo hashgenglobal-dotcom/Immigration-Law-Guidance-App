@@ -693,5 +693,56 @@ class ChatServiceH4FAQBypassTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("query", captured, "Retrieval should have been called for case-specific question")
 
 
+class L2WorkAuthRoutingTests(unittest.TestCase):
+    """resolve_retrieval_query routes L-1/L-2 spouse work questions via understand_query."""
+
+    def test_spouse_work_on_l1_resolves_to_l2_query(self) -> None:
+        q = resolve_retrieval_query("Can my spouse work if I am on L1 visa?", None)
+        self.assertIn("L-2", q)
+        self.assertIn("L-2S", q)
+        self.assertIn("I-94", q)
+        self.assertIn("employment authorization", q.lower())
+        self.assertIn("spouses of L-1 nonimmigrants", q)
+
+    def test_l2_spouse_work_resolves_to_l2_query(self) -> None:
+        q = resolve_retrieval_query("Can L2 spouse work?", None)
+        self.assertIn("L-2", q)
+        self.assertIn("spouses of L-1 nonimmigrants", q)
+
+    def test_l2s_work_without_ead_resolves_to_l2_query(self) -> None:
+        q = resolve_retrieval_query("Can L-2S work without EAD?", None)
+        self.assertIn("L-2S", q)
+        self.assertIn("incident to status", q.lower())
+
+    def test_l2_query_excludes_naturalization(self) -> None:
+        q = resolve_retrieval_query("Can my spouse work if I am on L1 visa?", None)
+        self.assertNotIn("naturalization", q.lower())
+        self.assertNotIn("I-751", q)
+        self.assertNotIn("regularly stationed abroad", q.lower())
+
+    def test_existing_selected_category_overrides_l2_routing(self) -> None:
+        # selected_category that maps to a template must take priority over understand_query.
+        q = resolve_retrieval_query("Can my spouse work if I am on L1 visa?", "h4_ead")
+        self.assertIn("274a.12(c)(26)", q)
+        self.assertNotIn("L-2S", q)
+
+    def test_h4_ead_question_still_routes_via_existing_pattern(self) -> None:
+        # H-4 EAD questions must still route through existing inline patterns,
+        # not the understand_query layer (which returns general for H-4 EAD).
+        q = resolve_retrieval_query("How does H-4 EAD work?", None)
+        self.assertIn("274a.12(c)(26)", q)
+        self.assertIn("I-765", q)
+
+    def test_h4_process_question_still_routes_via_existing_pattern(self) -> None:
+        q = resolve_retrieval_query("What is H-4 process?", None)
+        self.assertIn("214.2(h)", q)
+        self.assertIn("dependent", q.lower())
+
+    def test_opt_question_still_routes_via_existing_pattern(self) -> None:
+        q = resolve_retrieval_query("What is OPT?", None)
+        self.assertIn("214.2(f)", q)
+        self.assertIn("274a.12(c)(3)", q)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -37,6 +37,14 @@ class RetrievalRequest(BaseModel):
         description="Number of hybrid-ranked results to return (1–10).",
     )
 
+    use_query_understanding: bool = Field(
+        default=False,
+        description=(
+            "When true, apply query understanding rewrite before retrieval. "
+            "Default false preserves raw-query debug behavior."
+        ),
+    )
+
     @field_validator("query", mode="before")
     @classmethod
     def strip_and_require_nonempty(cls, v: object) -> str:
@@ -97,6 +105,13 @@ class RetrievalResponse(BaseModel):
         description="Deduplicated MVP source families covered by active_datasets.",
     )
     results: list[RetrievalResult]
+    effective_query: str | None = Field(
+        default=None,
+        description=(
+            "The query actually sent to retrieval after any rewrite. "
+            "Null means the raw query was used unchanged."
+        ),
+    )
 
 
 class RetrievalErrorResponse(BaseModel):
