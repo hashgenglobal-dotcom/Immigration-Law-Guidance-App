@@ -5,7 +5,7 @@ from __future__ import annotations
 import types
 import unittest
 
-from app.services.query_understanding import filter_results_for_understanding, understand_query
+from app.services.query_understanding import filter_results_for_understanding, rerank_results_by_preferred_source_family, understand_query
 
 
 class L2WorkAuthDetectionTests(unittest.TestCase):
@@ -294,6 +294,83 @@ class L2ResultFilterTests(unittest.TestCase):
         filtered = filter_results_for_understanding([l2_r, nat_r], self._l2())
         self.assertIn(l2_r, filtered)
         self.assertNotIn(nat_r, filtered)
+
+
+class L2SourceFamilyRerankerTests(unittest.TestCase):
+    """rerank_results_by_preferred_source_family softly boosts preferred-source results."""
+
+    def _make(self, *, source_family: str | None = None, hybrid_score: float = 0.020, rank: int = 1) -> object:
+        return types.SimpleNamespace(source_family=source_family, hybrid_score=hybrid_score, rank=rank)
+
+    def _l2(self) -> object:
+        return understand_query("Can my spouse work if I am on L1 visa?")
+
+    def _general(self) -> object:
+        return understand_query("What is OPT?")
+
+    def test_empty_results_returns_empty(self) -> None:
+        self.assertEqual(rerank_results_by_preferred_source_family([], self._l2()), [])
+
+    def test_empty_preferred_families_returns_unchanged(self) -> None:
+        r = self._make(source_family="USCIS Policy Manual")
+        result = rerank_results_by_preferred_source_family([r], self._general())
+        self.assertIs(result[0], r)
+
+    def test_general_topic_returns_unchanged(self) -> None:
+        r1 = self._make(source_family="USCIS Policy Manual", rank=1)
+        r2 = self._make(source_family="eCFR Title 8", rank=2)
+        original = [r1, r2]
+        result = rerank_results_by_preferred_source_family(original, self._general())
+        self.assertEqual(result, original)
+
+    def test_no_matching_source_family_returns_unchanged(self) -> None:
+        r1 = self._make(source_family="eCFR Title 8", hybrid_score=0.025, rank=1)
+        r2 = self._make(source_family="INA / U.S. Code Title 8", hybrid_score=0.020, rank=2)
+        original = [r1, r2]
+        result = rerank_results_by_preferred_source_family(original, self._l2())
+        self.assertEqual(result, original)
+
+    def test_preferred_result_already_first_stays_first(self) -> None:
+        r1 = self._make(source_family="USCIS Policy Manual", hybrid_score=0.030, rank=1)
+        r2 = self._make(source_family="eCFR Title 8", hybrid_score=0.020, rank=2)
+        result = rerank_results_by_preferred_source_family([r1, r2], self._l2())
+        self.assertEqual(result[0].source_family, "USCIS Policy Manual")
+        self.assertEqual(result[0].rank, 1)
+
+    def test_preferred_result_promoted_when_score_gap_small(self) -> None:
+        # Preferred starts second; boost (0.004) exceeds the gap (0.003)
+        r1 = self._make(source_family="eCFR Title 8", hybrid_score=0.020, rank=1)
+        r2 = self._make(source_family="USCIS Policy Manual", hybrid_score=0.017, rank=2)
+        result = rerank_results_by_preferred_source_family([r1, r2], self._l2())
+        self.assertEqual(result[0].source_family, "USCIS Policy Manual")
+
+    def test_preferred_result_not_promoted_when_score_gap_large(self) -> None:
+        # Preferred starts second; boost (0.004) is smaller than the gap (0.025)
+        r1 = self._make(source_family="eCFR Title 8", hybrid_score=0.035, rank=1)
+        r2 = self._make(source_family="USCIS Policy Manual", hybrid_score=0.010, rank=2)
+        result = rerank_results_by_preferred_source_family([r1, r2], self._l2())
+        self.assertEqual(result[0].source_family, "eCFR Title 8")
+
+    def test_ranks_reassigned_after_reorder(self) -> None:
+        r1 = self._make(source_family="eCFR Title 8", hybrid_score=0.020, rank=1)
+        r2 = self._make(source_family="USCIS Policy Manual", hybrid_score=0.017, rank=2)
+        result = rerank_results_by_preferred_source_family([r1, r2], self._l2())
+        self.assertEqual(result[0].rank, 1)
+        self.assertEqual(result[1].rank, 2)
+
+    def test_mixed_list_preferred_floats_up_no_result_removed(self) -> None:
+        r1 = self._make(source_family="eCFR Title 8", hybrid_score=0.020, rank=1)
+        r2 = self._make(source_family="USCIS Policy Manual", hybrid_score=0.017, rank=2)
+        r3 = self._make(source_family="INA / U.S. Code Title 8", hybrid_score=0.015, rank=3)
+        result = rerank_results_by_preferred_source_family([r1, r2, r3], self._l2())
+        self.assertEqual(len(result), 3)
+        self.assertEqual(result[0].source_family, "USCIS Policy Manual")
+
+    def test_all_preferred_results_sorted_by_score(self) -> None:
+        r1 = self._make(source_family="USCIS Policy Manual", hybrid_score=0.025, rank=1)
+        r2 = self._make(source_family="USCIS Policy Manual", hybrid_score=0.020, rank=2)
+        result = rerank_results_by_preferred_source_family([r1, r2], self._l2())
+        self.assertGreater(result[0].hybrid_score, result[1].hybrid_score)
 
 
 if __name__ == "__main__":

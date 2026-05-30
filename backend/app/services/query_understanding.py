@@ -61,6 +61,10 @@ _L2_ANSWER_GUIDANCE = (
     "or unrelated categories."
 )
 
+# Soft additive boost for preferred-source results after RRF scoring.
+# Typical RRF hybrid scores range ~0.015–0.035; 0.004 is meaningful but not dominant.
+_SOURCE_FAMILY_BOOST = 0.004
+
 
 def understand_query(
     message: str,
@@ -171,3 +175,53 @@ def filter_results_for_understanding(
         return results
     filtered = [r for r in results if _l2_keep_result(r)]
     return filtered if filtered else results
+
+
+def rerank_results_by_preferred_source_family(
+    results: list,
+    understanding: QueryUnderstanding,
+) -> list:
+    """Softly promote results from preferred source families.
+
+    Adds _SOURCE_FAMILY_BOOST to hybrid_score for results whose source_family
+    is in understanding.preferred_source_families, then re-sorts by boosted
+    score descending and reassigns ranks 1..N.
+
+    Fallbacks (return results unchanged):
+    - results is empty
+    - preferred_source_families is empty
+    - no result matches any preferred family
+
+    Never removes results; never hard-partitions. Handles both Pydantic
+    RetrievalResult (via model_copy) and SimpleNamespace test objects (via
+    setattr).
+    """
+    if not results:
+        return results
+    if not understanding.preferred_source_families:
+        return results
+
+    preferred = set(understanding.preferred_source_families)
+    if not any(getattr(r, "source_family", None) in preferred for r in results):
+        return results
+
+    def _apply_boost(r: object) -> object:
+        if getattr(r, "source_family", None) not in preferred:
+            return r
+        new_score = getattr(r, "hybrid_score", 0) + _SOURCE_FAMILY_BOOST
+        try:
+            return r.model_copy(update={"hybrid_score": new_score})
+        except AttributeError:
+            setattr(r, "hybrid_score", new_score)
+            return r
+
+    def _set_rank(r: object, rank: int) -> object:
+        try:
+            return r.model_copy(update={"rank": rank})
+        except AttributeError:
+            setattr(r, "rank", rank)
+            return r
+
+    boosted = [_apply_boost(r) for r in results]
+    boosted.sort(key=lambda r: getattr(r, "hybrid_score", 0), reverse=True)
+    return [_set_rank(r, i) for i, r in enumerate(boosted, start=1)]

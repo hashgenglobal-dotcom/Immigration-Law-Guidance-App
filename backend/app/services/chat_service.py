@@ -26,7 +26,7 @@ from app.services.ask_memory_context import (
     should_use_conversation_context,
 )
 from app.services.guided_intake import is_valid_category_value, resolve_retrieval_query
-from app.services.query_understanding import filter_results_for_understanding, understand_query
+from app.services.query_understanding import filter_results_for_understanding, rerank_results_by_preferred_source_family, understand_query
 from app.services.message_classifier import (
     CRIMINAL_WARNING_ANSWER,
     GREETING_ANSWER,
@@ -506,6 +506,7 @@ class ChatService:
         # results would be removed, so retrieval is never made empty here.
         _understanding = understand_query(message, selected_category)
         results = filter_results_for_understanding(results, _understanding)
+        results = rerank_results_by_preferred_source_family(results, _understanding)
 
         high_risk = is_high_risk_topic(message, results)
         weak_sources = retrieval_looks_weak(results)
