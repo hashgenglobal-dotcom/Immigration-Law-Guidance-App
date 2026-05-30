@@ -134,7 +134,7 @@ export default function LandingPage() {
               </div>
               <div className={styles.heroStats}>
                 <span className={styles.heroStat}>
-                  <strong>12</strong> scenario guides
+                  <strong>{scenarioGuides.length}</strong> scenario guides
                 </span>
                 <span className={styles.heroStatDivider}>·</span>
                 <span className={styles.heroStat}>
@@ -249,7 +249,7 @@ export default function LandingPage() {
                     <h3 className={styles.scenarioCardTitle}>{s.title}</h3>
                     <span className={`${styles.risk} ${styles[`risk_${s.riskLevel}`]}`}>{s.riskLevel}</span>
                   </div>
-                  <p className={styles.scenarioCardDesc}>{s.shortDescription}</p>
+                  <p className={styles.scenarioCardDesc}>{s.description}</p>
                 </Link>
               ))}
             </div>
