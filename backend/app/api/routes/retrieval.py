@@ -24,7 +24,7 @@ from app.core.config import Settings, get_settings
 from app.schemas.retrieval import RetrievalRequest, RetrievalResponse
 from app.services.ollama_embedding_client import EmbeddingClientError
 from app.services.mvp_source_scope import mvp_source_families_from_versions
-from app.services.query_understanding import filter_results_for_understanding, understand_query
+from app.services.query_understanding import filter_results_for_understanding, rerank_results_by_preferred_source_family, understand_query
 from app.services.retrieval_service import RetrievalService
 
 router = APIRouter(tags=["retrieval"])
@@ -102,6 +102,7 @@ async def retrieve_hybrid(
 
     if understanding is not None:
         results = filter_results_for_understanding(results, understanding)
+        results = rerank_results_by_preferred_source_family(results, understanding)
 
     return RetrievalResponse(
         query_hash=query_hash,
