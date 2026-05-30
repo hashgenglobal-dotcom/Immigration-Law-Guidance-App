@@ -26,6 +26,7 @@ from app.services.ask_memory_context import (
     should_use_conversation_context,
 )
 from app.services.guided_intake import is_valid_category_value, resolve_retrieval_query
+from app.services.query_understanding import filter_results_for_understanding, understand_query
 from app.services.message_classifier import (
     CRIMINAL_WARNING_ANSWER,
     GREETING_ANSWER,
@@ -500,6 +501,12 @@ class ChatService:
                 used_chunks=[],
             )
 
+        # Topic-aware post-retrieval filter: remove contaminating chunks before
+        # building the LLM prompt.  Falls back to the original list if all
+        # results would be removed, so retrieval is never made empty here.
+        _understanding = understand_query(message, selected_category)
+        results = filter_results_for_understanding(results, _understanding)
+
         high_risk = is_high_risk_topic(message, results)
         weak_sources = retrieval_looks_weak(results)
         criminal_info = is_criminal_info_query(message)
@@ -514,6 +521,7 @@ class ChatService:
             weak_sources=weak_sources,
             criminal_info=criminal_info,
             answer_intent=answer_intent,
+            topic_guidance=_understanding.answer_guidance,
         )
 
         raw_answer = await self._chat_client.generate_chat_response(
@@ -550,6 +558,7 @@ class ChatService:
         weak_sources: bool = False,
         criminal_info: bool = False,
         answer_intent: str = "general_info",
+        topic_guidance: str = "",
     ) -> list[dict[str, str]]:
         """Build the Ollama messages list from the user message and retrieved chunks.
 
@@ -589,10 +598,11 @@ class ChatService:
             answer_intent=answer_intent,
         )
         memory_addon = f"\n\n{_MEMORY_STYLE}" if conversation else ""
+        guidance_block = f"\n\nTopic-specific guidance:\n{topic_guidance}" if topic_guidance else ""
         return [
             {
                 "role": "system",
-                "content": f"{_SYSTEM_PROMPT}{memory_addon}\n\n{format_addon}",
+                "content": f"{_SYSTEM_PROMPT}{memory_addon}\n\n{format_addon}{guidance_block}",
             },
             {"role": "user", "content": user_content},
         ]
