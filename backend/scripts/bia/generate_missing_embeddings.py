@@ -7,6 +7,11 @@ legal_chunks rows where embedding IS NULL for that version. Calls local
 Ollama /api/embed, validates 768 dimensions, and writes to the DB in
 commit-per-batch mode so any interrupted run can be safely resumed.
 
+Architecture: each batch uses two short-lived DB connections — one to fetch
+the batch, one to write it — so no connection is held open while Ollama
+generates embeddings. This prevents Supabase idle connection timeouts on
+long runs.
+
 Safety guarantees:
   * Never touches dataset_versions.status
   * Never modifies legal_chunks.is_active
@@ -18,20 +23,19 @@ Usage:
     # Inspect only — no Ollama calls, no DB writes
     uv run --project backend python backend/scripts/bia/generate_missing_embeddings.py --dry-run
 
+    # Test two batches only
+    uv run --project backend python backend/scripts/bia/generate_missing_embeddings.py --max-batches 2
+
     # Smoke test: embed first 3 chunks
     uv run --project backend python backend/scripts/bia/generate_missing_embeddings.py --limit 3
 
-    # Full run (all 25 k chunks; takes ~35-60 min on local Ollama)
+    # Full run (all remaining NULL chunks)
     uv run --project backend python backend/scripts/bia/generate_missing_embeddings.py
 
-    # Explicit dataset version or Ollama URL
-    uv run --project backend python backend/scripts/bia/generate_missing_embeddings.py \\
-        --dataset-version-name bia-2026-05-21 \\
-        --ollama-base-url http://localhost:11434
-
 Exit codes:
-    0 — completed (or dry-run OK)
-    1 — config error, dataset not found, Ollama failure, or DB error
+    0   — completed (or dry-run OK)
+    1   — config error, dataset not found, Ollama failure, or DB error
+    130 — interrupted by user (CTRL+C)
 """
 
 from __future__ import annotations
@@ -43,8 +47,9 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 try:
     import psycopg
@@ -67,6 +72,8 @@ DEFAULT_OLLAMA_URL = "http://localhost:11434"
 DEFAULT_MODEL = "nomic-embed-text"
 EXPECTED_DIM = 768
 BACKEND_ENV_PATH = Path("backend/.env")
+DEFAULT_STMT_TIMEOUT_MS = 30_000
+DEFAULT_OLLAMA_TIMEOUT_S = 60.0
 _DIVIDER = "-" * 72
 
 
@@ -108,6 +115,13 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=f"Chunks per commit batch. Default: {DEFAULT_BATCH_SIZE}",
     )
     parser.add_argument(
+        "--max-batches",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Stop after N batches. Useful for testing. Default: unlimited.",
+    )
+    parser.add_argument(
         "--ollama-base-url",
         default=None,
         help=(
@@ -131,6 +145,23 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--database-url",
         default=None,
         help="PostgreSQL connection URL. Overrides DATABASE_URL env var and backend/.env.",
+    )
+    parser.add_argument(
+        "--db-statement-timeout-ms",
+        type=int,
+        default=DEFAULT_STMT_TIMEOUT_MS,
+        metavar="MS",
+        help=(
+            f"PostgreSQL statement_timeout per connection (milliseconds). "
+            f"Default: {DEFAULT_STMT_TIMEOUT_MS}"
+        ),
+    )
+    parser.add_argument(
+        "--ollama-timeout-seconds",
+        type=float,
+        default=DEFAULT_OLLAMA_TIMEOUT_S,
+        metavar="S",
+        help=f"HTTP timeout for each Ollama /api/embed call. Default: {DEFAULT_OLLAMA_TIMEOUT_S}",
     )
     return parser.parse_args(argv)
 
@@ -188,7 +219,28 @@ def _resolve_ollama_url(arg_url: str | None) -> str:
 
 
 # ---------------------------------------------------------------------------
-# DB queries  (all read-only unless noted; never touch status or is_active)
+# DB connection helper
+# ---------------------------------------------------------------------------
+
+
+@contextmanager
+def _db_connect(db_url: str, stmt_timeout_ms: int) -> Iterator[Any]:
+    """Open a short-lived psycopg3 connection with statement_timeout set.
+
+    Always closes the connection on exit — even on exception. Callers that
+    write data must call conn.commit() explicitly before exiting the block.
+    """
+    conn = psycopg.connect(db_url)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(f"SET statement_timeout = {int(stmt_timeout_ms)}")
+        yield conn
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# DB queries  (read-only unless noted; never touch status or is_active)
 # ---------------------------------------------------------------------------
 
 
@@ -275,11 +327,11 @@ def _embed(
     ollama_url: str,
     model: str,
     text: str,
-    timeout_s: float = 60.0,
+    timeout_s: float = DEFAULT_OLLAMA_TIMEOUT_S,
 ) -> list[float]:
     """POST to /api/embed and return embeddings[0].
 
-    Uses the current Ollama API format:
+    Current Ollama API format:
         POST /api/embed  {"model": ..., "input": ...}
         response: {"embeddings": [[...768 floats...]]}
 
@@ -381,12 +433,13 @@ def _do_dry_run(
 
 
 # ---------------------------------------------------------------------------
-# Embedding loop
+# Embedding loop  — per-batch short-lived DB connections
 # ---------------------------------------------------------------------------
 
 
 def _do_embed(
-    conn: Any,
+    db_url: str,
+    stmt_timeout_ms: int,
     dataset_version_id: int,
     version_name: str,
     limit: int | None,
@@ -394,10 +447,27 @@ def _do_embed(
     ollama_url: str,
     model: str,
     sleep_seconds: float,
+    max_batches: int | None,
+    ollama_timeout_s: float,
 ) -> int:
-    """Run the embedding loop. Returns exit code 0 (success) or 1 (failure)."""
-    with conn.cursor() as cur:
-        total_null = _count_null_embeddings(cur, dataset_version_id)
+    """Run the embedding loop. Returns 0 on success, 1 on failure.
+
+    Per-batch connection pattern:
+      1. Short-lived connection → fetch batch of NULL-embedding chunks → close.
+      2. No DB connection: call Ollama for each chunk in the batch.
+      3. Short-lived connection → write embeddings → commit → close.
+    """
+    # Count remaining null embeddings with one short connection.
+    try:
+        with _db_connect(db_url, stmt_timeout_ms) as conn:
+            with conn.cursor() as cur:
+                total_null = _count_null_embeddings(cur, dataset_version_id)
+    except psycopg.Error as exc:
+        print(
+            f"\nERROR: failed to count null embeddings ({type(exc).__name__}).",
+            file=sys.stderr,
+        )
+        return 1
 
     target = total_null if limit is None else min(total_null, limit)
 
@@ -412,23 +482,42 @@ def _do_embed(
         + (f"  (of {total_null} with NULL embedding)" if limit else "")
     )
     print(f"  batch_size       : {batch_size}")
+    print(f"  max_batches      : {max_batches if max_batches is not None else 'unlimited'}")
     print(f"  model            : {model}")
     print(f"  sleep/chunk      : {sleep_seconds}s")
+    print(f"  stmt_timeout_ms  : {stmt_timeout_ms}")
+    print(f"  ollama_timeout_s : {ollama_timeout_s}")
     print(_DIVIDER)
 
     processed = 0
     updated = 0
     last_id = 0
+    batches_done = 0
 
     while processed < target:
+        if max_batches is not None and batches_done >= max_batches:
+            print(f"  reached --max-batches {max_batches}. Stopping.")
+            break
+
         fetch_n = min(batch_size, target - processed)
 
-        with conn.cursor() as cur:
-            batch = _fetch_batch(cur, dataset_version_id, last_id, fetch_n)
+        # Step 1: fetch batch — short-lived connection, closed before Ollama calls.
+        print(f"  fetching batch after last_id={last_id}")
+        try:
+            with _db_connect(db_url, stmt_timeout_ms) as conn:
+                with conn.cursor() as cur:
+                    batch = _fetch_batch(cur, dataset_version_id, last_id, fetch_n)
+        except psycopg.Error as exc:
+            print(
+                f"\nERROR: batch fetch failed ({type(exc).__name__}). Aborting.",
+                file=sys.stderr,
+            )
+            return 1
 
         if not batch:
             break
 
+        # Step 2: generate embeddings — no DB connection is open during this loop.
         batch_updates: list[tuple[str, int]] = []
 
         for chunk_id, citation, chunk_text in batch:
@@ -440,15 +529,19 @@ def _do_embed(
                 print(f"  SKIP [{chunk_id}] — empty chunk_text")
                 continue
 
+            print(f"  embedding chunk_id={chunk_id}")
             try:
-                embedding = _embed(ollama_url, model, text)
+                embedding = _embed(ollama_url, model, text, timeout_s=ollama_timeout_s)
                 _validate_dim(embedding, chunk_id)
             except _DimError as exc:
                 print(f"\nERROR (dimension mismatch): {exc}", file=sys.stderr)
                 print("Aborting — current batch not written.", file=sys.stderr)
                 return 1
             except _EmbeddingError as exc:
-                print(f"\nERROR (Ollama): {exc}", file=sys.stderr)
+                print(
+                    f"\nERROR (Ollama) chunk_id={chunk_id}: {exc}",
+                    file=sys.stderr,
+                )
                 print("Aborting — current batch not written.", file=sys.stderr)
                 return 1
 
@@ -458,32 +551,35 @@ def _do_embed(
                 time.sleep(sleep_seconds)
 
         if not batch_updates:
+            batches_done += 1
             continue
 
-        # Write batch atomically; roll back only this batch on failure.
+        # Step 3: write batch — short-lived connection, commit, close.
+        print(f"  writing batch size={len(batch_updates)}")
         try:
-            with conn.cursor() as cur:
-                for vec_str, cid in batch_updates:
-                    cur.execute(
-                        "UPDATE legal_chunks SET embedding = %s::vector WHERE id = %s",
-                        (vec_str, cid),
-                    )
-            conn.commit()
+            with _db_connect(db_url, stmt_timeout_ms) as conn:
+                with conn.cursor() as cur:
+                    for vec_str, cid in batch_updates:
+                        cur.execute(
+                            "UPDATE legal_chunks SET embedding = %s::vector WHERE id = %s",
+                            (vec_str, cid),
+                        )
+                conn.commit()
             updated += len(batch_updates)
         except psycopg.Error as exc:
-            conn.rollback()
             print(
-                f"\nERROR: DB commit failed ({type(exc).__name__}). Batch rolled back.",
+                f"\nERROR: DB write failed ({type(exc).__name__}). Batch NOT written.",
                 file=sys.stderr,
             )
             return 1
 
+        batches_done += 1
         print(
             f"  batch done — processed: {processed}/{target}  "
             f"updated: {updated}  last_id: {last_id}"
         )
 
-    remaining = total_null - processed
+    remaining = total_null - updated
     print()
     print(_DIVIDER)
     print(f"Complete — {version_name}")
@@ -515,43 +611,11 @@ def main(argv: list[str] | None = None) -> int:
     db_url = _normalize_db_url(raw_url)
     ollama_url = _resolve_ollama_url(args.ollama_base_url)
 
+    # Look up dataset version with a short-lived connection.
     try:
-        with psycopg.connect(db_url) as conn:
+        with _db_connect(db_url, args.db_statement_timeout_ms) as conn:
             with conn.cursor() as cur:
                 version_row = _fetch_dataset_version(cur, args.dataset_version_name)
-
-            if version_row is None:
-                print(
-                    f"ERROR: dataset_versions row {args.dataset_version_name!r} not found.",
-                    file=sys.stderr,
-                )
-                return 1
-
-            dataset_version_id, version_status = version_row
-
-            if args.dry_run:
-                _do_dry_run(
-                    conn=conn,
-                    dataset_version_id=dataset_version_id,
-                    version_name=args.dataset_version_name,
-                    version_status=version_status,
-                    limit=args.limit,
-                    model=args.model,
-                    ollama_url=ollama_url,
-                )
-                return 0
-
-            return _do_embed(
-                conn=conn,
-                dataset_version_id=dataset_version_id,
-                version_name=args.dataset_version_name,
-                limit=args.limit,
-                batch_size=args.batch_size,
-                ollama_url=ollama_url,
-                model=args.model,
-                sleep_seconds=args.sleep_seconds,
-            )
-
     except psycopg.OperationalError:
         print(
             "ERROR: PostgreSQL connection failed (psycopg.OperationalError).\n"
@@ -566,6 +630,53 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
+    if version_row is None:
+        print(
+            f"ERROR: dataset_versions row {args.dataset_version_name!r} not found.",
+            file=sys.stderr,
+        )
+        return 1
+
+    dataset_version_id, version_status = version_row
+
+    if args.dry_run:
+        try:
+            with _db_connect(db_url, args.db_statement_timeout_ms) as conn:
+                _do_dry_run(
+                    conn=conn,
+                    dataset_version_id=dataset_version_id,
+                    version_name=args.dataset_version_name,
+                    version_status=version_status,
+                    limit=args.limit,
+                    model=args.model,
+                    ollama_url=ollama_url,
+                )
+        except psycopg.Error as exc:
+            print(
+                f"ERROR: dry-run DB error ({type(exc).__name__}): {exc}",
+                file=sys.stderr,
+            )
+            return 1
+        return 0
+
+    return _do_embed(
+        db_url=db_url,
+        stmt_timeout_ms=args.db_statement_timeout_ms,
+        dataset_version_id=dataset_version_id,
+        version_name=args.dataset_version_name,
+        limit=args.limit,
+        batch_size=args.batch_size,
+        ollama_url=ollama_url,
+        model=args.model,
+        sleep_seconds=args.sleep_seconds,
+        max_batches=args.max_batches,
+        ollama_timeout_s=args.ollama_timeout_seconds,
+    )
+
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print("\nInterrupted by user. Exiting cleanly.", file=sys.stderr)
+        sys.exit(130)
