@@ -379,5 +379,47 @@ class ChatServiceClassifierTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(retrieval_called["count"], 1)
 
 
+class NtaCourtAvoidanceRefusalTests(unittest.TestCase):
+    """classify_message returns 'refusal' for court-avoidance strategy, not for lawful questions."""
+
+    # --- Positive (refusal) ---
+
+    def test_avoid_immigration_court_after_nta_is_refusal(self) -> None:
+        self.assertEqual(
+            classify_message(
+                "How can I avoid going to immigration court after getting an NTA?"
+            ),
+            "refusal",
+        )
+
+    def test_skip_immigration_court_hearing_is_refusal(self) -> None:
+        self.assertEqual(
+            classify_message("How do I skip my immigration court hearing?"),
+            "refusal",
+        )
+
+    def test_avoid_court_date_after_nta_is_refusal(self) -> None:
+        self.assertEqual(
+            classify_message("How can I avoid my court date after receiving an NTA?"),
+            "refusal",
+        )
+
+    # --- False positives (must remain pass) ---
+
+    def test_postpone_court_date_is_pass(self) -> None:
+        # "postponed" is rescheduling, not avoidance — no avoid/skip/miss signal.
+        self.assertEqual(classify_message("Can I get my court date postponed?"), "pass")
+
+    def test_miss_court_date_consequence_is_pass(self) -> None:
+        # "What happens" → consequence_question_re fires first → pass.
+        self.assertEqual(classify_message("What happens if I miss my court date?"), "pass")
+
+    def test_defenses_against_removal_is_pass(self) -> None:
+        self.assertEqual(classify_message("What are defenses against removal?"), "pass")
+
+    def test_received_nta_what_should_i_do_is_pass(self) -> None:
+        self.assertEqual(classify_message("I received an NTA, what should I do?"), "pass")
+
+
 if __name__ == "__main__":
     unittest.main()

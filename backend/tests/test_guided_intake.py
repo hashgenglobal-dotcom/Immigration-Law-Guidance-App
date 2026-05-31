@@ -750,5 +750,28 @@ class L2WorkAuthRoutingTests(unittest.TestCase):
         self.assertIn("274a.12(c)(3)", q)
 
 
+class HumanitarianQueryRewritingTests(unittest.TestCase):
+    """resolve_retrieval_query routes high-risk/humanitarian queries via understand_query."""
+
+    def test_asylum_ead_after_filing_resolves_to_208_7_query(self) -> None:
+        q = resolve_retrieval_query("When can I apply for EAD after filing asylum?", None)
+        self.assertIn("208.7", q)
+        self.assertIn("274a.12(c)(8)", q)
+
+    def test_i485_travel_with_advance_parole_resolves_to_ap_query(self) -> None:
+        q = resolve_retrieval_query(
+            "Can I travel while my I-485 is pending if I have advance parole?", None
+        )
+        self.assertIn("abandonment", q.lower())
+        self.assertIn("245.2", q)
+
+    def test_received_nta_removal_proceedings_resolves_to_nta_query(self) -> None:
+        q = resolve_retrieval_query(
+            "I received a Notice to Appear for removal proceedings. What should I do?", None
+        )
+        self.assertIn("239.1", q)
+        self.assertIn("in absentia", q.lower())
+
+
 if __name__ == "__main__":
     unittest.main()

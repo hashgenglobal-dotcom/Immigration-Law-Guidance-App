@@ -134,6 +134,126 @@ _F1_PRACTICAL_TRAINING_SOURCE_FAMILIES: tuple[str, ...] = (
     "USCIS Policy Manual",
 )
 
+# Shared source families for high-risk / humanitarian topics.
+_HUMANITARIAN_SOURCE_FAMILIES: tuple[str, ...] = (
+    "eCFR Title 8",
+    "USCIS Policy Manual",
+)
+
+# ---- Asylum EAD (8 CFR 208.7 / 274a.12(c)(8)) --------------------------------
+# Detects questions about employment authorization timing for pending asylum
+# applicants. Requires both an asylum context signal AND an EAD/work signal.
+# Do not match: "Can I apply for asylum?" (no work signal) or
+# "How do I apply for EAD?" (no asylum signal).
+
+_ASYLUM_SIGNAL = re.compile(
+    r"\b(?:asylum|asylee|affirmative\s+asylum|filed\s+asylum|filing\s+asylum"
+    r"|pending\s+asylum|asylum\s+applicant|asylum\s+application|I[- ]?589)\b",
+    re.I,
+)
+_ASYLUM_EAD_WORK_SIGNAL = re.compile(
+    r"\b(?:ead|employment\s+authorization|work\s+permit|work\s+authorization"
+    r"|Form\s+I[- ]?765|I[- ]?765|authorized\s+to\s+work"
+    r"|work\s+(?:while|after|before|timing))\b",
+    re.I,
+)
+
+_ASYLUM_EAD_QUERY = (
+    "pending asylum applicant employment authorization EAD 8 CFR 208.7 "
+    "Form I-765 274a.12(c)(8) 180-day waiting period asylee applicant "
+    "affirmative asylum work permit category c8 employment authorization document"
+)
+
+_ASYLUM_EAD_ANSWER_GUIDANCE = (
+    "Answer only for pending asylum applicants seeking employment authorization "
+    "under 8 CFR 208.7 and 274a.12(c)(8). "
+    "Explain the 180-day waiting period: an applicant generally may not file "
+    "Form I-765 for an EAD until 180 days after filing a complete asylum application. "
+    "Mention that the EAD category for pending asylum applicants is (c)(8). "
+    "Mention Form I-765 as the required form. "
+    "Do not discuss adjustment-of-status EAD (c)(9), TPS, DACA, OPT, L-2, H-4, or "
+    "LPR/Form I-551 employment authorization unless directly asked. "
+    "Do not discuss Form I-589/asylum filing process unless directly asked."
+)
+
+# ---- I-485 advance parole (8 CFR 245.2) --------------------------------------
+# Detects pending I-485 adjustment + international travel questions.
+# Requires both an I-485/adjustment signal AND a travel/advance-parole signal.
+# Do not match: "How do I apply for advance parole?" without I-485/adjustment context.
+
+_I485_PENDING_SIGNAL = re.compile(
+    r"\bI[- ]?485\b|adjustment\s+of\s+status|adjustment\s+(?:application|pending|case)"
+    r"|pending\s+(?:adjustment|green\s+card\s+application)",
+    re.I,
+)
+_TRAVEL_AP_SIGNAL = re.compile(
+    r"\b(?:travel|advance\s+parole|Form\s+I[- ]?131|I[- ]?131|travel\s+document"
+    r"|go\s+abroad|leave\s+the\s+(?:country|US|U\.S\.?))\b",
+    re.I,
+)
+
+_I485_AP_QUERY = (
+    "advance parole I-485 adjustment of status pending Form I-131 "
+    "travel document abandonment 8 CFR 245.2 travel abroad return "
+    "approval before departure risk of abandonment adjustment pending travel"
+)
+
+_I485_AP_ANSWER_GUIDANCE = (
+    "Answer only for a pending I-485 adjustment-of-status applicant asking about "
+    "international travel. "
+    "Explain that traveling abroad while an I-485 is pending without an approved "
+    "advance parole document generally results in the I-485 being considered abandoned, "
+    "under 8 CFR 245.2(a)(4)(ii). "
+    "Mention Form I-131 as the form to apply for advance parole before departing. "
+    "Note that certain exceptions may apply, such as some H-1B or L-1 status holders, "
+    "but these are fact-specific. "
+    "If recommending legal help, refer to a qualified immigration attorney or accredited representative only. "
+    "Do not cite or discuss asylum travel limitations under 8 CFR 208.8 or 1208.8. "
+    "Do not discuss special adjustment provisions under 8 CFR 1245.12 or 1245.13 unless directly asked. "
+    "Do not discuss TPS travel authorization, parole-in-place, naturalization travel, "
+    "Syria/special immigrant provisions, or T nonimmigrant travel unless directly asked."
+)
+
+# ---- NTA / removal high-risk (8 CFR 239.1) -----------------------------------
+# Detects personal NTA/removal situations. Requires both a personal signal
+# (I received, I got, I have, etc.) AND a topic signal (NTA, Notice to Appear,
+# removal proceedings, immigration court).
+# Do not match: "What is a Notice to Appear?" or "What are NTA requirements?".
+
+_NTA_PERSONAL_SIGNAL = re.compile(
+    r"\b(?:I\s+received|I\s+got|I\s+have|I\s+was\s+given|we\s+received|we\s+got"
+    r"|my\s+NTA|our\s+NTA|after\s+receiving|receiving\s+a\s+Notice\s+to\s+Appear"
+    r"|received\s+an?\s+NTA|got\s+an?\s+NTA)\b",
+    re.I,
+)
+_NTA_TOPIC_SIGNAL = re.compile(
+    r"\b(?:NTA|Notice\s+to\s+Appear|removal\s+proceedings|immigration\s+court"
+    r"|removal\s+order|EOIR)\b",
+    re.I,
+)
+
+_NTA_REMOVAL_QUERY = (
+    "Notice to Appear NTA removal proceedings immigration court 8 CFR 239.1 "
+    "EOIR right to counsel immigration attorney accredited representative "
+    "master calendar hearing individual hearing in absentia removal order removal defense"
+)
+
+_NTA_REMOVAL_ANSWER_GUIDANCE = (
+    "Answer only for a person who has received a Notice to Appear (NTA) and is now "
+    "in removal proceedings. "
+    "Explain that the NTA initiates formal removal proceedings before immigration "
+    "court/EOIR under 8 CFR 239.1. "
+    "State clearly that not appearing in immigration court as required can result in "
+    "an in absentia removal order. "
+    "Strongly recommend consulting a qualified immigration attorney or BIA-accredited "
+    "representative as soon as possible. "
+    "Mention the right to be represented by counsel at no expense to the government. "
+    "Do not mention DSO or school official — those roles are not relevant to removal proceedings. "
+    "Do not advise on how to avoid appearing in immigration court. "
+    "Do not discuss Form I-751 removal of conditions, naturalization, or unrelated "
+    "topics unless directly asked."
+)
+
 
 def understand_query(
     message: str,
@@ -153,6 +273,37 @@ def understand_query(
         current implementation — reserved for future topic-aware routing.
     """
     text = message.strip()
+
+    # High-risk / humanitarian (priority: nta_removal_high_risk > i485_advance_parole > asylum_ead)
+    if _NTA_PERSONAL_SIGNAL.search(text) and _NTA_TOPIC_SIGNAL.search(text):
+        return QueryUnderstanding(
+            topic="nta_removal_high_risk",
+            intent_label="case_specific_or_risk",
+            retrieval_query=_NTA_REMOVAL_QUERY,
+            preferred_source_families=_HUMANITARIAN_SOURCE_FAMILIES,
+            missing_facts=(),
+            answer_guidance=_NTA_REMOVAL_ANSWER_GUIDANCE,
+        )
+
+    if _I485_PENDING_SIGNAL.search(text) and _TRAVEL_AP_SIGNAL.search(text):
+        return QueryUnderstanding(
+            topic="i485_advance_parole",
+            intent_label="case_specific_or_risk",
+            retrieval_query=_I485_AP_QUERY,
+            preferred_source_families=_HUMANITARIAN_SOURCE_FAMILIES,
+            missing_facts=(),
+            answer_guidance=_I485_AP_ANSWER_GUIDANCE,
+        )
+
+    if _ASYLUM_SIGNAL.search(text) and _ASYLUM_EAD_WORK_SIGNAL.search(text):
+        return QueryUnderstanding(
+            topic="asylum_ead",
+            intent_label="case_specific_or_risk",
+            retrieval_query=_ASYLUM_EAD_QUERY,
+            preferred_source_families=_HUMANITARIAN_SOURCE_FAMILIES,
+            missing_facts=(),
+            answer_guidance=_ASYLUM_EAD_ANSWER_GUIDANCE,
+        )
 
     # F-1 practical training (priority: stem_opt > f1_cpt > f1_opt)
     if _STEM_OPT_SIGNAL.search(text):
@@ -315,6 +466,108 @@ _STEM_OPT_KEY_TERMS = re.compile(
     re.I,
 )
 
+# ---- Asylum EAD post-retrieval context filter --------------------------------
+# Uses 3-tier strict filter (same as f1_opt/stem_opt).
+# Hard rejects: LPR card (I-551), EOIR asylum form reg (1208.3), LPR employment
+# auth (274a.12(a)(1)), removal of conditions (I-751), adjustment pending EAD (c)(9).
+# Keep: 208.7, 274a.12(c)(8), 180-day, pending asylum EAD content.
+# Soft reject: OPT, CPT, H-4, L-2, TPS, DACA, lawful permanent resident.
+
+_ASYLUM_EAD_HARD_REJECT = re.compile(
+    r"Form\s+I[- ]?551"
+    r"|\b1208\.3\b"
+    r"|274a\.12\s*\(\s*a\s*\)\s*\(\s*1\s*\)"
+    r"|\bI[- ]?751\b"
+    r"|274a\.12\s*\(\s*c\s*\)\s*\(\s*9\s*\)",
+    re.I,
+)
+
+_ASYLUM_EAD_KEEP = re.compile(
+    r"\b208\.7\b"
+    r"|274a\.12\s*\(\s*c\s*\)\s*\(\s*8\s*\)"
+    r"|180[- ]?day"
+    r"|pending\s+asylum.{0,40}(?:ead|employment\s+authorization|work\s+authorization)"
+    r"|asylee.{0,50}(?:employment\s+authorization|ead|work\s+authorization)",
+    re.I,
+)
+
+_ASYLUM_EAD_SOFT_REJECT = re.compile(
+    r"\bOPT\b|\bCPT\b|\bH[- ]?4\b|\bL[- ]?2\b"
+    r"|Temporary\s+Protected\s+Status|\bTPS\b|\bDACA\b"
+    r"|lawful\s+permanent\s+resident",
+    re.I,
+)
+
+# ---- I-485 advance parole post-retrieval context filter ----------------------
+# Binary keep/reject (same as l2, f1_cpt).
+# Keep: advance parole, I-131, abandonment, travel document, 245.2.
+# Reject: special 1245.x provisions, T nonimmigrant, trafficking, Syria.
+
+_I485_AP_KEEP = re.compile(
+    r"\badvance\s+parole\b"
+    r"|\bForm\s+I[- ]?131\b|\bI[- ]?131\b"
+    r"|\babandonment\b"
+    r"|\btravel\s+document\b"
+    r"|\b245\.2\b",
+    re.I,
+)
+
+_I485_AP_HARD_REJECT = re.compile(
+    r"\b208\.8\b"                                    # asylum travel limitation (8 CFR)
+    r"|\b1208\.8\b"                                  # asylum travel limitation (EOIR)
+    r"|\b1245\.(?:7|10|12|13|19|20)\b"               # special adjustment provisions
+    r"|\b245\s*\(\s*i\s*\)"                           # 245(i) special adjustment
+    r"|\bSupplement\s+A\b"                            # Supplement A to I-485 (245(i))
+    r"|\bPublic\s+Law\s+105[- ]?100\b"               # NACARA
+    r"|Foreign\s+Operations\s+Appropriations\s+Act"  # NACARA authorizing act
+    r"|\bIndochinese\b.{0,60}\bparolee\b"            # NACARA-covered parolees
+    r"|\bSoviet\b.{0,60}\bparolee\b"                 # NACARA-covered parolees
+    r"|\bSyrian?\b"                                  # Syrian special immigrant
+    r"|\bT\s+nonimmigrant\b"                         # T visa (trafficking)
+    r"|\btrafficking\s+victim\b"                     # T visa context
+    r"|claimed\s+persecution"                        # asylum-specific travel content
+    r"|country\s+of\s+claimed\s+persecution",        # asylum-specific travel content
+    re.I,
+)
+
+# 1245.2 (EOIR adjustment regulation) is a keep only when the snippet also discusses
+# I-485/adjustment/advance parole/abandonment — otherwise it is neutral and dropped
+# when strong keep results exist.
+_I485_AP_1245_2 = re.compile(r"\b1245\.2\b", re.I)
+_I485_AP_1245_2_CONTEXT = re.compile(
+    r"\bI[- ]?485\b"
+    r"|\badjustment\s+of\s+status\b"
+    r"|\badvance\s+parole\b"
+    r"|\babandonment\b",
+    re.I,
+)
+
+# ---- NTA / removal high-risk post-retrieval context filter -------------------
+# Binary keep/reject.
+# Keep: 239., 1239., NTA/removal proceedings/EOIR/in absentia/master calendar.
+# Reject: I-751, conditional resident, removal of conditions.
+
+_NTA_REMOVAL_KEEP = re.compile(
+    r"\b239\."
+    r"|\b1239\."
+    r"|notice\s+to\s+appear"
+    r"|removal\s+proceedings"
+    r"|immigration\s+court"
+    r"|\bEOIR\b"
+    r"|in\s+absentia"
+    r"|removal\s+defense"
+    r"|master\s+calendar",
+    re.I,
+)
+
+_NTA_REMOVAL_REJECT = re.compile(
+    r"\bI[- ]?751\b"
+    r"|\bconditional\s+(?:resident|permanent\s+resident)\b"
+    r"|\bremoval\s+of\s+conditions\b"
+    r"|\bVAWA\s+removal\s+of\s+conditions\b",
+    re.I,
+)
+
 
 def _result_text(result: object) -> str:
     parts = [
@@ -371,7 +624,7 @@ def _stem_opt_classify(result: object) -> str:
 
 
 def _apply_strict_filter(results: list, classify_fn) -> list:
-    """3-tier filter for f1_opt and stem_opt.
+    """3-tier filter for f1_opt, stem_opt, and asylum_ead.
 
     Priority:
     1. hard_reject results are always removed.
@@ -385,6 +638,39 @@ def _apply_strict_filter(results: list, classify_fn) -> list:
         return strong_kept
     non_rejected = [r for r, cls in classified if cls not in ("hard_reject", "soft_reject")]
     return non_rejected if non_rejected else results
+
+
+def _asylum_ead_classify(result: object) -> str:
+    """Return 'hard_reject', 'keep', 'soft_reject', or 'neutral' for an asylum_ead result."""
+    text = _result_text(result)
+    if _ASYLUM_EAD_HARD_REJECT.search(text):
+        return "hard_reject"
+    if _ASYLUM_EAD_KEEP.search(text):
+        return "keep"
+    if _ASYLUM_EAD_SOFT_REJECT.search(text):
+        return "soft_reject"
+    return "neutral"
+
+
+def _i485_ap_classify(result: object) -> str:
+    """Return 'hard_reject', 'keep', or 'neutral' for an i485_advance_parole result."""
+    text = _result_text(result)
+    if _I485_AP_HARD_REJECT.search(text):
+        return "hard_reject"
+    if _I485_AP_KEEP.search(text):
+        return "keep"
+    if _I485_AP_1245_2.search(text) and _I485_AP_1245_2_CONTEXT.search(text):
+        return "keep"
+    return "neutral"
+
+
+def _nta_removal_keep_result(result: object) -> bool:
+    text = _result_text(result)
+    if _NTA_REMOVAL_KEEP.search(text):
+        return True
+    if _NTA_REMOVAL_REJECT.search(text):
+        return False
+    return True
 
 
 def filter_results_for_understanding(
@@ -407,6 +693,12 @@ def filter_results_for_understanding(
         return _apply_strict_filter(results, _f1_opt_classify)
     elif understanding.topic == "stem_opt":
         return _apply_strict_filter(results, _stem_opt_classify)
+    elif understanding.topic == "asylum_ead":
+        return _apply_strict_filter(results, _asylum_ead_classify)
+    elif understanding.topic == "i485_advance_parole":
+        return _apply_strict_filter(results, _i485_ap_classify)
+    elif understanding.topic == "nta_removal_high_risk":
+        keep_fn = _nta_removal_keep_result
     else:
         return results
     filtered = [r for r in results if keep_fn(r)]
