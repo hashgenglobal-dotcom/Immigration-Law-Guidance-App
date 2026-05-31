@@ -66,6 +66,13 @@ class RetrievalScoringTests(unittest.TestCase):
         self.assertTrue(query_mentions_bia("BIA precedent on removal"))
         self.assertFalse(query_mentions_bia("What is a Notice to Appear?"))
 
+    def test_nta_removal_retrieval_query_mentions_bia(self) -> None:
+        from app.services.query_understanding import _NTA_REMOVAL_QUERY
+        self.assertTrue(
+            query_mentions_bia(_NTA_REMOVAL_QUERY),
+            "NTA/removal retrieval query must satisfy query_mentions_bia() so BIA chunks are not penalized",
+        )
+
     # --- I-485 travel scoring ---
 
     def test_i485_travel_boosts_advance_parole_chunk(self) -> None:

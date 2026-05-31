@@ -1,14 +1,14 @@
 """MVP legal source scope helpers for retrieval and chat reporting.
 
-The MVP corpus is four co-active dataset versions (no combined dataset row):
+The MVP corpus is five co-active dataset versions (no combined dataset row):
   Canonical name                Supabase alias      Source family
   ecfr-title8-full-*            eCFR-v* / ecfr-v*   eCFR Title 8 (regulations)
   ina-*                         ina-v*               INA / U.S. Code Title 8 (statutes)
   uscis-pm-*                    uscis-pm-v*          USCIS Policy Manual (policy)
   uscis-official-pages-*                             USCIS Official Pages (guidance)
+  bia-*                                              BIA Precedent Decisions (case law)
 
-BIA decisions are post-MVP and must remain inactive. Sample eCFR preview
-datasets (ecfr-title8-sample-*) must have is_active=FALSE.
+Sample eCFR preview datasets (ecfr-title8-sample-*) must have is_active=FALSE.
 """
 
 from __future__ import annotations
@@ -24,7 +24,6 @@ def source_family_from_version(version_name: str | None) -> str | None:
     """Map a dataset ``version_name`` to a human-readable source family.
 
     Handles both canonical local names and Supabase alias names.
-    BIA is labelled (not excluded from display) but is never MVP-active.
     """
     if not version_name:
         return None
@@ -52,9 +51,9 @@ def source_family_from_version(version_name: str | None) -> str | None:
     if n.startswith(_MVP_USCIS_PAGES_PREFIX):
         return "USCIS Official Pages"
 
-    # BIA — post-MVP; labelled correctly if present, never treated as active MVP source.
+    # BIA Precedent Decisions — case-law corpus for NTA/removal queries.
     if n.startswith("bia-") or n.startswith("bia_"):
-        return "BIA Precedent Decisions (post-MVP)"
+        return "BIA Precedent Decisions"
 
     return "other"
 

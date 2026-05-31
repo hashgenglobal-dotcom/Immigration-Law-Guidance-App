@@ -1007,7 +1007,7 @@ class NtaRemovalHighRiskDetectionTests(unittest.TestCase):
     def test_preferred_source_families(self) -> None:
         self.assertEqual(
             self._result().preferred_source_families,
-            ("eCFR Title 8", "USCIS Policy Manual"),
+            ("eCFR Title 8", "USCIS Policy Manual", "BIA Precedent Decisions"),
         )
 
 
@@ -1231,6 +1231,82 @@ class HumanitarianFilterTests(unittest.TestCase):
         filtered = filter_results_for_understanding([opt_r, fee_r], self._f1_opt())
         self.assertIn(opt_r, filtered)
         self.assertNotIn(fee_r, filtered)
+
+
+class BiaSourceFamilyRoutingTests(unittest.TestCase):
+    """BIA is a preferred source only for nta_removal_high_risk, never for other topics."""
+
+    _NTA_MSG = "I received a Notice to Appear for removal proceedings. What should I do?"
+    _ASYLUM_EAD_MSG = "I have a pending asylum application. Can I get an EAD?"
+    _I485_MSG = "I have a pending I-485. Can I travel with advance parole?"
+    _OPT_MSG = "Can I work on OPT after graduation?"
+    _CPT_MSG = "I am an F-1 student. Can I do CPT?"
+    _STEM_MSG = "I am on STEM OPT. Can I extend?"
+
+    # --- NTA/removal must include BIA ---
+
+    def test_nta_preferred_families_includes_bia(self) -> None:
+        result = understand_query(self._NTA_MSG)
+        self.assertEqual(result.topic, "nta_removal_high_risk")
+        self.assertIn("BIA Precedent Decisions", result.preferred_source_families)
+
+    def test_nta_preferred_families_includes_ecfr(self) -> None:
+        result = understand_query(self._NTA_MSG)
+        self.assertIn("eCFR Title 8", result.preferred_source_families)
+
+    def test_nta_preferred_families_includes_uscis_pm(self) -> None:
+        result = understand_query(self._NTA_MSG)
+        self.assertIn("USCIS Policy Manual", result.preferred_source_families)
+
+    # --- NTA retrieval query must contain BIA terms ---
+
+    def test_nta_retrieval_query_contains_bia(self) -> None:
+        result = understand_query(self._NTA_MSG)
+        self.assertIn("BIA", result.retrieval_query)
+
+    def test_nta_retrieval_query_contains_board_of_immigration_appeals(self) -> None:
+        result = understand_query(self._NTA_MSG)
+        self.assertIn("Board of Immigration Appeals", result.retrieval_query)
+
+    def test_nta_retrieval_query_contains_in_dec(self) -> None:
+        result = understand_query(self._NTA_MSG)
+        self.assertIn("I&N Dec.", result.retrieval_query)
+
+    def test_nta_retrieval_query_contains_precedent_decision(self) -> None:
+        result = understand_query(self._NTA_MSG)
+        self.assertIn("precedent decision", result.retrieval_query.lower())
+
+    # --- Other topics must NOT include BIA ---
+
+    def test_asylum_ead_preferred_families_excludes_bia(self) -> None:
+        result = understand_query(self._ASYLUM_EAD_MSG)
+        self.assertEqual(result.topic, "asylum_ead")
+        self.assertNotIn("BIA Precedent Decisions", result.preferred_source_families)
+
+    def test_i485_advance_parole_preferred_families_excludes_bia(self) -> None:
+        result = understand_query(self._I485_MSG)
+        self.assertEqual(result.topic, "i485_advance_parole")
+        self.assertNotIn("BIA Precedent Decisions", result.preferred_source_families)
+
+    def test_f1_opt_preferred_families_excludes_bia(self) -> None:
+        result = understand_query(self._OPT_MSG)
+        self.assertEqual(result.topic, "f1_opt")
+        self.assertNotIn("BIA Precedent Decisions", result.preferred_source_families)
+
+    def test_f1_cpt_preferred_families_excludes_bia(self) -> None:
+        result = understand_query(self._CPT_MSG)
+        self.assertEqual(result.topic, "f1_cpt")
+        self.assertNotIn("BIA Precedent Decisions", result.preferred_source_families)
+
+    def test_stem_opt_preferred_families_excludes_bia(self) -> None:
+        result = understand_query(self._STEM_MSG)
+        self.assertEqual(result.topic, "stem_opt")
+        self.assertNotIn("BIA Precedent Decisions", result.preferred_source_families)
+
+    def test_l2_preferred_families_excludes_bia(self) -> None:
+        result = understand_query("Can my spouse work if I am on L1 visa?")
+        self.assertEqual(result.topic, "l2_work_authorization")
+        self.assertNotIn("BIA Precedent Decisions", result.preferred_source_families)
 
 
 if __name__ == "__main__":
