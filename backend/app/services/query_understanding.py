@@ -134,10 +134,17 @@ _F1_PRACTICAL_TRAINING_SOURCE_FAMILIES: tuple[str, ...] = (
     "USCIS Policy Manual",
 )
 
-# Shared source families for high-risk / humanitarian topics.
+# Shared source families for high-risk / humanitarian topics (no BIA).
 _HUMANITARIAN_SOURCE_FAMILIES: tuple[str, ...] = (
     "eCFR Title 8",
     "USCIS Policy Manual",
+)
+
+# NTA/removal topics also include BIA case law alongside regulatory sources.
+_NTA_SOURCE_FAMILIES: tuple[str, ...] = (
+    "eCFR Title 8",
+    "USCIS Policy Manual",
+    "BIA Precedent Decisions",
 )
 
 # ---- Asylum EAD (8 CFR 208.7 / 274a.12(c)(8)) --------------------------------
@@ -235,7 +242,8 @@ _NTA_TOPIC_SIGNAL = re.compile(
 _NTA_REMOVAL_QUERY = (
     "Notice to Appear NTA removal proceedings immigration court 8 CFR 239.1 "
     "EOIR right to counsel immigration attorney accredited representative "
-    "master calendar hearing individual hearing in absentia removal order removal defense"
+    "master calendar hearing individual hearing in absentia removal order removal defense "
+    "BIA Board of Immigration Appeals I&N Dec. precedent decision"
 )
 
 _NTA_REMOVAL_ANSWER_GUIDANCE = (
@@ -280,7 +288,7 @@ def understand_query(
             topic="nta_removal_high_risk",
             intent_label="case_specific_or_risk",
             retrieval_query=_NTA_REMOVAL_QUERY,
-            preferred_source_families=_HUMANITARIAN_SOURCE_FAMILIES,
+            preferred_source_families=_NTA_SOURCE_FAMILIES,
             missing_facts=(),
             answer_guidance=_NTA_REMOVAL_ANSWER_GUIDANCE,
         )

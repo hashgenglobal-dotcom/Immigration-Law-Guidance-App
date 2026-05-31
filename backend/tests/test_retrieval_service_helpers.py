@@ -180,5 +180,41 @@ class FilterKeywordCandidatesTests(unittest.TestCase):
         self.assertEqual(filtered, [])
 
 
+class SourceFamilyFromVersionTests(unittest.TestCase):
+    """source_family_from_version maps dataset version names to source family strings."""
+
+    def setUp(self) -> None:
+        from app.services.mvp_source_scope import source_family_from_version
+        self._fn = source_family_from_version
+
+    # --- BIA ---
+
+    def test_bia_canonical_returns_bia_precedent_decisions(self) -> None:
+        self.assertEqual(self._fn("bia-2026-05-21"), "BIA Precedent Decisions")
+
+    def test_bia_canonical_no_post_mvp_suffix(self) -> None:
+        self.assertNotIn("post-MVP", self._fn("bia-2026-05-21") or "")
+
+    def test_bia_underscore_prefix_also_maps(self) -> None:
+        self.assertEqual(self._fn("bia_2025"), "BIA Precedent Decisions")
+
+    # --- Existing families unaffected ---
+
+    def test_ecfr_full_returns_ecfr_title8(self) -> None:
+        self.assertEqual(self._fn("ecfr-title8-full-2026"), "eCFR Title 8")
+
+    def test_ina_returns_ina_title8(self) -> None:
+        self.assertTrue((self._fn("ina-2026-01") or "").startswith("INA"))
+
+    def test_uscis_pm_returns_uscis_policy_manual(self) -> None:
+        self.assertEqual(self._fn("uscis-pm-2026-01"), "USCIS Policy Manual")
+
+    def test_none_returns_none(self) -> None:
+        self.assertIsNone(self._fn(None))
+
+    def test_empty_string_returns_none(self) -> None:
+        self.assertIsNone(self._fn(""))
+
+
 if __name__ == "__main__":
     unittest.main()
