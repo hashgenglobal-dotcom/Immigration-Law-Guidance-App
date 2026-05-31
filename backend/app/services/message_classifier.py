@@ -110,6 +110,9 @@ _REFUSAL_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
         r"\b(hide|conceal|omit)\b.{0,80}"
         r"\b(arrest|criminal|conviction|charge|felony|misdemeanor|record)\b.{0,80}"
         r"\b(application|form|green card|uscis|visa|immigration)\b",
+        # "how can I / how do I avoid/skip/miss immigration court / court hearing / court date"
+        r"\b(how (can i|do i|should i|to))\b.{0,80}\b(avoid|skip|miss)\b"
+        r".{0,60}\b(immigration court|court (?:hearing|date|appearance))\b",
     )
 )
 

@@ -103,10 +103,6 @@ class GeneralFallbackTests(unittest.TestCase):
         result = understand_query("How does H-4 EAD work?")
         self.assertEqual(result.topic, "general")
 
-    def test_asylum_ead_falls_back_to_general(self) -> None:
-        result = understand_query("How do I apply for EAD as an asylum applicant?")
-        self.assertEqual(result.topic, "general")
-
     def test_generic_ead_falls_back_to_general(self) -> None:
         result = understand_query("How do I apply for EAD?")
         self.assertEqual(result.topic, "general")
@@ -785,6 +781,456 @@ class F1PracticalTrainingStrictFilterTests(unittest.TestCase):
         filtered = filter_results_for_understanding([l2_r, h4_r], self._l2())
         self.assertIn(l2_r, filtered)
         self.assertNotIn(h4_r, filtered)
+
+
+class AsylumEadDetectionTests(unittest.TestCase):
+    """understand_query maps pending-asylum EAD questions to asylum_ead."""
+
+    def _assert_asylum_ead(self, message: str) -> None:
+        result = understand_query(message)
+        self.assertEqual(result.topic, "asylum_ead", f"Expected asylum_ead for: {message!r}")
+
+    def _result(self) -> object:
+        return understand_query("When can I apply for EAD after filing asylum?")
+
+    # --- Positive matches ---
+
+    def test_when_can_i_apply_for_ead_after_filing_asylum(self) -> None:
+        self._assert_asylum_ead("When can I apply for EAD after filing asylum?")
+
+    def test_pending_asylum_work_authorization(self) -> None:
+        self._assert_asylum_ead("Can I get work authorization with pending asylum?")
+
+    def test_filed_asylum_how_long_before_ead(self) -> None:
+        self._assert_asylum_ead("I filed asylum, how long before I can get an EAD?")
+
+    def test_ead_as_asylum_applicant(self) -> None:
+        self._assert_asylum_ead("How do I apply for EAD as an asylum applicant?")
+
+    # --- Negative: asylum without EAD signal stays general ---
+
+    def test_asylum_without_ead_signal_remains_general(self) -> None:
+        result = understand_query("Can I apply for asylum?")
+        self.assertEqual(result.topic, "general")
+
+    # --- Negative: generic EAD without asylum stays general ---
+
+    def test_generic_ead_without_asylum_remains_general(self) -> None:
+        result = understand_query("How do I apply for EAD?")
+        self.assertEqual(result.topic, "general")
+
+    # --- Retrieval query content ---
+
+    def test_retrieval_query_contains_208_7(self) -> None:
+        self.assertIn("208.7", self._result().retrieval_query)
+
+    def test_retrieval_query_contains_274a12_c8(self) -> None:
+        self.assertIn("274a.12(c)(8)", self._result().retrieval_query)
+
+    def test_retrieval_query_contains_180_day(self) -> None:
+        self.assertIn("180-day", self._result().retrieval_query)
+
+    def test_retrieval_query_contains_form_i765(self) -> None:
+        self.assertIn("Form I-765", self._result().retrieval_query)
+
+    # --- Answer guidance ---
+
+    def test_answer_guidance_contains_180_day(self) -> None:
+        self.assertIn("180", self._result().answer_guidance)
+
+    def test_answer_guidance_contains_c8(self) -> None:
+        self.assertIn("(c)(8)", self._result().answer_guidance)
+
+    def test_answer_guidance_contains_form_i765(self) -> None:
+        self.assertIn("Form I-765", self._result().answer_guidance)
+
+    # --- Source families and intent ---
+
+    def test_preferred_source_families(self) -> None:
+        self.assertEqual(
+            self._result().preferred_source_families,
+            ("eCFR Title 8", "USCIS Policy Manual"),
+        )
+
+    def test_intent_label_is_case_specific_or_risk(self) -> None:
+        self.assertEqual(self._result().intent_label, "case_specific_or_risk")
+
+
+class I485AdvanceParoleDetectionTests(unittest.TestCase):
+    """understand_query maps pending I-485 travel questions to i485_advance_parole."""
+
+    def _assert_i485_ap(self, message: str) -> None:
+        result = understand_query(message)
+        self.assertEqual(
+            result.topic, "i485_advance_parole", f"Expected i485_advance_parole for: {message!r}"
+        )
+
+    def _result(self) -> object:
+        return understand_query(
+            "Can I travel while my I-485 is pending if I have advance parole?"
+        )
+
+    # --- Positive matches ---
+
+    def test_travel_pending_i485_advance_parole(self) -> None:
+        self._assert_i485_ap(
+            "Can I travel while my I-485 is pending if I have advance parole?"
+        )
+
+    def test_travel_without_advance_parole_i485(self) -> None:
+        self._assert_i485_ap(
+            "What happens if I travel without advance parole while I-485 is pending?"
+        )
+
+    def test_adjustment_status_travel_abroad(self) -> None:
+        self._assert_i485_ap(
+            "Can I travel abroad while my adjustment of status application is pending?"
+        )
+
+    # --- Negative: advance parole without I-485 context stays general ---
+
+    def test_generic_advance_parole_without_i485_remains_general(self) -> None:
+        result = understand_query("How do I apply for advance parole?")
+        self.assertEqual(result.topic, "general")
+
+    # --- Retrieval query content ---
+
+    def test_retrieval_query_contains_advance_parole(self) -> None:
+        self.assertIn("advance parole", self._result().retrieval_query.lower())
+
+    def test_retrieval_query_contains_form_i131(self) -> None:
+        self.assertIn("Form I-131", self._result().retrieval_query)
+
+    def test_retrieval_query_contains_abandonment(self) -> None:
+        self.assertIn("abandonment", self._result().retrieval_query.lower())
+
+    def test_retrieval_query_contains_245_2(self) -> None:
+        self.assertIn("245.2", self._result().retrieval_query)
+
+    # --- Answer guidance ---
+
+    def test_answer_guidance_contains_abandonment(self) -> None:
+        self.assertIn("abandoned", self._result().answer_guidance.lower())
+
+    def test_answer_guidance_contains_form_i131(self) -> None:
+        self.assertIn("Form I-131", self._result().answer_guidance)
+
+    def test_answer_guidance_contains_245_2(self) -> None:
+        self.assertIn("245.2", self._result().answer_guidance)
+
+    # --- Source families and intent ---
+
+    def test_preferred_source_families(self) -> None:
+        self.assertEqual(
+            self._result().preferred_source_families,
+            ("eCFR Title 8", "USCIS Policy Manual"),
+        )
+
+    def test_intent_label_is_case_specific_or_risk(self) -> None:
+        self.assertEqual(self._result().intent_label, "case_specific_or_risk")
+
+
+class NtaRemovalHighRiskDetectionTests(unittest.TestCase):
+    """understand_query maps personal NTA/removal questions to nta_removal_high_risk."""
+
+    def _assert_nta(self, message: str) -> None:
+        result = understand_query(message)
+        self.assertEqual(
+            result.topic, "nta_removal_high_risk", f"Expected nta_removal_high_risk for: {message!r}"
+        )
+
+    def _result(self) -> object:
+        return understand_query(
+            "I received a Notice to Appear for removal proceedings. What should I do?"
+        )
+
+    # --- Positive matches ---
+
+    def test_received_nta_removal_proceedings(self) -> None:
+        self._assert_nta(
+            "I received a Notice to Appear for removal proceedings. What should I do?"
+        )
+
+    def test_got_nta_next_steps(self) -> None:
+        self._assert_nta("I got an NTA, what are my next steps?")
+
+    def test_what_to_do_after_receiving_nta(self) -> None:
+        self._assert_nta("What should I do after receiving a Notice to Appear?")
+
+    def test_have_immigration_court_after_nta(self) -> None:
+        self._assert_nta("I have immigration court next month after an NTA")
+
+    # --- Negative: definitional / general NTA questions stay general ---
+
+    def test_what_is_nta_remains_general(self) -> None:
+        result = understand_query("What is a Notice to Appear?")
+        self.assertEqual(result.topic, "general")
+
+    def test_nta_requirements_remains_general(self) -> None:
+        result = understand_query("What are NTA requirements?")
+        self.assertEqual(result.topic, "general")
+
+    # --- Retrieval query content ---
+
+    def test_retrieval_query_contains_239_1(self) -> None:
+        self.assertIn("239.1", self._result().retrieval_query)
+
+    def test_retrieval_query_contains_in_absentia(self) -> None:
+        self.assertIn("in absentia", self._result().retrieval_query.lower())
+
+    def test_retrieval_query_contains_eoir(self) -> None:
+        self.assertIn("EOIR", self._result().retrieval_query)
+
+    def test_retrieval_query_contains_removal_proceedings(self) -> None:
+        self.assertIn("removal proceedings", self._result().retrieval_query.lower())
+
+    # --- Answer guidance ---
+
+    def test_answer_guidance_contains_in_absentia(self) -> None:
+        self.assertIn("in absentia", self._result().answer_guidance.lower())
+
+    def test_answer_guidance_recommends_attorney(self) -> None:
+        guidance = self._result().answer_guidance.lower()
+        self.assertTrue(
+            "attorney" in guidance or "accredited representative" in guidance,
+            "Answer guidance must recommend consulting an attorney or accredited representative",
+        )
+
+    def test_answer_guidance_not_advise_court_avoidance(self) -> None:
+        self.assertIn("do not advise", self._result().answer_guidance.lower())
+
+    # --- Source families and intent ---
+
+    def test_intent_label_is_case_specific_or_risk(self) -> None:
+        self.assertEqual(self._result().intent_label, "case_specific_or_risk")
+
+    def test_preferred_source_families(self) -> None:
+        self.assertEqual(
+            self._result().preferred_source_families,
+            ("eCFR Title 8", "USCIS Policy Manual"),
+        )
+
+
+class HumanitarianFilterTests(unittest.TestCase):
+    """filter_results_for_understanding removes contaminating chunks for humanitarian topics."""
+
+    def _make(self, *, citation: str = "", topic: str = "", subtopic: str | None = None, snippet: str = "") -> object:
+        return types.SimpleNamespace(citation=citation, topic=topic, subtopic=subtopic, snippet=snippet)
+
+    def _asylum_ead(self) -> object:
+        return understand_query("When can I apply for EAD after filing asylum?")
+
+    def _i485_ap(self) -> object:
+        return understand_query("Can I travel while my I-485 is pending if I have advance parole?")
+
+    def _nta_removal(self) -> object:
+        return understand_query(
+            "I received a Notice to Appear for removal proceedings. What should I do?"
+        )
+
+    def _l2(self) -> object:
+        return understand_query("Can my spouse work if I am on L1 visa?")
+
+    def _f1_opt(self) -> object:
+        return understand_query("Can I work on OPT after graduation as an F1 student?")
+
+    # --- asylum_ead ---
+
+    def test_asylum_ead_keeps_208_7_chunk(self) -> None:
+        r = self._make(
+            citation="8 CFR 208.7",
+            snippet="Asylum applicant EAD 180-day waiting period employment authorization.",
+        )
+        self.assertIn(r, filter_results_for_understanding([r], self._asylum_ead()))
+
+    def test_asylum_ead_keeps_274a12_c8_chunk(self) -> None:
+        r = self._make(snippet="274a.12(c)(8) pending asylum applicant employment authorization.")
+        self.assertIn(r, filter_results_for_understanding([r], self._asylum_ead()))
+
+    def test_asylum_ead_hard_rejects_i551_chunk_when_valid_exists(self) -> None:
+        valid_r = self._make(
+            citation="8 CFR 208.7",
+            snippet="Asylum applicant 180-day EAD 274a.12(c)(8).",
+        )
+        lpr_r = self._make(snippet="Form I-551 lawful permanent resident employment authorization.")
+        filtered = filter_results_for_understanding([valid_r, lpr_r], self._asylum_ead())
+        self.assertIn(valid_r, filtered)
+        self.assertNotIn(lpr_r, filtered)
+
+    def test_asylum_ead_hard_rejects_1208_3_chunk_when_valid_exists(self) -> None:
+        valid_r = self._make(
+            citation="8 CFR 208.7",
+            snippet="Asylum applicant 180-day EAD 274a.12(c)(8).",
+        )
+        form_r = self._make(
+            citation="8 CFR 1208.3",
+            snippet="Asylum application filing procedures Form I-589.",
+        )
+        filtered = filter_results_for_understanding([valid_r, form_r], self._asylum_ead())
+        self.assertIn(valid_r, filtered)
+        self.assertNotIn(form_r, filtered)
+
+    def test_asylum_ead_fallback_returns_original_if_all_rejected(self) -> None:
+        results = [
+            self._make(snippet="Form I-551 lawful permanent resident employment authorization."),
+            self._make(citation="8 CFR 1208.3", snippet="Asylum application filing procedures."),
+        ]
+        filtered = filter_results_for_understanding(list(results), self._asylum_ead())
+        self.assertEqual(filtered, results)
+
+    # --- i485_advance_parole ---
+
+    def test_i485_ap_keeps_advance_parole_chunk(self) -> None:
+        r = self._make(snippet="Advance parole travel document for I-485 pending adjustment.")
+        self.assertIn(r, filter_results_for_understanding([r], self._i485_ap()))
+
+    def test_i485_ap_keeps_abandonment_chunk(self) -> None:
+        r = self._make(
+            snippet="Travel abroad without advance parole results in abandonment under 8 CFR 245.2."
+        )
+        self.assertIn(r, filter_results_for_understanding([r], self._i485_ap()))
+
+    def test_i485_ap_rejects_1245_13_chunk_when_valid_ap_chunk_exists(self) -> None:
+        valid_r = self._make(snippet="Advance parole Form I-131 abandonment 245.2.")
+        special_r = self._make(
+            citation="8 CFR 1245.13",
+            snippet="Special provisions for Cuban nationals.",
+        )
+        filtered = filter_results_for_understanding([valid_r, special_r], self._i485_ap())
+        self.assertIn(valid_r, filtered)
+        self.assertNotIn(special_r, filtered)
+
+    def test_i485_ap_fallback_returns_original_if_all_rejected(self) -> None:
+        results = [
+            self._make(citation="8 CFR 1245.13", snippet="Special provisions for Cuban nationals."),
+            self._make(snippet="Syrian special immigrant travel provisions Public Law special immigrant."),
+        ]
+        filtered = filter_results_for_understanding(list(results), self._i485_ap())
+        self.assertEqual(filtered, results)
+
+    def test_i485_ap_hard_rejects_208_8_asylum_travel_when_valid_exists(self) -> None:
+        valid_r = self._make(snippet="Advance parole Form I-131 abandonment 245.2 pending I-485.")
+        asylum_r = self._make(
+            citation="8 CFR 208.8",
+            snippet="Asylum applicant travel abroad country of claimed persecution 208.8.",
+        )
+        filtered = filter_results_for_understanding([valid_r, asylum_r], self._i485_ap())
+        self.assertIn(valid_r, filtered)
+        self.assertNotIn(asylum_r, filtered)
+
+    def test_i485_ap_hard_rejects_1208_8_asylum_travel_when_valid_exists(self) -> None:
+        valid_r = self._make(snippet="Advance parole Form I-131 abandonment 245.2 pending I-485.")
+        asylum_r = self._make(
+            citation="8 CFR 1208.8",
+            snippet="Asylum applicant travel abroad 1208.8.",
+        )
+        filtered = filter_results_for_understanding([valid_r, asylum_r], self._i485_ap())
+        self.assertIn(valid_r, filtered)
+        self.assertNotIn(asylum_r, filtered)
+
+    def test_i485_ap_hard_rejects_1245_12_when_valid_245_2_exists(self) -> None:
+        valid_r = self._make(
+            citation="8 CFR 245.2",
+            snippet="Advance parole abandonment adjustment of status pending I-485.",
+        )
+        special_r = self._make(
+            citation="8 CFR 1245.12",
+            snippet="Special adjustment provisions 1245.12.",
+        )
+        filtered = filter_results_for_understanding([valid_r, special_r], self._i485_ap())
+        self.assertIn(valid_r, filtered)
+        self.assertNotIn(special_r, filtered)
+
+    def test_i485_ap_keeps_245_2_abandonment_chunk(self) -> None:
+        r = self._make(
+            citation="8 CFR 245.2",
+            snippet="Travel abroad without advance parole results in abandonment of pending I-485.",
+        )
+        self.assertIn(r, filter_results_for_understanding([r], self._i485_ap()))
+
+    def test_i485_ap_keeps_1245_2_with_i485_context(self) -> None:
+        r = self._make(
+            citation="8 CFR 1245.2",
+            snippet="Pending I-485 adjustment advance parole abandonment 1245.2.",
+        )
+        self.assertIn(r, filter_results_for_understanding([r], self._i485_ap()))
+
+    def test_i485_ap_drops_1245_2_without_context_when_strong_keep_exists(self) -> None:
+        valid_r = self._make(snippet="Advance parole Form I-131 abandonment 245.2 pending I-485.")
+        neutral_r = self._make(
+            citation="8 CFR 1245.2",
+            snippet="Adjustment procedure 1245.2 unrelated context.",
+        )
+        filtered = filter_results_for_understanding([valid_r, neutral_r], self._i485_ap())
+        self.assertIn(valid_r, filtered)
+        self.assertNotIn(neutral_r, filtered)
+
+    # --- nta_removal_high_risk ---
+
+    def test_nta_removal_keeps_239_1_chunk(self) -> None:
+        r = self._make(
+            citation="8 CFR 239.1",
+            snippet="Notice to Appear removal proceedings immigration court EOIR.",
+        )
+        self.assertIn(r, filter_results_for_understanding([r], self._nta_removal()))
+
+    def test_nta_removal_keeps_in_absentia_chunk(self) -> None:
+        r = self._make(
+            snippet="In absentia removal order when respondent fails to appear in immigration court."
+        )
+        self.assertIn(r, filter_results_for_understanding([r], self._nta_removal()))
+
+    def test_nta_removal_rejects_i751_chunk_when_valid_nta_chunk_exists(self) -> None:
+        valid_r = self._make(
+            citation="8 CFR 239.1",
+            snippet="Notice to appear NTA removal proceedings.",
+        )
+        cpr_r = self._make(
+            snippet="Form I-751 petition to remove conditions of residence conditional resident."
+        )
+        filtered = filter_results_for_understanding([valid_r, cpr_r], self._nta_removal())
+        self.assertIn(valid_r, filtered)
+        self.assertNotIn(cpr_r, filtered)
+
+    def test_nta_removal_fallback_returns_original_if_all_rejected(self) -> None:
+        results = [
+            self._make(snippet="Form I-751 petition to remove conditions conditional permanent resident."),
+            self._make(snippet="VAWA removal of conditions battered spouse conditional resident."),
+        ]
+        filtered = filter_results_for_understanding(list(results), self._nta_removal())
+        self.assertEqual(filtered, results)
+
+    def test_nta_answer_guidance_no_dso(self) -> None:
+        result = understand_query(
+            "I received a Notice to Appear for removal proceedings. What should I do?"
+        )
+        self.assertIn("Do not mention DSO", result.answer_guidance)
+
+    def test_nta_answer_guidance_bia_accredited_representative(self) -> None:
+        result = understand_query(
+            "I received a Notice to Appear for removal proceedings. What should I do?"
+        )
+        self.assertTrue(
+            "BIA-accredited representative" in result.answer_guidance
+            or "accredited representative" in result.answer_guidance,
+            "Expected 'BIA-accredited representative' or 'accredited representative' in answer_guidance",
+        )
+
+    # --- Existing filters unaffected ---
+
+    def test_l2_filter_not_affected_by_humanitarian_changes(self) -> None:
+        l2_r = self._make(snippet="L-2 spouse employment authorized incident to status.")
+        h4_r = self._make(topic="H-4 Employment Authorization", snippet="H-4 spouses may apply for EAD.")
+        filtered = filter_results_for_understanding([l2_r, h4_r], self._l2())
+        self.assertIn(l2_r, filtered)
+        self.assertNotIn(h4_r, filtered)
+
+    def test_f1_opt_filter_not_affected_by_humanitarian_changes(self) -> None:
+        opt_r = self._make(snippet="F-1 optional practical training OPT 274a.12(c)(3).")
+        fee_r = self._make(citation="8 CFR 214.13", snippet="SEVIS fee optional practical training.")
+        filtered = filter_results_for_understanding([opt_r, fee_r], self._f1_opt())
+        self.assertIn(opt_r, filtered)
+        self.assertNotIn(fee_r, filtered)
 
 
 if __name__ == "__main__":
