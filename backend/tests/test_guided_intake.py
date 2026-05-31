@@ -103,7 +103,7 @@ class GuidedIntakeDetectionTests(unittest.TestCase):
 
     def test_cpt_question_routes_to_cpt_query(self) -> None:
         q = resolve_retrieval_query("Can I do CPT while studying on F1?", None)
-        self.assertIn("curriculum practical training", q.lower())
+        self.assertIn("curricular practical training", q.lower())
         self.assertIn("214.2(f)(10)(i)", q)
 
     def test_stem_opt_resolves_to_opt_query(self) -> None:

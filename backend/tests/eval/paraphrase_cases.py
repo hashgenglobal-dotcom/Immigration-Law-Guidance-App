@@ -36,7 +36,7 @@ _L2_PARA_QUERY_TERMS = ("L-2", "L-2S", "I-94", "Form I-765")
 # Paraphrases also verify "Form I-765" is present.
 _ASYLUM_EAD_PARA_QUERY_TERMS = ("208.7", "274a.12(c)(8)", "180-day", "Form I-765")
 
-# F-1 CPT: golden set uses ("CPT", "curriculum practical training", "214.2(f)(10)(i)").
+# F-1 CPT: golden set uses ("CPT", "curricular practical training", "214.2(f)(10)(i)").
 # Paraphrases swap "curriculum practical training" for "I-20" to check DSO annotation.
 _F1_CPT_PARA_QUERY_TERMS = ("CPT", "214.2(f)(10)(i)", "I-20")
 

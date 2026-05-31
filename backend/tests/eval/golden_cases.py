@@ -53,7 +53,7 @@ _BIA_FORBIDDEN = ("BIA Precedent Decisions",)
 _AP_QUERY_TERMS = ("advance parole", "Form I-131", "abandonment", "245.2")
 _ASYLUM_EAD_QUERY_TERMS = ("208.7", "274a.12(c)(8)", "180-day")
 _STEM_OPT_QUERY_TERMS = ("STEM OPT", "Form I-983", "E-Verify", "24-month")
-_F1_CPT_QUERY_TERMS = ("CPT", "curriculum practical training", "214.2(f)(10)(i)")
+_F1_CPT_QUERY_TERMS = ("CPT", "curricular practical training", "214.2(f)(10)(i)")
 _F1_OPT_QUERY_TERMS = ("post-completion OPT", "Form I-765", "274a.12(c)(3)")
 _L2_QUERY_TERMS = ("L-2S", "I-94", "incident to status")
 
