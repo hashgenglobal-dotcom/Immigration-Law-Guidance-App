@@ -1233,6 +1233,140 @@ class HumanitarianFilterTests(unittest.TestCase):
         self.assertNotIn(fee_r, filtered)
 
 
+class F1CptStrictFilterTests(unittest.TestCase):
+    """3-tier strict filter for f1_cpt: BIA/removal hard-rejected; neutrals dropped when CPT keeps exist."""
+
+    def _make(
+        self,
+        *,
+        citation: str = "",
+        topic: str = "",
+        subtopic: str | None = None,
+        snippet: str = "",
+        source_family: str = "",
+    ) -> object:
+        return types.SimpleNamespace(
+            citation=citation,
+            topic=topic,
+            subtopic=subtopic,
+            snippet=snippet,
+            source_family=source_family,
+        )
+
+    def _f1_cpt(self) -> object:
+        return understand_query("Can I do CPT as an F-1 student?")
+
+    def _f1_opt(self) -> object:
+        return understand_query("Can I work on OPT after graduation as an F1 student?")
+
+    def _stem_opt(self) -> object:
+        return understand_query("Who is eligible for STEM OPT extension?")
+
+    # --- Keep signals ---
+
+    def test_f1_cpt_keeps_8_cfr_214_2_cpt_chunk(self) -> None:
+        r = self._make(
+            citation="8 CFR 214.2(f)(10)(i)",
+            snippet="Curriculum practical training CPT authorized by DSO on I-20.",
+        )
+        self.assertIn(r, filter_results_for_understanding([r], self._f1_cpt()))
+
+    def test_f1_cpt_keeps_uscis_policy_manual_cpt_dso_i20_chunk(self) -> None:
+        r = self._make(
+            citation="USCIS Policy Manual Vol 2, Part F, Ch 5",
+            snippet="CPT DSO authorization I-20 no EAD required for curriculum practical training.",
+        )
+        self.assertIn(r, filter_results_for_understanding([r], self._f1_cpt()))
+
+    # --- Hard rejects (BIA / removal) ---
+
+    def test_f1_cpt_rejects_bia_source_family_when_valid_cpt_chunk_exists(self) -> None:
+        cpt_r = self._make(
+            citation="8 CFR 214.2(f)(10)(i)",
+            snippet="CPT authorized by DSO on I-20 integral part of curriculum.",
+        )
+        bia_r = self._make(
+            citation="CARON INTERNATIONAL, INC., 19 I&N Dec. 791",
+            snippet="Employer obligations in immigration context.",
+            source_family="BIA Precedent Decisions",
+        )
+        filtered = filter_results_for_understanding([cpt_r, bia_r], self._f1_cpt())
+        self.assertIn(cpt_r, filtered)
+        self.assertNotIn(bia_r, filtered)
+
+    def test_f1_cpt_rejects_in_dec_citation_when_valid_cpt_chunk_exists(self) -> None:
+        cpt_r = self._make(
+            citation="8 CFR 214.2(f)(10)(i)",
+            snippet="CPT DSO I-20 authorization.",
+        )
+        bia_r = self._make(
+            citation="Matter of Simeio Solutions, 26 I&N Dec. 542",
+            snippet="Employer-employee relationship in immigration proceedings.",
+        )
+        filtered = filter_results_for_understanding([cpt_r, bia_r], self._f1_cpt())
+        self.assertNotIn(bia_r, filtered)
+
+    def test_f1_cpt_rejects_removal_proceedings_chunk_when_valid_cpt_chunk_exists(self) -> None:
+        cpt_r = self._make(
+            snippet="CPT curriculum practical training 214.2(f)(10)(i) DSO authorization.",
+        )
+        removal_r = self._make(
+            snippet="Notice to Appear NTA removal proceedings immigration court.",
+        )
+        filtered = filter_results_for_understanding([cpt_r, removal_r], self._f1_cpt())
+        self.assertIn(cpt_r, filtered)
+        self.assertNotIn(removal_r, filtered)
+
+    def test_f1_cpt_rejects_nta_chunk_when_valid_cpt_chunk_exists(self) -> None:
+        cpt_r = self._make(
+            snippet="CPT integral part of established curriculum DSO I-20.",
+        )
+        nta_r = self._make(
+            snippet="NTA Notice to Appear immigration enforcement.",
+        )
+        filtered = filter_results_for_understanding([cpt_r, nta_r], self._f1_cpt())
+        self.assertNotIn(nta_r, filtered)
+
+    # --- Drops neutrals when strong CPT keeps exist ---
+
+    def test_f1_cpt_drops_neutral_when_strong_cpt_keep_exists(self) -> None:
+        cpt_r = self._make(
+            snippet="CPT curriculum practical training 214.2(f)(10)(i) DSO authorized on I-20.",
+        )
+        neutral_r = self._make(
+            snippet="Employment authorization documents are issued for various immigration categories.",
+        )
+        filtered = filter_results_for_understanding([cpt_r, neutral_r], self._f1_cpt())
+        self.assertIn(cpt_r, filtered)
+        self.assertNotIn(neutral_r, filtered)
+
+    # --- Fallback: never return empty list ---
+
+    def test_f1_cpt_fallback_returns_original_if_all_hard_rejected(self) -> None:
+        results = [
+            self._make(
+                citation="CARON INTERNATIONAL, INC., 19 I&N Dec. 791",
+                snippet="BIA precedent on employer obligations.",
+                source_family="BIA Precedent Decisions",
+            ),
+            self._make(
+                snippet="Notice to Appear NTA removal proceedings immigration court.",
+            ),
+        ]
+        filtered = filter_results_for_understanding(list(results), self._f1_cpt())
+        self.assertEqual(filtered, results)
+
+    # --- Other topics unaffected ---
+
+    def test_f1_opt_not_affected_by_f1_cpt_strict_filter_changes(self) -> None:
+        r = self._make(snippet="F-1 optional practical training OPT 274a.12(c)(3).")
+        self.assertIn(r, filter_results_for_understanding([r], self._f1_opt()))
+
+    def test_stem_opt_not_affected_by_f1_cpt_strict_filter_changes(self) -> None:
+        r = self._make(snippet="STEM OPT 24-month extension Form I-983 Training Plan E-Verify.")
+        self.assertIn(r, filter_results_for_understanding([r], self._stem_opt()))
+
+
 class BiaSourceFamilyRoutingTests(unittest.TestCase):
     """BIA is a preferred source only for nta_removal_high_risk, never for other topics."""
 
