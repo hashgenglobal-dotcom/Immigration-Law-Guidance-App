@@ -98,8 +98,13 @@ class GuidedIntakeDetectionTests(unittest.TestCase):
 
     def test_f1_opt_ead_resolves_to_opt_query(self) -> None:
         q = resolve_retrieval_query("How do I get EAD as an F-1 student on OPT?", None)
-        self.assertIn("STEM OPT", q)
-        self.assertIn("214.2", q)
+        self.assertIn("post-completion OPT", q)
+        self.assertIn("274a.12(c)(3)", q)
+
+    def test_cpt_question_routes_to_cpt_query(self) -> None:
+        q = resolve_retrieval_query("Can I do CPT while studying on F1?", None)
+        self.assertIn("curriculum practical training", q.lower())
+        self.assertIn("214.2(f)(10)(i)", q)
 
     def test_stem_opt_resolves_to_opt_query(self) -> None:
         q = resolve_retrieval_query("How do I extend my STEM OPT work authorization?", None)
@@ -333,9 +338,10 @@ class QueryRewritingH4OPTTests(unittest.TestCase):
 
     # --- OPT EAD still routes to f1_opt_stem_opt (existing behavior preserved) ---
 
-    def test_f1_ead_still_routes_to_f1_opt_stem_opt(self) -> None:
+    def test_f1_ead_routes_to_f1_opt_query(self) -> None:
         q = resolve_retrieval_query("How do I get EAD as an F-1 student on OPT?", None)
-        self.assertIn("STEM OPT", q)
+        self.assertIn("post-completion OPT", q)
+        self.assertIn("274a.12(c)(3)", q)
 
 
 class ChatServiceAutoRoutingTests(unittest.IsolatedAsyncioTestCase):
