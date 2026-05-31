@@ -74,7 +74,7 @@ _CPT_SIGNAL = re.compile(r"\bcpt\b|curriculum\s+practical\s+training", re.I)
 _OPT_SIGNAL = re.compile(r"\bopt\b|optional\s+practical\s+training", re.I)
 _OPT_WORK_CONTEXT = re.compile(
     r"\b(?:work|employ\w*|ead|employment\s+authorization|authorized"
-    r"|after\s+graduation|post[- ]?completion)\b",
+    r"|after\s+graduation|post[- ]?completion|internship|eligib\w*)\b",
     re.I,
 )
 _F1_STUDENT_CONTEXT = re.compile(r"\bf[- ]?1\b|\bstudent\b|\bi[- ]?20\b", re.I)
@@ -161,7 +161,7 @@ _ASYLUM_SIGNAL = re.compile(
 _ASYLUM_EAD_WORK_SIGNAL = re.compile(
     r"\b(?:ead|employment\s+authorization|work\s+permit|work\s+authorization"
     r"|Form\s+I[- ]?765|I[- ]?765|authorized\s+to\s+work"
-    r"|work\s+(?:while|after|before|timing))\b",
+    r"|work\s+(?:while|after|before|timing)|permission\s+to\s+work)\b",
     re.I,
 )
 
@@ -190,7 +190,8 @@ _ASYLUM_EAD_ANSWER_GUIDANCE = (
 
 _I485_PENDING_SIGNAL = re.compile(
     r"\bI[- ]?485\b|adjustment\s+of\s+status|adjustment\s+(?:application|pending|case)"
-    r"|pending\s+(?:adjustment|green\s+card\s+application)",
+    r"|pending\s+(?:adjustment|green\s+card\s+application)"
+    r"|applied\s+for\s+(?:a\s+)?green\s+card",
     re.I,
 )
 _TRAVEL_AP_SIGNAL = re.compile(
@@ -228,9 +229,11 @@ _I485_AP_ANSWER_GUIDANCE = (
 # Do not match: "What is a Notice to Appear?" or "What are NTA requirements?".
 
 _NTA_PERSONAL_SIGNAL = re.compile(
-    r"\b(?:I\s+received|I\s+got|I\s+have|I\s+was\s+given|we\s+received|we\s+got"
+    r"\b(?:I\s+received|I\s+got|I\s+have|I\s+was\s+given|I\s+was\s+served"
+    r"|we\s+received|we\s+got"
     r"|my\s+NTA|our\s+NTA|after\s+receiving|receiving\s+a\s+Notice\s+to\s+Appear"
-    r"|received\s+an?\s+NTA|got\s+an?\s+NTA)\b",
+    r"|received\s+an?\s+NTA|got\s+an?\s+NTA"
+    r"|I(?:'m|\s+am)\s+in\s+removal\s+proceedings)\b",
     re.I,
 )
 _NTA_TOPIC_SIGNAL = re.compile(
@@ -419,13 +422,28 @@ _F1_OPT_REJECT = re.compile(
 _F1_CPT_KEEP = re.compile(
     r"curriculum\s+practical\s+training|\bcpt\b"
     r"|214\.2\s*\(\s*f\s*\)\s*\(\s*10\s*\)\s*\(\s*i\s*\)"
-    r"|\bDSO\b|integral\s+part\s+of\s+(?:the\s+)?established\s+curriculum",
+    r"|\bDSO\b|integral\s+part\s+of\s+(?:the\s+)?established\s+curriculum"
+    r"|cooperative\s+education|required\s+internship|\bpracticum\b"
+    r"|\bI[- ]?20\b",
     re.I,
 )
 
 _F1_CPT_REJECT = re.compile(
     r"stem\s+opt|24[- ]?month\s+extension|Form\s+I-983|post[- ]?completion\s+opt"
     r"|\bH-3\b|\bM-2\b|\bTN\s+(?:visa|status|occupation)\b|adoption|214\.13|\bSEVIS\s+fee\b",
+    re.I,
+)
+
+# Hard rejects for f1_cpt: BIA case law and removal/enforcement content are
+# never relevant to CPT curriculum training.  Checked first — always removed.
+_F1_CPT_HARD_REJECT = re.compile(
+    r"BIA\s+Precedent\s+Decisions"
+    r"|I&N\s+Dec\."
+    r"|Board\s+of\s+Immigration\s+Appeals"
+    r"|\bImmigration\s+Judge\b"
+    r"|removal\s+proceedings"
+    r"|Notice\s+to\s+Appear"
+    r"|\bNTA\b",
     re.I,
 )
 
@@ -608,13 +626,18 @@ def _f1_opt_classify(result: object) -> str:
     return "neutral"
 
 
-def _f1_cpt_keep_result(result: object) -> bool:
+def _f1_cpt_classify(result: object) -> str:
+    """Return 'hard_reject', 'keep', 'soft_reject', or 'neutral' for an f1_cpt result."""
     text = _result_text(result)
+    source_family = getattr(result, "source_family", "") or ""
+    combined = text + " " + source_family
+    if _F1_CPT_HARD_REJECT.search(combined):
+        return "hard_reject"
     if _F1_CPT_KEEP.search(text):
-        return True
+        return "keep"
     if _F1_CPT_REJECT.search(text):
-        return False
-    return True
+        return "soft_reject"
+    return "neutral"
 
 
 def _stem_opt_classify(result: object) -> str:
@@ -696,7 +719,7 @@ def filter_results_for_understanding(
     if understanding.topic == "l2_work_authorization":
         keep_fn = _l2_keep_result
     elif understanding.topic == "f1_cpt":
-        keep_fn = _f1_cpt_keep_result
+        return _apply_strict_filter(results, _f1_cpt_classify)
     elif understanding.topic == "f1_opt":
         return _apply_strict_filter(results, _f1_opt_classify)
     elif understanding.topic == "stem_opt":

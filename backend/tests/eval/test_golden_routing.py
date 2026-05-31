@@ -22,6 +22,11 @@ from app.services.message_classifier import classify_message
 from app.services.query_understanding import understand_query
 
 from .golden_cases import GOLDEN_CASES
+from .paraphrase_cases import PARAPHRASE_CASES
+
+# Combined tuple: canonical golden cases first, then paraphrase/holdout cases.
+# All six test methods iterate over this so both sets receive identical coverage.
+ALL_ROUTING_CASES: tuple = (*GOLDEN_CASES, *PARAPHRASE_CASES)
 
 
 class GoldenRoutingTests(unittest.TestCase):
@@ -31,7 +36,7 @@ class GoldenRoutingTests(unittest.TestCase):
 
     def test_classifier_labels(self) -> None:
         """classify_message() must return the expected label for every case."""
-        for case in GOLDEN_CASES:
+        for case in ALL_ROUTING_CASES:
             with self.subTest(case=case.id):
                 actual = classify_message(case.input)
                 self.assertEqual(
@@ -45,7 +50,7 @@ class GoldenRoutingTests(unittest.TestCase):
 
     def test_query_topics_for_pass_cases(self) -> None:
         """understand_query() topic and intent_label must match for every pass case."""
-        for case in GOLDEN_CASES:
+        for case in ALL_ROUTING_CASES:
             if case.expected_classifier != "pass":
                 continue
             with self.subTest(case=case.id):
@@ -67,7 +72,7 @@ class GoldenRoutingTests(unittest.TestCase):
 
     def test_retrieval_query_required_terms(self) -> None:
         """All required_query_terms must appear (case-insensitive) in retrieval_query."""
-        for case in GOLDEN_CASES:
+        for case in ALL_ROUTING_CASES:
             if case.expected_classifier != "pass" or not case.required_query_terms:
                 continue
             with self.subTest(case=case.id):
@@ -84,7 +89,7 @@ class GoldenRoutingTests(unittest.TestCase):
 
     def test_retrieval_query_forbidden_terms(self) -> None:
         """No forbidden_query_terms may appear (case-insensitive) in retrieval_query."""
-        for case in GOLDEN_CASES:
+        for case in ALL_ROUTING_CASES:
             if case.expected_classifier != "pass" or not case.forbidden_query_terms:
                 continue
             with self.subTest(case=case.id):
@@ -101,7 +106,7 @@ class GoldenRoutingTests(unittest.TestCase):
 
     def test_source_family_requirements(self) -> None:
         """required_source_families must be present; forbidden must not."""
-        for case in GOLDEN_CASES:
+        for case in ALL_ROUTING_CASES:
             if case.expected_classifier != "pass":
                 continue
             if not case.required_source_families and not case.forbidden_source_families:
@@ -127,7 +132,7 @@ class GoldenRoutingTests(unittest.TestCase):
 
     def test_answer_flags(self) -> None:
         """is_high_risk_topic() and is_criminal_info_query() must match expected flags."""
-        for case in GOLDEN_CASES:
+        for case in ALL_ROUTING_CASES:
             with self.subTest(case=case.id):
                 high_risk = is_high_risk_topic(case.input)
                 self.assertEqual(
