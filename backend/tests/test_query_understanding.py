@@ -465,8 +465,15 @@ class F1CptDetectionTests(unittest.TestCase):
     def test_f1_cpt_retrieval_query_contains_cpt(self) -> None:
         self.assertIn("CPT", self._result().retrieval_query)
 
-    def test_f1_cpt_retrieval_query_contains_curriculum_practical_training(self) -> None:
-        self.assertIn("curriculum practical training", self._result().retrieval_query.lower())
+    def test_f1_cpt_retrieval_query_contains_curricular_practical_training(self) -> None:
+        self.assertIn("curricular practical training", self._result().retrieval_query.lower())
+
+    def test_f1_cpt_retrieval_query_no_typo_curriculum(self) -> None:
+        # "curriculum practical training" is a typo; the legal phrase is "curricular".
+        # Production retrieval is keyword-sensitive — the wrong spelling returns empty results.
+        rq = self._result().retrieval_query.lower()
+        self.assertNotIn("curriculum practical training", rq)
+        self.assertIn("curricular practical training", rq)
 
     def test_f1_cpt_retrieval_query_contains_214_2f10i(self) -> None:
         self.assertIn("214.2(f)(10)(i)", self._result().retrieval_query)

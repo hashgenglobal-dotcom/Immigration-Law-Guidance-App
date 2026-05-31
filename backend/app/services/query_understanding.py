@@ -70,7 +70,7 @@ _SOURCE_FAMILY_BOOST = 0.004
 # "What is OPT?" has no work context signal → falls through to general.
 
 _STEM_OPT_SIGNAL = re.compile(r"\bstem\s+opt\b", re.I)
-_CPT_SIGNAL = re.compile(r"\bcpt\b|curriculum\s+practical\s+training", re.I)
+_CPT_SIGNAL = re.compile(r"\bcpt\b|curricul(?:ar|um)\s+practical\s+training", re.I)
 _OPT_SIGNAL = re.compile(r"\bopt\b|optional\s+practical\s+training", re.I)
 _OPT_WORK_CONTEXT = re.compile(
     r"\b(?:work|employ\w*|ead|employment\s+authorization|authorized"
@@ -86,8 +86,8 @@ _F1_OPT_QUERY = (
 )
 
 _F1_CPT_QUERY = (
-    "F-1 curriculum practical training CPT 8 CFR 214.2(f)(10)(i) "
-    "cooperative education internship employer DSO authorization I-20 SEVIS "
+    "F-1 CPT curricular practical training 8 CFR 214.2(f)(10)(i) "
+    "cooperative education internship practicum DSO authorization I-20 SEVIS "
     "integral part of established curriculum"
 )
 
