@@ -3,18 +3,11 @@
 Extends GOLDEN_CASES with alternative phrasings to measure generalization.
 No DB or Ollama required — all pure-function calls only.
 
-ROUTING GAP cases are marked with ``# ROUTING GAP`` comments.  They
-document phrasings that a human would route to a specific topic but that
-current regex signals in query_understanding.py do not cover.  Each gap
-case is written with ``expected_topic="general"`` (current behavior) so
-the test suite stays green.
-
-Fixing a routing gap requires:
-  1. A targeted signal change in query_understanding.py
-  2. Updating the corresponding case's expected_topic / expected_intent_label
-  3. Re-running the full suite to confirm no sibling regressions
-
-Do not change app code in this phase.
+Near-miss cases (expected_topic="general") are intentional: they document
+phrasings that correctly fall through to general because only one of the
+two required co-occurrence signals fires (e.g. OPT signal without work
+context, L-2 signal without work context, NTA topic without personal signal).
+These are not gaps — they guard against over-eager routing.
 """
 
 from __future__ import annotations
@@ -71,32 +64,25 @@ PARAPHRASE_CASES: tuple[GoldenCase, ...] = (
         required_source_families=_NTA_SOURCE_FAMILIES,
         expected_high_risk=True,
     ),
-    # ROUTING GAP: "I was served" is the standard legal phrase for receiving
-    # process service, but _NTA_PERSONAL_SIGNAL only covers "I was given" —
-    # not "I was served".  The topic signal ("NTA") fires but personal signal
-    # fails, so the query falls through to general.
-    # Fix: add r"I\s+was\s+served" to _NTA_PERSONAL_SIGNAL in query_understanding.py.
     GoldenCase(
         id="para_nta_served_routing_gap",
         input="I was served an NTA and have a court hearing coming up.",
         expected_classifier="pass",
-        expected_topic="general",       # current behavior — routing gap
-        expected_intent_label="general_info",
-        expected_high_risk=True,        # "NTA" + "court hearing" fire is_high_risk_topic
+        expected_topic="nta_removal_high_risk",
+        expected_intent_label="case_specific_or_risk",
+        required_query_terms=_NTA_QUERY_TERMS,
+        required_source_families=_NTA_SOURCE_FAMILIES,
+        expected_high_risk=True,
     ),
-    # ROUTING GAP: "I am in removal proceedings" is an unambiguous personal
-    # situation, but _NTA_PERSONAL_SIGNAL anchors on event-of-receipt signals
-    # ("I received", "I got", etc.) and does not cover ongoing-status phrases
-    # like "I am in [removal proceedings]".
-    # Fix: add r"I\s+am\s+in\s+removal\s+proceedings" (or a broader pattern)
-    # to _NTA_PERSONAL_SIGNAL in query_understanding.py.
     GoldenCase(
         id="para_nta_in_proceedings_routing_gap",
         input="I am in removal proceedings and need to know my rights.",
         expected_classifier="pass",
-        expected_topic="general",       # current behavior — routing gap
-        expected_intent_label="general_info",
-        expected_high_risk=True,        # "removal" triggers is_high_risk_topic
+        expected_topic="nta_removal_high_risk",
+        expected_intent_label="case_specific_or_risk",
+        required_query_terms=_NTA_QUERY_TERMS,
+        required_source_families=_NTA_SOURCE_FAMILIES,
+        expected_high_risk=True,
     ),
     # Near-miss: definitional question — no personal signal → topic stays general.
     # "Notice to Appear" still fires is_high_risk_topic.
@@ -202,29 +188,23 @@ PARAPHRASE_CASES: tuple[GoldenCase, ...] = (
         required_query_terms=_F1_CPT_PARA_QUERY_TERMS,
         forbidden_source_families=_BIA_FORBIDDEN,
     ),
-    # ROUTING GAP: "internship" is the primary CPT use-case but is absent from
-    # both _OPT_WORK_CONTEXT and _F1_STUDENT_CONTEXT.  "Can I do an internship"
-    # contains no F-1, student, or I-20 signal, so the CPT branch never fires.
-    # Fix: add r"\binternship\b" to _OPT_WORK_CONTEXT in query_understanding.py,
-    # or introduce a dedicated CPT work-context signal.
     GoldenCase(
         id="para_f1_cpt_internship_routing_gap",
         input="Can I do an internship through CPT authorization?",
         expected_classifier="pass",
-        expected_topic="general",       # current behavior — routing gap
+        expected_topic="f1_cpt",
         expected_intent_label="general_info",
+        required_query_terms=_F1_CPT_PARA_QUERY_TERMS,
+        forbidden_source_families=_BIA_FORBIDDEN,
     ),
-    # ROUTING GAP: both CPT and OPT signals fire, but _F1_STUDENT_CONTEXT has
-    # no match (no F-1, student, I-20) and _OPT_WORK_CONTEXT has no match
-    # ("eligibility" is not a work-context word; "OPT" is not in that pattern).
-    # Fix: add r"\beligib\w*\b" to _OPT_WORK_CONTEXT, or extend _F1_STUDENT_CONTEXT
-    # to cover cross-program questions like "CPT affect OPT".
     GoldenCase(
         id="para_f1_cpt_opt_eligibility_routing_gap",
         input="Does full-time CPT affect my OPT eligibility?",
         expected_classifier="pass",
-        expected_topic="general",       # current behavior — routing gap
+        expected_topic="f1_cpt",
         expected_intent_label="general_info",
+        required_query_terms=_F1_CPT_PARA_QUERY_TERMS,
+        forbidden_source_families=_BIA_FORBIDDEN,
     ),
 
     # ── E. STEM OPT paraphrases ──────────────────────────────────────────────
@@ -265,17 +245,14 @@ PARAPHRASE_CASES: tuple[GoldenCase, ...] = (
     # work (while|after|before|timing).
     # "Permission to work" is a routing gap — not in the signal.
 
-    # ROUTING GAP: "permission to work" is natural English for work authorization
-    # but is absent from _ASYLUM_EAD_WORK_SIGNAL.  Both asylum signal ("asylum")
-    # and the intent are present; only the EAD/work signal match fails.
-    # Fix: add r"permission\s+to\s+work" to _ASYLUM_EAD_WORK_SIGNAL in
-    # query_understanding.py.
     GoldenCase(
         id="para_asylum_ead_permission_to_work_routing_gap",
         input="I applied for asylum and need permission to work.",
         expected_classifier="pass",
-        expected_topic="general",       # current behavior — routing gap
-        expected_intent_label="general_info",
+        expected_topic="asylum_ead",
+        expected_intent_label="case_specific_or_risk",
+        required_query_terms=_ASYLUM_EAD_PARA_QUERY_TERMS,
+        forbidden_source_families=_BIA_FORBIDDEN,
     ),
     GoldenCase(
         id="para_asylum_ead_work_permit_timeline",
@@ -330,18 +307,14 @@ PARAPHRASE_CASES: tuple[GoldenCase, ...] = (
         required_query_terms=_AP_QUERY_TERMS,
         forbidden_source_families=_BIA_FORBIDDEN,
     ),
-    # ROUTING GAP: "applied for a green card" is a common lay phrasing for a
-    # pending I-485, but _I485_PENDING_SIGNAL only covers
-    # "pending green card application" (pending BEFORE green card), not
-    # "applied for a green card" (applied AFTER implies the same state).
-    # Fix: add r"applied\s+for\s+(?:a\s+)?green\s+card" to _I485_PENDING_SIGNAL
-    # in query_understanding.py.
     GoldenCase(
         id="para_i485_green_card_travel_routing_gap",
         input="I applied for a green card. Can I leave the country before approval?",
         expected_classifier="pass",
-        expected_topic="general",       # current behavior — routing gap
-        expected_intent_label="general_info",
+        expected_topic="i485_advance_parole",
+        expected_intent_label="case_specific_or_risk",
+        required_query_terms=_AP_QUERY_TERMS,
+        forbidden_source_families=_BIA_FORBIDDEN,
     ),
     # Near-miss: travel signal ("advance parole") fires but no I-485/adjustment
     # signal → topic stays general (same gating logic as golden case
