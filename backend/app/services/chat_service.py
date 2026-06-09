@@ -47,7 +47,8 @@ from app.services.answer_formatting import (
 from app.services.ollama_chat_client import OllamaChatClient
 from app.services.mvp_source_scope import mvp_source_families_from_versions
 from app.services.retrieval_service import RetrievalService
-
+from app.services.query_rewriter import rewrite_query, build_metadata_filter
+from app.services.reranker import rerank_results
 _DISCLAIMER = (
     "This is general legal information only. It is not legal advice, does not create "
     "an attorney-client relationship, and does not replace a qualified immigration attorney. "
@@ -60,22 +61,31 @@ _SYSTEM_PROMPT = (
     "Do not use any knowledge beyond these sources.\n\n"
     "Do not invent laws, deadlines, eligibility rules, form numbers, processing times, or citations. "
     "If a detail is not in the provided sources, do not state it.\n\n"
-    "Answering from sources:\n"
-    "- If at least one retrieved source directly answers the user's question, provide a direct answer "
-    "based on that source and cite it using the exact citation string.\n"
-    "- Prioritize the most directly relevant retrieved sources. Consider all provided sources, but do "
-    "not force less relevant sources into the answer unless they genuinely help.\n"
-    "- Do not include a generic uncertainty statement after giving a direct, source-supported answer.\n"
-    "- Use uncertainty only for parts of the question that are not answered by the retrieved sources.\n\n"
-    "If none of the retrieved sources answer the question, say clearly that you cannot answer "
-    "confidently from the available sources and recommend consulting a qualified immigration attorney.\n\n"
-    "When describing what a source says someone 'may request' or 'is eligible to request', explain it "
-    "as eligibility to make a request — not as a guarantee of approval.\n\n"
-    "Explain in plain language that a non-expert can understand.\n\n"
-    "Always cite the provided source citations when making statements. "
-    "Use the exact citation strings from the retrieved sources.\n\n"
-    "This is general legal information, not legal advice, and does not create an "
-    "attorney-client relationship.\n\n"
+    "ANSWER FORMAT — You MUST always use this exact structure:\n\n"
+    "Short answer:\n"
+    "A clear, direct 2-3 sentence answer to the question. No asterisks or bold markers.\n\n"
+    "What this means:\n"
+    "A plain-language explanation of what the short answer means for the person. "
+    "Include specific eligibility criteria, conditions, or requirements from the sources. "
+    "Cite the exact CFR section or legal source inline.\n\n"
+    "Typical next steps:\n"
+    "1. First actionable step the person should take.\n"
+    "2. Second actionable step.\n"
+    "3. Third actionable step.\n"
+    "4. Consult a qualified immigration attorney for case-specific guidance.\n\n"
+    "Official sources:\n"
+    "List each cited source on its own line using the exact citation string from the retrieved sources.\n\n"
+    "Important caution:\n"
+    "A brief risk note specific to the topic. End with: This is general legal information only, "
+    "not legal advice, and does not create an attorney-client relationship.\n\n"
+    "RULES:\n"
+    "- NEVER skip any section. Always include all five sections.\n"
+    "- NEVER use ** bold markers ** or markdown formatting.\n"
+    "- If the sources answer the question, give a confident direct answer.\n"
+    "- If the sources partially answer, answer what you can and note what is not covered.\n"
+    "- Only say you cannot answer if NONE of the sources are relevant.\n"
+    "- Always cite the exact citation strings from the retrieved sources.\n"
+    "- Explain in plain language that a non-expert can understand.\n\n"
     "Do not provide guidance on how to commit fraud, misrepresent facts on applications, "
     "evade immigration law, avoid court appearances, or circumvent legal responsibilities. "
     "Decline such requests clearly."
@@ -364,7 +374,7 @@ class ChatService:
         # Checked before H-4 process (both match H-4; EAD is more specific).
         # Case-specific questions (denials, "my H-4") are not caught here and
         # proceed to normal retrieval.
-        if is_h4_ead_faq_query(message):
+        if is_h4_ead_faq_query(message) and not rewrite_query(message).is_multi_topic:
             return ChatResponse(
                 query_hash=query_hash,
                 answer=_H4_EAD_SAFE_ANSWER,
@@ -432,7 +442,7 @@ class ChatService:
 
         # H-4 process FAQ: prebuilt safe answer for broad informational questions.
         # Case-specific questions proceed to normal retrieval.
-        if is_h4_process_faq_query(message):
+        if is_h4_process_faq_query(message) and not rewrite_query(message).is_multi_topic:
             return ChatResponse(
                 query_hash=query_hash,
                 answer=_H4_PROCESS_SAFE_ANSWER,
@@ -481,12 +491,39 @@ class ChatService:
         )
         use_memory = should_use_conversation_context(message, thread)
 
-        results, active_datasets, active_dataset = (
-            await self._retrieval_service.retrieve_hybrid(
-                query=retrieval_query,
-                top_k=top_k,
+        # Query rewriter — split multi-topic questions into sub-queries
+        active_datasets = []
+        active_dataset = None
+        multi_rewritten = rewrite_query(message)
+
+        # Legal-specific routing should win over the generic multi-topic splitter.
+        # If guided_intake/query_understanding already rewrote the message into a
+        # precise legal retrieval query, do not override it with generic sub-queries.
+        guided_rewrite_applied = rewritten.strip() != message.strip()
+
+        if multi_rewritten.is_multi_topic and not guided_rewrite_applied:
+            all_results = []
+            seen_chunk_ids = set()
+            for sub_query in multi_rewritten.sub_queries:
+                sub_results, active_datasets, active_dataset = (
+                    await self._retrieval_service.retrieve_hybrid(
+                        query=sub_query,
+                        top_k=3,
+                    )
+                )
+                for r in sub_results:
+                    if r.chunk_id not in seen_chunk_ids:
+                        seen_chunk_ids.add(r.chunk_id)
+                        all_results.append(r)
+            all_results.sort(key=lambda r: r.hybrid_score, reverse=True)
+            results = all_results[:top_k]
+        else:
+            results, active_datasets, active_dataset = (
+                await self._retrieval_service.retrieve_hybrid(
+                    query=retrieval_query,
+                    top_k=top_k,
+                )
             )
-        )
         mvp_sources = mvp_source_families_from_versions(active_datasets)
 
         if not results:
@@ -500,7 +537,8 @@ class ChatService:
                 mvp_sources=mvp_sources,
                 used_chunks=[],
             )
-
+        # Metadata-boosted reranking — boost on-topic chunks, penalize off-topic
+        results = rerank_results(results, multi_rewritten, message)
         # Topic-aware post-retrieval filter: remove contaminating chunks before
         # building the LLM prompt.  Falls back to the original list if all
         # results would be removed, so retrieval is never made empty here.

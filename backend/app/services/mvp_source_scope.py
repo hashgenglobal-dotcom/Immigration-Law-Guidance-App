@@ -2,7 +2,7 @@
 
 The MVP corpus is five co-active dataset versions (no combined dataset row):
   Canonical name                Supabase alias      Source family
-  ecfr-title8-full-*            eCFR-v* / ecfr-v*   eCFR Title 8 (regulations)
+  ecfr-title8-full-* / ecfr-title8-smart-*  eCFR-v* / ecfr-v*   eCFR Title 8 (regulations)
   ina-*                         ina-v*               INA / U.S. Code Title 8 (statutes)
   uscis-pm-*                    uscis-pm-v*          USCIS Policy Manual (policy)
   uscis-official-pages-*                             USCIS Official Pages (guidance)
@@ -14,7 +14,7 @@ Sample eCFR preview datasets (ecfr-title8-sample-*) must have is_active=FALSE.
 from __future__ import annotations
 
 # Dataset version name prefixes for MVP-active corpora (status='active' in DB).
-_MVP_ECFR_PREFIX = "ecfr-title8-full"
+_MVP_ECFR_PREFIXES = ("ecfr-title8-full", "ecfr-title8-smart")
 _MVP_INA_PREFIX = "ina-"
 _MVP_USCIS_PREFIX = "uscis-pm-"
 _MVP_USCIS_PAGES_PREFIX = "uscis-official-pages"
@@ -34,7 +34,7 @@ def source_family_from_version(version_name: str | None) -> str | None:
         return "eCFR Title 8 (sample — non-MVP)"
 
     # eCFR Title 8 — canonical and Supabase alias (eCFR-v / ecfr-v).
-    if n.startswith(_MVP_ECFR_PREFIX) or n.startswith("ecfr-v"):
+    if n.startswith(_MVP_ECFR_PREFIXES) or n.startswith("ecfr-v"):
         return "eCFR Title 8"
 
     # INA — canonical (ina-2026-*) and Supabase alias (ina-v2026-*) both

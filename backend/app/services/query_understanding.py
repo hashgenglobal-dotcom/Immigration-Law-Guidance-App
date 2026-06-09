@@ -384,22 +384,32 @@ def understand_query(
 # Fallback: if filtering would empty the list, return the original list.
 
 _L2_KEEP = re.compile(
-    r"L-2S?|L spouses|spouses of L-1 nonimmigrants"
-    r"|employment authorized incident to status"
-    r"|INA 214\(c\)\(2\)\(E\)"
+    r"\bL[- ]?2S?\b"
+    r"|\bL\s+spouses\b"
+    r"|\bE\s+and\s+L\s+spouses\b"
+    r"|\bL[- ]?2\s+nonimmigrant\s+dependent\s+spouses?\b"
+    r"|\bspouses\s+of\s+L[- ]?1\s+nonimmigrants\b"
+    r"|\bI[- ]?94.{0,80}\bL[- ]?2S\b"
+    r"|\bL[- ]?2S\b.{0,80}\bI[- ]?94\b"
+    r"|\bL[- ]?2\b.{0,120}employment\s+authorized\s+incident\s+to\s+status"
+    r"|employment\s+authorized\s+incident\s+to\s+status.{0,120}\bL[- ]?2\b"
+    r"|INA\s+214\(c\)\(2\)\(E\)"
     r"|Vol\.?\s*10,?\s*Part\s*B,?\s*Ch\.?\s*2",
     re.I,
 )
 
 _L2_REJECT = re.compile(
-    r"H-4|H-1B|approved Form I-140|AC21"
-    r"|U\.S\. citizen spouse|naturalization"
-    r"|regularly stationed abroad|I-751"
-    r"|V nonimmigrant|lawful permanent residents?"
-    r"|T-1 nonimmigrant|T nonimmigrant derivative"
-    r"|O-3 dependent|CNMI Investor"
-    r"|Temporary Protected Status|\bTPS\b"
-    r"|\basylum\b|adjustment application",
+    r"H[- ]?4|H[- ]?1B|approved\s+Form\s+I[- ]?140|AC21"
+    r"|J[- ]?2\s+nonimmigrants?|J[- ]?2\b"
+    r"|U[- ]?[2345]\b|U\s+nonimmigrant|Form\s+I[- ]?918"
+    r"|I[- ]?765V|Abused\s+Nonimmigrant\s+Spouse"
+    r"|U\.S\.\s+citizen\s+spouse|naturalization"
+    r"|regularly\s+stationed\s+abroad|I[- ]?751"
+    r"|V\s+nonimmigrant|lawful\s+permanent\s+residents?"
+    r"|T[- ]?1\s+nonimmigrant|T\s+nonimmigrant\s+derivative"
+    r"|O[- ]?3\s+dependent|CNMI\s+Investor"
+    r"|Temporary\s+Protected\s+Status|\bTPS\b"
+    r"|\basylum\b|adjustment\s+application",
     re.I,
 )
 
@@ -605,13 +615,20 @@ def _result_text(result: object) -> str:
     return " ".join(parts)
 
 
-def _l2_keep_result(result: object) -> bool:
+def _l2_classify(result: object) -> str:
+    """Return 'keep', 'hard_reject', or 'neutral' for an L-2 work result.
+
+    Important: a generic phrase like "employment authorized incident to status"
+    is not enough by itself. The result must have an L-2/L-2S/L spouse signal.
+    This preserves multi-source retrieval while removing unrelated J-2, U visa,
+    H-4, TPS, asylum, and generic I-765 contamination.
+    """
     text = _result_text(result)
     if _L2_KEEP.search(text):
-        return True
+        return "keep"
     if _L2_REJECT.search(text):
-        return False
-    return True
+        return "hard_reject"
+    return "neutral"
 
 
 def _f1_opt_classify(result: object) -> str:
@@ -717,7 +734,7 @@ def filter_results_for_understanding(
     For all other topics: returns results unchanged.
     """
     if understanding.topic == "l2_work_authorization":
-        keep_fn = _l2_keep_result
+        return _apply_strict_filter(results, _l2_classify)
     elif understanding.topic == "f1_cpt":
         return _apply_strict_filter(results, _f1_cpt_classify)
     elif understanding.topic == "f1_opt":

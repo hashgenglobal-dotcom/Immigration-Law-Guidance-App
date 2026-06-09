@@ -22,8 +22,8 @@ import httpx
 
 from app.core.config import get_settings
 
-DEFAULT_EMBEDDING_MODEL = "nomic-embed-text"
-EXPECTED_EMBEDDING_DIMENSIONS = 768
+DEFAULT_EMBEDDING_MODEL = "mxbai-embed-large"
+EXPECTED_EMBEDDING_DIMENSIONS = 1024
 
 
 class EmbeddingClientError(Exception):
@@ -40,7 +40,7 @@ async def embed_query(
     model: str | None = None,
     ollama_base_url: str | None = None,
     ollama_api_key: str | None = None,
-    timeout_seconds: float = 30.0,
+    timeout_seconds: float = 120.0,
 ) -> list[float]:
     """Embed a single query string using Ollama (local daemon or Ollama Cloud).
 
@@ -51,7 +51,7 @@ async def embed_query(
         sent. The raw text is never logged or persisted.
     model:
         Ollama model name. Defaults to ``settings.ollama_embed_model``
-        (``nomic-embed-text``, 768 dims). Pass an explicit value to
+        (``mxbai-embed-large``, 1024 dims). Pass an explicit value to
         override the settings default.
     ollama_base_url:
         Ollama endpoint. Defaults to ``settings.ollama_base_url``.
@@ -67,7 +67,7 @@ async def embed_query(
     Returns
     -------
     list[float]
-        A 768-dimensional embedding vector.
+        A 1024-dimensional embedding vector.
 
     Raises
     ------
@@ -161,7 +161,7 @@ def format_pgvector_literal(vector: list[float]) -> str:
     Raises
     ------
     EmbeddingClientError
-        If ``vector`` does not have exactly 768 elements.
+        If ``vector`` does not have exactly 1024 elements.
     """
     if len(vector) != EXPECTED_EMBEDDING_DIMENSIONS:
         raise EmbeddingClientError(
