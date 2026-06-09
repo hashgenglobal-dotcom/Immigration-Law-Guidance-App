@@ -35,7 +35,7 @@ router = APIRouter(tags=["retrieval"])
     response_model=RetrievalResponse,
     summary="Hybrid retrieval over active public legal chunks",
     description=(
-        "Embed the query locally with Ollama nomic-embed-text, run hybrid "
+        "Embed the query locally with Ollama mxbai-embed-large, run hybrid "
         "vector+keyword search (pgvector cosine distance + plainto_tsquery + "
         "Reciprocal Rank Fusion) over active legal_chunks, and return ranked "
         "citation results. Retrieval only — no answer generation, no LLM chat, "

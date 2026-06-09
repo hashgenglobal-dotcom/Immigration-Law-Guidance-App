@@ -87,10 +87,10 @@ class Settings(BaseSettings):
     )
     # Embedding model used for query vectorization at retrieval time.
     # Must match the model used to embed legal_chunks at index time.
-    # Defaults to nomic-embed-text (768 dims). Override when using a
+    # Defaults to mxbai-embed-large (1024 dims) for RAG v2. Override when using a
     # cloud embedding provider that requires a different model name.
     ollama_embed_model: str = Field(
-        default="nomic-embed-text",
+        default="mxbai-embed-large",
         validation_alias="OLLAMA_EMBED_MODEL",
     )
 

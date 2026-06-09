@@ -20,7 +20,7 @@ import httpx
 from app.core.config import get_settings
 
 DEFAULT_CHAT_MODEL = "llama3.1:8b"
-DEFAULT_CHAT_TIMEOUT_SECONDS = 60
+DEFAULT_CHAT_TIMEOUT_SECONDS = 300
 
 _VALID_ROLES = frozenset({"system", "user", "assistant"})
 
